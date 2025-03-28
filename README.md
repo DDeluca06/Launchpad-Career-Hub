@@ -1,4 +1,6 @@
 # Launchpad-Job-Portal
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/DDeluca06/Launchpad-Career-Hub?utm_source=oss&utm_medium=github&utm_campaign=DDeluca06%2FLaunchpad-Career-Hub&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 Active Work in Progress project being created on behalf of Launchpad Philly.
 
 # Tech Stack
