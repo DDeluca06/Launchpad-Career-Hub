@@ -1,79 +1,40 @@
 {
   "pages": {
-    "/_not-found/page": [
-      "static/chunks/webpack-013194c79a4f4649.js",
-      "static/chunks/11eacf67-39ccd5e035ee687e.js",
-      "static/chunks/954-77f908242adf2a63.js",
-      "static/chunks/main-app-7188a5549cb6e39e.js",
-      "static/chunks/app/_not-found/page-f2f9b33be6d6cfa5.js"
-    ],
     "/layout": [
-      "static/chunks/webpack-013194c79a4f4649.js",
-      "static/chunks/11eacf67-39ccd5e035ee687e.js",
-      "static/chunks/954-77f908242adf2a63.js",
-      "static/chunks/main-app-7188a5549cb6e39e.js",
-      "static/css/56e05421941e44f5.css",
-      "static/chunks/app/layout-3e3eeed6e68d304c.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
     ],
     "/admin/dashboard/page": [
-      "static/chunks/webpack-013194c79a4f4649.js",
-      "static/chunks/11eacf67-39ccd5e035ee687e.js",
-      "static/chunks/954-77f908242adf2a63.js",
-      "static/chunks/main-app-7188a5549cb6e39e.js",
-      "static/chunks/950-82de354ca3c5fa48.js",
-      "static/chunks/228-e568b6415f042b52.js",
-      "static/chunks/app/admin/dashboard/page-b7b7040fc3e42318.js"
-    ],
-    "/admin/jobs/loading": [
-      "static/chunks/webpack-013194c79a4f4649.js",
-      "static/chunks/11eacf67-39ccd5e035ee687e.js",
-      "static/chunks/954-77f908242adf2a63.js",
-      "static/chunks/main-app-7188a5549cb6e39e.js",
-      "static/chunks/app/admin/jobs/loading-941ed85c91c22f22.js"
-    ],
-    "/admin/jobs/page": [
-      "static/chunks/webpack-013194c79a4f4649.js",
-      "static/chunks/11eacf67-39ccd5e035ee687e.js",
-      "static/chunks/954-77f908242adf2a63.js",
-      "static/chunks/main-app-7188a5549cb6e39e.js",
-      "static/chunks/950-82de354ca3c5fa48.js",
-      "static/chunks/228-e568b6415f042b52.js",
-      "static/chunks/app/admin/jobs/page-0b93ea5b6f87a9dd.js"
-    ],
-    "/applicant/dashboard/page": [
-      "static/chunks/webpack-013194c79a4f4649.js",
-      "static/chunks/11eacf67-39ccd5e035ee687e.js",
-      "static/chunks/954-77f908242adf2a63.js",
-      "static/chunks/main-app-7188a5549cb6e39e.js",
-      "static/chunks/032c0ff8-b5dfdb597dfb05b0.js",
-      "static/chunks/950-82de354ca3c5fa48.js",
-      "static/chunks/228-e568b6415f042b52.js",
-      "static/chunks/788-92b2cffb8f8491b6.js",
-      "static/chunks/app/applicant/dashboard/page-3a0f82f8d2cdf17f.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/dashboard/page.js"
     ],
     "/page": [
-      "static/chunks/webpack-013194c79a4f4649.js",
-      "static/chunks/11eacf67-39ccd5e035ee687e.js",
-      "static/chunks/954-77f908242adf2a63.js",
-      "static/chunks/main-app-7188a5549cb6e39e.js",
-      "static/chunks/950-82de354ca3c5fa48.js",
-      "static/chunks/app/page-515167f3f7a97474.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
+    ],
+    "/applicant/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/applicant/dashboard/page.js"
     ],
     "/applicant/jobs/loading": [
-      "static/chunks/webpack-013194c79a4f4649.js",
-      "static/chunks/11eacf67-39ccd5e035ee687e.js",
-      "static/chunks/954-77f908242adf2a63.js",
-      "static/chunks/main-app-7188a5549cb6e39e.js",
-      "static/chunks/app/applicant/jobs/loading-25bdad7e02ce3e92.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/applicant/jobs/loading.js"
     ],
     "/applicant/jobs/page": [
-      "static/chunks/webpack-013194c79a4f4649.js",
-      "static/chunks/11eacf67-39ccd5e035ee687e.js",
-      "static/chunks/954-77f908242adf2a63.js",
-      "static/chunks/main-app-7188a5549cb6e39e.js",
-      "static/chunks/950-82de354ca3c5fa48.js",
-      "static/chunks/228-e568b6415f042b52.js",
-      "static/chunks/app/applicant/jobs/page-901a717a6941833b.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/applicant/jobs/page.js"
+    ],
+    "/_not-found/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }
