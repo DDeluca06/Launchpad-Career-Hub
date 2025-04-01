@@ -1,0 +1,8 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/admin/jobs/page": "/admin/jobs",
+  "/applicant/dashboard/page": "/applicant/dashboard",
+  "/admin/dashboard/page": "/admin/dashboard",
+  "/applicant/jobs/page": "/applicant/jobs",
+  "/page": "/"
+}
