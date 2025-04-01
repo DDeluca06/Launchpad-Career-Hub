@@ -91,17 +91,63 @@ Launchpad Career Hub is a modern web application built with Next.js 15, TypeScri
 4. Write unit tests for critical functionality
 5. Keep dependencies up to date
 6. Regular security audits
+7. Rebase instead of merge
 
 ## Deployment
-- The application is configured for deployment on Vercel
-- Environment variables should be properly configured
-- Build and deployment processes are automated through GitHub Actions
+
+### Server Information
+- **Host**: DigitalOcean Droplet
+- **OS**: Ubuntu 24.10 x86_64
+- **Kernel**: 6.11.0-21-generic
+- **Memory**: 960MiB
+- **CPU**: 1 Core @ 2.294GHz
+
+### Deployment Process
+The application is deployed using GitHub Actions with the following workflow:
+1. Build the Next.js application
+2. Upload build artifacts
+3. Deploy to production server
+4. Restart the application using PM2
+
+### Required GitHub Secrets
+The following secrets need to be configured in GitHub repository settings:
+- `SSH_PRIVATE_KEY`: SSH key for server access
+- `SERVER_USER`: Server username 
+- `SERVER_HOST`: Server IP 
+- `SERVER_PATH`: Application path on server
+
+### PM2 Configuration
+The application runs using PM2 with the following configuration:
+```javascript
+{
+  name: 'next-app',
+  script: 'npm',
+  args: 'start',
+  env: {
+    NODE_ENV: 'production',
+    PORT: 3000
+  },
+  instances: 1,
+  autorestart: true,
+  watch: false,
+  max_memory_restart: '1G'
+}
+```
+
+### Deployment Commands
+The deployment process includes:
+1. Creating necessary directories
+2. Copying build files and dependencies
+3. Installing production dependencies
+4. Restarting the PM2 process
 
 ## Troubleshooting
 - Check the Next.js documentation for common issues
 - Review the console for error messages
 - Ensure all dependencies are properly installed
 - Clear `.next` cache if experiencing build issues
+- Check PM2 logs for runtime issues
+- Verify server connectivity and permissions
 
 ## Support
 For internal support:
@@ -116,6 +162,8 @@ For internal support:
 - Implement proper authentication and authorization
 - Regular security audits
 - Protect sensitive information
+- Never commit credentials or secrets
+- Use environment variables for sensitive data
 
 ## Maintenance
 - Regular dependency updates
@@ -123,6 +171,8 @@ For internal support:
 - Error tracking
 - User feedback collection
 - Regular code reviews
+- Server resource monitoring
+- PM2 process management
 
 ## Future Improvements
 - Implement comprehensive testing
@@ -130,3 +180,5 @@ For internal support:
 - Enhance documentation
 - Improve accessibility
 - Add internationalization support
+- Set up automated backups
+- Implement CI/CD pipeline improvements
