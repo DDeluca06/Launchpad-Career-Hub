@@ -1,4 +1,4 @@
-// File: /Users/archer/projects/node/Launchpad-Career-Hub/app/page.tsx
+// File: C:\Users\bryan\Launchpad-Career-Hub\app\page.tsx
 import * as entry from '../../../app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

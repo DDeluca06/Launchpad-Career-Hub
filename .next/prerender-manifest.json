@@ -49,30 +49,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/admin/jobs": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/admin/jobs",
-      "dataRoute": "/admin/jobs.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/": {
       "experimentalBypassFor": [
         {
@@ -88,6 +64,30 @@
       "initialRevalidateSeconds": false,
       "srcRoute": "/",
       "dataRoute": "/index.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
+    "/admin/jobs": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/admin/jobs",
+      "dataRoute": "/admin/jobs.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -125,8 +125,8 @@
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "450ded1148f97a2d561eedd494909f99",
-    "previewModeSigningKey": "b0cacf0115820c6ec538d57532578fdf3374197a5d2ed8b8f07e8ec043f60250",
-    "previewModeEncryptionKey": "0a3199c3a1ab371921f6f3fe37b1e33db8305f46be7b24d3fe155bf135eb6f1a"
+    "previewModeId": "3d7dec45a02927da4d184255e16d1a4b",
+    "previewModeSigningKey": "9204b2cc65f6a3b4b5d7dad1ce4d860df3ca3387308087673e2ce0c5056748fc",
+    "previewModeEncryptionKey": "9119c2a530778a419532c85c7a065e11ed42fc156a53d602cabd4f54e0126927"
   }
 }

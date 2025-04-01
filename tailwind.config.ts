@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss"
+import { tailwindColors } from "./lib/colors"
 
 const config = {
   darkMode: ["class"],
@@ -52,6 +53,24 @@ const config = {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        // Launchpad Brand Colors
+        launchpad: {
+          // Logo colors
+          gray: `#${tailwindColors.launchpadGray}`,
+          orange: `#${tailwindColors.launchpadOrange}`,
+          green: `#${tailwindColors.launchpadGreen}`,
+          blue: `#${tailwindColors.launchpadBlue}`,
+          
+          // Extended palette
+          teal: `#${tailwindColors.launchpadTeal}`,
+          brown: `#${tailwindColors.launchpadBrown}`,
+          darkGreen: `#${tailwindColors.launchpadDarkGreen}`,
+          lightBlue: `#${tailwindColors.launchpadLightBlue}`,
+          peach: `#${tailwindColors.launchpadPeach}`,
+          lightGreen: `#${tailwindColors.launchpadLightGreen}`,
+          offWhite: `#${tailwindColors.launchpadOffWhite}`,
+          darkGray: `#${tailwindColors.launchpadDarkGray}`,
         },
       },
       borderRadius: {
