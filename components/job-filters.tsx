@@ -1,14 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
-import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+import { Label } from "@/components/ui/basic/label"
+import { Checkbox } from "@/components/ui/form/checkbox"
+import { Input } from "@/components/ui/form/input"
+import { Slider } from "@/components/ui/basic/slider"
+import { Switch } from "@/components/ui/basic/switch"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/form/radio-group"
+import { ScrollArea } from "@/components/ui/layout/scroll-area"
+import { Separator } from "@/components/ui/basic/separator"
 import { Search, Briefcase, MapPin, BadgeDollarSign, GraduationCap } from "lucide-react"
 
 interface JobFiltersProps {

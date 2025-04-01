@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { JobCard, JobStatus } from "@/components/job-card";
 import { DragDropContext, Droppable, Draggable, DroppableProvided, DroppableStateSnapshot, DraggableProvided, DraggableStateSnapshot, DropResult } from "react-beautiful-dnd";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic/card";
+import { Button } from "@/components/ui/basic/button";
+import { Input } from "@/components/ui/form/input";
 import { Search, Filter, Plus } from "lucide-react";
 import { jobService, applicationService, userService, Application, Job, User } from "@/lib/local-storage";
 import { motion, AnimatePresence } from "framer-motion";
-import { MultiPurposeModal } from "@/components/ui/multi-purpose-modal";
+import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
 import { JobFilters } from "@/components/job-filters";
 
 // Update the Job interface to extend the one from local-storage

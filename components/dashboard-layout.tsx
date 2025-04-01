@@ -2,11 +2,11 @@
 
 import type React from "react"
 import { DashboardNav } from "@/components/dashboard-nav"
-import { LaunchpadImage } from "@/components/ui/image"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { LaunchpadImage } from "@/components/ui/basic/image"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
 import { Bell, Menu } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
+import { Button } from "@/components/ui/basic/button"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/layout/sheet"
 import { motion } from "framer-motion"
 import { useState } from "react"
 

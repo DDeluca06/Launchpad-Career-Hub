@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Search, Plus, Filter, Edit, Trash2, FileSpreadsheet } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card"
+import { Button } from "@/components/ui/basic/button"
+import { Input } from "@/components/ui/form/input"
+import { Search, Plus, Filter, Edit, Trash2, FileSpreadsheet, MoreVertical } from "lucide-react"
 import { jobService, applicationService, Job } from "@/lib/local-storage"
-import { Badge } from "@/components/ui/badge"
-import { LaunchpadImage } from "@/components/launchpad-image"
+import { Badge } from "@/components/ui/basic/badge"
+import { LaunchpadImage } from "@/components/ui/basic/image"
 import { cn } from "@/lib/utils"
-import { MultiPurposeModal } from "@/components/ui/multi-purpose-modal"
+import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal"
 import { JobFilters } from "@/components/job-filters"
+import { Separator } from "@/components/ui/basic/separator"
 
 export default function AdminJobListings() {
   const [jobs, setJobs] = useState<Job[]>([]);

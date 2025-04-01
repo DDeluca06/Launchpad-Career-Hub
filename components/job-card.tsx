@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/basic/badge"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/basic/card"
 import { cn } from "@/lib/utils"
-import { LaunchpadImage } from "@/components/ui/image"
+import { LaunchpadImage } from "@/components/ui/basic/image"
 import { MapPin, Briefcase } from "lucide-react"
-import { MultiPurposeModal } from "@/components/ui/multi-purpose-modal"
+import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal"
 import { JobDetails } from "@/components/job-details"
 import { jobService, Job } from "@/lib/local-storage"
 

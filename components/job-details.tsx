@@ -1,9 +1,9 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/basic/button"
+import { Badge } from "@/components/ui/basic/badge"
 import { Job } from "@/lib/local-storage"
-import { LaunchpadImage } from "@/components/ui/image"
+import { LaunchpadImage } from "@/components/ui/basic/image"
 import { 
   Briefcase, 
   Building2, 
@@ -14,9 +14,9 @@ import {
   Share2,
   Bookmark
 } from "lucide-react"
-import { Separator } from "@/components/ui/separator"
+import { Separator } from "@/components/ui/basic/separator"
 import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/basic/button"
 
 export interface JobDetailsProps {
   job: Job

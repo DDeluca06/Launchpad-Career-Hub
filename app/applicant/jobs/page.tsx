@@ -1,16 +1,19 @@
 "use client"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Search, Filter, MapPin, Briefcase, BadgeDollarSign, Clock, Building, CheckCircle } from "lucide-react"
+import { Button } from "@/components/ui/basic/button"
+import { Card, CardContent } from "@/components/ui/basic/card"
+import { Input } from "@/components/ui/form/input"
+import { Search, Filter, MapPin, Briefcase, BadgeDollarSign, Clock, Building, CheckCircle, Plus } from "lucide-react"
 import { useState } from "react"
-import { MultiPurposeModal } from "@/components/ui/multi-purpose-modal"
+import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal"
 import { JobFilters } from "@/components/job-filters"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/basic/badge"
+import { Separator } from "@/components/ui/basic/separator"
 import { cn } from "@/lib/utils"
+import { JobCard } from "@/components/job-card"
+import { JobDetails } from "@/components/job-details"
+import { LaunchpadImage } from "@/components/ui/basic/image"
 
 // Define JobFilters interface (same as in components/job-filters.tsx)
 interface JobFilters {

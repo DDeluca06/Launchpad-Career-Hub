@@ -3,16 +3,16 @@
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { KanbanBoard } from "@/components/kanban-board"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/basic/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs"
+import { Button } from "@/components/ui/basic/button"
 import { LaunchpadImage } from "@/components/launchpad-image"
 import { userService, applicationService, jobService, User, Job } from "@/lib/local-storage"
 import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@/components/ui/basic/badge"
 import { BarChart, Calendar, ChevronRight, Download, FileSpreadsheet, MapPin, Plus, UserCircle, Users } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
+import { Input } from "@/components/ui/form/input"
 
 // Define interfaces for the dashboard data
 interface DashboardStats {
