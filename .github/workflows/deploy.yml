@@ -1,0 +1,62 @@
+name: Deploy Next.js App
+
+on:
+  push:
+    branches:
+      - main  # Runs when pushing to the main branch
+  workflow_dispatch:  # Allows manual triggering of the workflow
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Next.js app
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: next-build
+          path: |
+            .next
+            package.json
+            package-lock.json
+            ecosystem.config.js
+            next.config.js
+            public
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build  # Runs after build is complete
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: next-build
+
+      - name: Deploy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PATH: ${{ secrets.SERVER_PATH }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          # Copy files to server
+          scp -r .next package.json package-lock.json ecosystem.config.js next.config.js public $SERVER_USER@$SERVER_HOST:$SERVER_PATH/
+          
+          # Install dependencies and restart the application
+          ssh $SERVER_USER@$SERVER_HOST "cd $SERVER_PATH && \
+            npm install --production && \
+            pm2 delete next-app || true && \
+            pm2 start ecosystem.config.js && \
+            pm2 save"
