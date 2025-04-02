@@ -65,17 +65,26 @@ jobs:
             echo "Warning: next.config.js file not found after build!"
           fi
 
+      - name: Create staging directory and copy artifacts
+        run: |
+          mkdir staging
+          cp -r .next staging/
+          cp package.json staging/
+          cp pnpm-lock.yaml staging/
+          cp ecosystem.config.js staging/
+          # Copy next.config.js only if it exists
+          if [ -f "next.config.js" ]; then
+            cp next.config.js staging/
+          fi
+          cp -r public staging/
+          echo "Listing staging directory contents:"
+          ls -la staging
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: next-build
-          path: |
-            .next
-            package.json
-            pnpm-lock.yaml
-            ecosystem.config.js
-            next.config.js
-            public
+          path: ./staging # Upload the staging directory
 
   deploy:
     runs-on: ubuntu-latest
@@ -85,14 +94,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: next-build         # Name of the artifact to download
-          path: ./deploy           # Destination directory for downloaded artifact
+          path: .                  # Download artifact content (staging dir) to workspace root
 
-      # Verify that the essential .next directory exists after download
+      # Verify that the essential .next directory exists after download inside staging
       - name: Verify downloaded artifacts
         run: |
-          ls -la ./deploy
-          if [ ! -d "./deploy/.next" ]; then
-            echo "Error: .next directory not found in downloaded artifacts"
+          echo "Listing current directory contents:"
+          ls -la
+          echo "Listing staging directory contents:"
+          ls -la ./staging
+          if [ ! -d "./staging/.next" ]; then
+            echo "Error: .next directory not found in downloaded staging directory"
             exit 1
           fi
 
@@ -117,7 +129,8 @@ jobs:
           echo "Host key step skipped/completed."
 
           echo "Copying files to server via scp..."
-          scp -o StrictHostKeyChecking=no -v -r ./deploy/.next ./deploy/package.json ./deploy/pnpm-lock.yaml ./deploy/ecosystem.config.js ./deploy/next.config.js ./deploy/public $SERVER_USER@$SERVER_HOST:$SERVER_PATH/
+          # Copy contents of staging directory
+          scp -o StrictHostKeyChecking=no -v -r ./staging/. $SERVER_USER@$SERVER_HOST:$SERVER_PATH/
           echo "SCP command finished."
           
           echo "Executing remote commands via ssh..."
