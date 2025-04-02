@@ -74,6 +74,17 @@ jobs:
             echo "Error: .next directory not found in downloaded artifacts"
             exit 1
           fi
+          name: next-build         # Name of the artifact to download
+          path: ./deploy           # Destination directory for downloaded artifact
+
+      # Verify that the essential .next directory exists after download
+      - name: Verify downloaded artifacts
+        run: |
+          ls -la ./deploy
+          if [ ! -d "./deploy/.next" ]; then
+            echo "Error: .next directory not found in downloaded artifacts"
+            exit 1
+          fi
 
       - name: Deploy to server
         env:
@@ -105,10 +116,13 @@ jobs:
             cd $SERVER_PATH && \
             echo 'Installing pnpm on server...' && \
             curl -f https://get.pnpm.io/v6.js | node - add --global pnpm && \
+            echo 'Installing production dependencies...' && \
             echo 'Checking pnpm version...' && \
             pnpm --version && \
             echo 'Installing production dependencies...' && \
             pnpm install --prod --frozen-lockfile && \
+            echo 'Restarting application with PM2...' && \
+            pm2 delete next-app || true && \
             echo 'Restarting application with PM2...' && \
             pm2 delete next-app || echo 'PM2 delete failed or app not found, continuing...' && \
             pm2 start ecosystem.config.js && \
