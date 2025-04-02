@@ -74,6 +74,17 @@ jobs:
             echo "Error: .next directory not found in downloaded artifacts"
             exit 1
           fi
+          name: next-build         # Name of the artifact to download
+          path: ./deploy           # Destination directory for downloaded artifact
+
+      # Verify that the essential .next directory exists after download
+      - name: Verify downloaded artifacts
+        run: |
+          ls -la ./deploy
+          if [ ! -d "./deploy/.next" ]; then
+            echo "Error: .next directory not found in downloaded artifacts"
+            exit 1
+          fi
 
       - name: Deploy to server
         env:
@@ -82,28 +93,40 @@ jobs:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_PATH: ${{ secrets.SERVER_PATH }}
         run: |
-          # Setup SSH key
+          set -ex # Enable verbose output and exit on error
+
+          echo "Setting up SSH key..."
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          echo "SSH key setup complete."
           
-          # Add server's host key to known_hosts to avoid interactive prompt
-          # Consider adding this line if you encounter host key verification issues:
-          # ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts 
-          # Alternatively, configure SSH to ignore host key checking (less secure):
-          # ssh -o StrictHostKeyChecking=no ...
+          echo "Optional: Adding server host key to known_hosts..."
+          # Uncomment the next line if you want to use ssh-keyscan instead of StrictHostKeyChecking=no
+          # ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts
+          echo "Host key step skipped/completed."
 
-          # Copy files from the download directory to the server
-          scp -o StrictHostKeyChecking=no -r ./deploy/.next ./deploy/package.json ./deploy/pnpm-lock.yaml ./deploy/ecosystem.config.js ./deploy/next.config.js ./deploy/public $SERVER_USER@$SERVER_HOST:$SERVER_PATH/
+          echo "Copying files to server via scp..."
+          scp -o StrictHostKeyChecking=no -v -r ./deploy/.next ./deploy/package.json ./deploy/pnpm-lock.yaml ./deploy/ecosystem.config.js ./deploy/next.config.js ./deploy/public $SERVER_USER@$SERVER_HOST:$SERVER_PATH/
+          echo "SCP command finished."
           
-          # Execute commands on the remote server
-          ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST "cd $SERVER_PATH && \
+          echo "Executing remote commands via ssh..."
+          ssh -o StrictHostKeyChecking=no -v $SERVER_USER@$SERVER_HOST "set -ex && \
+            echo 'Changing to directory: $SERVER_PATH' && \
+            cd $SERVER_PATH && \
             echo 'Installing pnpm on server...' && \
             curl -f https://get.pnpm.io/v6.js | node - add --global pnpm && \
+            echo 'Installing production dependencies...' && \
+            echo 'Checking pnpm version...' && \
+            pnpm --version && \
             echo 'Installing production dependencies...' && \
             pnpm install --prod --frozen-lockfile && \
             echo 'Restarting application with PM2...' && \
             pm2 delete next-app || true && \
+            echo 'Restarting application with PM2...' && \
+            pm2 delete next-app || echo 'PM2 delete failed or app not found, continuing...' && \
             pm2 start ecosystem.config.js && \
+            echo 'Saving PM2 state...' && \
             pm2 save && \
-            echo 'Deployment successful!'"
+            echo 'Deployment commands successful!'"
+          echo "SSH command finished."
