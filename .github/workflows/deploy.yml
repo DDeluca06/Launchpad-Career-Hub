@@ -101,10 +101,8 @@ jobs:
         run: |
           echo "Listing current directory contents:"
           ls -la
-          echo "Listing staging directory contents:"
-          ls -la ./staging
-          if [ ! -d "./staging/.next" ]; then
-            echo "Error: .next directory not found in downloaded staging directory"
+          if [ ! -d ".next" ]; then
+            echo "Error: .next directory not found in downloaded artifacts"
             exit 1
           fi
 
@@ -129,8 +127,8 @@ jobs:
           echo "Host key step skipped/completed."
 
           echo "Copying files to server via scp..."
-          # Copy contents of staging directory
-          scp -o StrictHostKeyChecking=no -v -r ./staging/. $SERVER_USER@$SERVER_HOST:$SERVER_PATH/
+          # Copy necessary files from workspace root
+          scp -o StrictHostKeyChecking=no -v -r ./.next ./package.json ./pnpm-lock.yaml ./ecosystem.config.js ./next.config.js ./public $SERVER_USER@$SERVER_HOST:$SERVER_PATH/
           echo "SCP command finished."
           
           echo "Executing remote commands via ssh..."
