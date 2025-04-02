@@ -80,10 +80,26 @@ jobs:
           echo "Listing staging directory contents:"
           ls -la staging
 
+      - name: Create staging directory and copy artifacts
+        run: |
+          mkdir staging
+          cp -r .next staging/
+          cp package.json staging/
+          cp pnpm-lock.yaml staging/
+          cp ecosystem.config.js staging/
+          # Copy next.config.js only if it exists
+          if [ -f "next.config.js" ]; then
+            cp next.config.js staging/
+          fi
+          cp -r public staging/
+          echo "Listing staging directory contents:"
+          ls -la staging
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: next-build
+          path: ./staging # Upload the staging directory
           path: ./staging # Upload the staging directory
 
   deploy:
@@ -95,7 +111,9 @@ jobs:
         with:
           name: next-build         # Name of the artifact to download
           path: .                  # Download artifact content (staging dir) to workspace root
+          path: .                  # Download artifact content (staging dir) to workspace root
 
+      # Verify that the essential .next directory exists after download inside staging
       # Verify that the essential .next directory exists after download inside staging
       - name: Verify downloaded artifacts
         run: |
