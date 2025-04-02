@@ -44,6 +44,27 @@ jobs:
       - name: Build Next.js app
         run: pnpm build
 
+      - name: Verify build output
+        run: |
+          echo "Listing current directory contents:"
+          ls -la
+          echo "Checking for .next directory:"
+          if [ -d ".next" ]; then
+            echo ".next directory exists."
+            echo "Listing .next contents:"
+            ls -la .next
+          else
+            echo "Error: .next directory not found after build!"
+            exit 1
+          fi
+          echo "Checking for next.config.js:"
+          if [ -f "next.config.js" ]; then
+            echo "next.config.js file exists."
+          else
+            # Depending on your setup, this might be optional
+            echo "Warning: next.config.js file not found after build!"
+          fi
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -63,17 +84,6 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: next-build         # Name of the artifact to download
-          path: ./deploy           # Destination directory for downloaded artifact
-
-      # Verify that the essential .next directory exists after download
-      - name: Verify downloaded artifacts
-        run: |
-          ls -la ./deploy
-          if [ ! -d "./deploy/.next" ]; then
-            echo "Error: .next directory not found in downloaded artifacts"
-            exit 1
-          fi
           name: next-build         # Name of the artifact to download
           path: ./deploy           # Destination directory for downloaded artifact
 
