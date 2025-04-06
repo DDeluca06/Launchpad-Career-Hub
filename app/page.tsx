@@ -1,86 +1,43 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { LoginForm } from "@/components/login-form"
+import { extendedPalette } from "@/lib/colors"
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="border-b">
-        <div className="container mx-auto py-4 px-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Job Finder Portal</h1>
-          <div className="flex gap-4">
-            <Link href="/login">
-              <Button variant="outline">Login</Button>
-            </Link>
-            <Link href="/register">
-              <Button>Register</Button>
-            </Link>
-          </div>
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      <header className="border-b bg-white">
+        <div className="container mx-auto py-4 px-4 flex justify-center items-center">
+          <h1 className="text-2xl font-bold" style={{ color: extendedPalette.primaryBlue }}>Launchpad Career Hub</h1>
         </div>
       </header>
-      <main className="flex-1 container mx-auto py-8 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          <div>
-            <h2 className="text-4xl font-bold mb-4">Find Your Dream Job</h2>
-            <p className="text-lg text-muted-foreground mb-6">
-              Connect with top employers and track your applications in one place.
-            </p>
-            <div className="flex gap-4">
-              <Link href="/admin/dashboard">
-                <Button size="lg">Admin Dashboard</Button>
-              </Link>
-              <Link href="/applicant/dashboard">
-                <Button size="lg" variant="outline">
-                  Applicant Dashboard
-                </Button>
-              </Link>
-            </div>
+      
+      <main className="flex-1 container mx-auto py-8 px-4 flex flex-col items-center justify-center">
+        <LoginForm />
+        
+        {/* Development navigation - to be removed in production */}
+        <div className="mt-8 p-4 border rounded-md bg-white w-full max-w-md">
+          <div className="text-sm text-center mb-2 font-medium text-slate-500">
+            Development Navigation (will be removed)
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>For Applicants</CardTitle>
-                <CardDescription>Manage your job search</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Track applications</li>
-                  <li>Save interesting jobs</li>
-                  <li>View upcoming events</li>
-                  <li>Get personalized recommendations</li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Link href="/applicant/dashboard" className="w-full">
-                  <Button className="w-full">Applicant Portal</Button>
-                </Link>
-              </CardFooter>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>For Admins</CardTitle>
-                <CardDescription>Manage the hiring process</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Track applicants</li>
-                  <li>View analytics</li>
-                  <li>Manage job listings</li>
-                  <li>Schedule events</li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Link href="/admin/dashboard" className="w-full">
-                  <Button className="w-full">Admin Portal</Button>
-                </Link>
-              </CardFooter>
-            </Card>
+          <div className="flex justify-center gap-4">
+            <Link href="/admin/dashboard">
+              <Button variant="outline" size="sm">
+                Admin Dashboard
+              </Button>
+            </Link>
+            <Link href="/applicant/dashboard">
+              <Button variant="outline" size="sm">
+                Applicant Dashboard
+              </Button>
+            </Link>
           </div>
         </div>
       </main>
-      <footer className="border-t py-6">
+      
+      <footer className="border-t py-6 bg-white">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>© 2025 Job Finder Portal. All rights reserved.</p>
+          <p>© 2025 Launchpad Career Hub. All rights reserved.</p>
         </div>
       </footer>
     </div>

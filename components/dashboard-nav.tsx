@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 import { 
   LayoutDashboard, Briefcase, BarChart2, Users, Calendar, 
-  LogOut, Settings, MessageSquare, GraduationCap 
+  LogOut, Settings, Building, GraduationCap 
 } from "lucide-react"
 
 interface NavItem {
@@ -54,25 +54,12 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
             badge: 8,
           },
           {
-            title: "Community",
-            href: `${baseUrl}/community`,
-            icon: <MessageSquare className="h-5 w-5" />,
+            title: "Partners",
+            href: `${baseUrl}/partners`,
+            icon: <Building className="h-5 w-5" />,
           },
         ]
-      : [
-          {
-            title: "Learning",
-            href: `${baseUrl}/learning`,
-            icon: <GraduationCap className="h-5 w-5" />,
-            badge: 2,
-          },
-          {
-            title: "Events",
-            href: `${baseUrl}/events`,
-            icon: <Calendar className="h-5 w-5" />,
-            badge: 1,
-          },
-        ]),
+      : []),
     {
       title: "Calendar",
       href: `${baseUrl}/calendar`,
