@@ -1,0 +1,7 @@
+{
+  "/applicant/calendar/page": "app/applicant/calendar/page.js",
+  "/admin/calendar/page": "app/admin/calendar/page.js",
+  "/applicant/dashboard/page": "app/applicant/dashboard/page.js",
+  "/applicant/settings/page": "app/applicant/settings/page.js",
+  "/applicant/jobs/page": "app/applicant/jobs/page.js"
+}
