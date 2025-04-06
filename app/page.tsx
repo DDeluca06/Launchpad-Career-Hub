@@ -6,7 +6,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { LoginForm } from "@/components/login-form"
 import { extendedPalette } from "@/lib/colors"
+<<<<<<< HEAD
 >>>>>>> ff472e9 (Draft 2 of Admin/Applicant Pages)
+=======
+>>>>>>> refs/remotes/origin/Bryan
 
 export default function Home() {
   return (

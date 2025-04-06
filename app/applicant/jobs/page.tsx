@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { Button } from "@/components/ui/basic/button"
 import { Card, CardContent } from "@/components/ui/basic/card"
 import { Input } from "@/components/ui/form/input"
@@ -17,6 +18,8 @@ import { JobCard } from "@/components/job-card"
 import { JobDetails } from "@/components/job-details"
 import { LaunchpadImage } from "@/components/ui/basic/image"
 =======
+=======
+>>>>>>> refs/remotes/origin/Bryan
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,7 +35,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+<<<<<<< HEAD
 >>>>>>> ff472e9 (Draft 2 of Admin/Applicant Pages)
+=======
+>>>>>>> refs/remotes/origin/Bryan
 
 // Define job application status type
 type ApplicationStatus = "saved" | "applied" | "interviewing" | "rejected" | "offered" | null;

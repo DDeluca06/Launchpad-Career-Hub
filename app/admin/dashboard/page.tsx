@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { DashboardLayout } from "@/components/dashboard-layout"
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { KanbanBoard } from "@/components/kanban-board"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/basic/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs"
@@ -16,6 +17,8 @@ import { BarChart, Calendar, ChevronRight, Download, FileSpreadsheet, MapPin, Pl
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
 import { Input } from "@/components/ui/form/input"
 =======
+=======
+>>>>>>> refs/remotes/origin/Bryan
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { userService, applicationService, jobService, User, Job, partnerService } from "@/lib/local-storage"
@@ -25,7 +28,10 @@ import {
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { extendedPalette } from "@/lib/colors"
+<<<<<<< HEAD
 >>>>>>> ff472e9 (Draft 2 of Admin/Applicant Pages)
+=======
+>>>>>>> refs/remotes/origin/Bryan
 
 // Define interfaces for the dashboard data
 interface DashboardStats {

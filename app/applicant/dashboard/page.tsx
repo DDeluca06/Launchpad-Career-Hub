@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { DashboardLayout } from "@/components/dashboard-layout"
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { Button } from "@/components/ui/basic/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic/card"
 import { motion, AnimatePresence } from "framer-motion"
@@ -27,6 +28,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { extendedPalette } from "@/lib/colors"
 import { Badge } from "@/components/ui/badge"
 >>>>>>> ff472e9 (Draft 2 of Admin/Applicant Pages)
+=======
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { userService, applicationService, jobService, User, Job } from "@/lib/local-storage"
+import { 
+  BarChart2, Briefcase, Calendar, ChevronRight, 
+  FileSpreadsheet, MapPin, Plus, UserCircle, Users,
+  Building, CheckCircle, Clock, Star
+} from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { extendedPalette } from "@/lib/colors"
+import { Badge } from "@/components/ui/badge"
+>>>>>>> refs/remotes/origin/Bryan
 
 // Define interfaces for the dashboard data
 interface ApplicantDashboardStats {
