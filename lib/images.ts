@@ -125,11 +125,19 @@ export const ALL_IMAGES: Record<string, UploadthingImage> = {
     uploadedAt: "2025-03-31T21:49:25.000Z",
     alt: "Default Profile Picture",
   },
+  "default-logo": {
+    name: "launchpad-new-logo.png",
+    key: "default-logo",
+    url: "https://w8d9q6vsv9.ufs.sh/f/rIWyF4chqJyDowiaMDgcIujSVTWxXAH8Pg5RlyQEth0YNzs1",
+    size: 50000,
+    uploadedAt: "2025-03-31T21:49:25.000Z",
+    alt: "Launchpad Logo",
+  },
   "newLogo": {
     name: "launchpad-new-logo.png",
     key: "newLogo",
-    url: LAUNCHPAD_LOGOS.newLogo.url, // Use the URL from LAUNCHPAD_LOGOS
-    size: 50000, // approximated size
+    url: "https://w8d9q6vsv9.ufs.sh/f/rIWyF4chqJyDowiaMDgcIujSVTWxXAH8Pg5RlyQEth0YNzs1",
+    size: 50000,
     uploadedAt: "2025-03-31T21:49:25.000Z",
     alt: "Launchpad New Logo",
   },
@@ -169,12 +177,3 @@ export function getImageUrlByKey(key: string): string | undefined {
 export function getThemeAppropriatelogo(isDarkTheme: boolean) {
   return isDarkTheme ? LAUNCHPAD_LOGOS.white : LAUNCHPAD_LOGOS.mainColor;
 }
-
-export const images = {
-  newLogo: {
-    src: "/images/launchpad-logo.png",
-    height: 52,
-    width: 130,
-    alt: "Launchpad Logo",
-  },
-};
