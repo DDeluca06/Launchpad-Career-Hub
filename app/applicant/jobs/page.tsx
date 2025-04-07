@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { JobCard } from "@/components/job-card"
 import { JobDetails } from "@/components/job-details"
 import { LaunchpadImage } from "@/components/ui/basic/image"
+import { JobApplicationForm } from "@/components/job-application-form"
 
 // Define JobFilters interface (same as in components/job-filters.tsx)
 interface JobFilters {
@@ -137,6 +138,8 @@ export default function ApplicantJobListings() {
     experienceLevel: "any",
     keywords: ""
   });
+  const [applicationModalOpen, setApplicationModalOpen] = useState(false);
+  const [applicationSubmitted, setApplicationSubmitted] = useState(false);
 
   // Handle applying filters
   const handleApplyFilters = (filters: JobFilters) => {
@@ -155,6 +158,20 @@ export default function ApplicantJobListings() {
     setSelectedJob(job);
   };
   
+  // Function to open application modal
+  const openApplicationModal = () => {
+    setApplicationModalOpen(true);
+    setApplicationSubmitted(false);
+  };
+
+  // Function to handle application submission
+  const handleApplicationSubmit = (formData: any) => {
+    console.log("Application submitted:", formData);
+    // Here you would typically send the data to your backend
+    setApplicationSubmitted(true);
+    // Don't close the modal yet, show success message first
+  };
+
   // Filter jobs by search query and active filters
   const filteredJobs = jobs.filter(job => {
     // Filter by search query
@@ -310,7 +327,12 @@ export default function ApplicantJobListings() {
                         <span>{selectedJob.company}</span>
                       </div>
                     </div>
-                    <Button className="bg-launchpad-blue hover:bg-launchpad-teal">Apply Now</Button>
+                    <Button 
+                      className="bg-launchpad-blue hover:bg-launchpad-teal"
+                      onClick={openApplicationModal}
+                    >
+                      Apply Now
+                    </Button>
                   </div>
                   
                   <div className="flex flex-wrap gap-3 mt-4">
@@ -355,7 +377,10 @@ export default function ApplicantJobListings() {
                 </div>
                 
                 <div className="mt-8 flex gap-4">
-                  <Button className="flex-1 gap-2 bg-launchpad-blue hover:bg-launchpad-teal">
+                  <Button 
+                    className="flex-1 gap-2 bg-launchpad-blue hover:bg-launchpad-teal"
+                    onClick={openApplicationModal}
+                  >
                     Apply Now
                   </Button>
                   <Button variant="outline" className="flex-1 gap-2">
@@ -386,7 +411,53 @@ export default function ApplicantJobListings() {
           initialFilters={activeFilters}
         />
       </MultiPurposeModal>
+
+      {/* Job Application Modal */}
+      <MultiPurposeModal
+        open={applicationModalOpen}
+        onOpenChange={setApplicationModalOpen}
+        title={applicationSubmitted ? "Application Submitted!" : "Apply for " + selectedJob.title}
+        description={applicationSubmitted 
+          ? "Thank you for your interest in this position." 
+          : "Complete the form below to apply for this position"}
+        size="lg"
+        showFooter={false}
+      >
+        {applicationSubmitted ? (
+          <div className="text-center py-8">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <h3 className="text-xl font-medium text-gray-900 mb-2">Application Successfully Submitted!</h3>
+            <p className="text-gray-600 mb-6">
+              Your application for {selectedJob.title} at {selectedJob.company} has been received.
+              We'll notify you when there's an update.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button 
+                variant="outline" 
+                onClick={() => setApplicationModalOpen(false)}
+              >
+                Close
+              </Button>
+              <Button
+                className="bg-launchpad-blue hover:bg-launchpad-teal"
+                onClick={() => {
+                  setApplicationModalOpen(false);
+                  // Navigate to dashboard or another page if needed
+                }}
+              >
+                View My Applications
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <JobApplicationForm 
+            job={selectedJob} 
+            onSubmit={handleApplicationSubmit} 
+          />
+        )}
+      </MultiPurposeModal>
     </DashboardLayout>
   )
 }
-
