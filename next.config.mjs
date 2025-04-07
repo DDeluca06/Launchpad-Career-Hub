@@ -8,16 +8,19 @@ try {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    ignoreDuringBuilds: true,
+    // Enable ESLint checks during builds
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    // Enable TypeScript type checking during builds
+    ignoreBuildErrors: false,
   },
   images: {
-    unoptimized: true,
+    // Enable Next.js image optimization for production
+    unoptimized: false,
   },
   experimental: {
-    webpackBuildWorker: true,
+    // Keep performance-enhancing features
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
