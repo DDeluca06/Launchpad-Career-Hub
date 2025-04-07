@@ -422,7 +422,9 @@ export default function ApplicantJobListings() {
         size="lg"
         showFooter={true}
         primaryActionText="Apply Filters"
-        onPrimaryAction={() => handleApplyFilters(activeFilters)}
+        onPrimaryAction={() => {
+          setFilterModalOpen(false);
+        }}
         secondaryActionText="Cancel"
         onSecondaryAction={() => setFilterModalOpen(false)}
       >

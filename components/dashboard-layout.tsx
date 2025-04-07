@@ -43,7 +43,7 @@ export function DashboardLayout({ children, isAdmin = false }: DashboardLayoutPr
             </Sheet>
             <div className="flex items-center">
               <LaunchpadImage 
-                imageId="newLogo" 
+                imageId="default-logo" // Change to an existing logo ID
                 alt="Launchpad Logo" 
                 width={130} 
                 height={52} 
