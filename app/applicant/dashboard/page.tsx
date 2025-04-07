@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/basic/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic/card"
-import { motion, AnimatePresence } from "framer-motion"
+import dynamic from 'next/dynamic'
 import { Input } from "@/components/ui/form/input"
 import { Search, Filter, Calendar, Briefcase, PlusCircle, TrendingUp, Flag, Users } from "lucide-react"
 import { extendedPalette } from "@/lib/colors"
@@ -12,6 +12,17 @@ import { Badge } from "@/components/ui/basic/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs"
 import { cn } from "@/lib/utils"
 import { LaunchpadImage } from "@/components/launchpad-image"
+
+// Correctly type the dynamic imports
+const MotionDiv = dynamic(() => 
+  import('framer-motion').then(mod => mod.motion.div), 
+  { ssr: false }
+);
+
+const AnimatePresence = dynamic(() => 
+  import('framer-motion').then(mod => mod.AnimatePresence), 
+  { ssr: false }
+);
 
 // Define job status types based on schema
 type JobStatus = "interested" | "applied" | "interview" | "rejected" | "offer" | "accepted";
@@ -228,7 +239,7 @@ export default function ApplicantDashboard() {
     <DashboardLayout>
       <div className="container p-6 mx-auto">
         {/* Dashboard Header */}
-        <motion.div 
+        <MotionDiv 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
@@ -303,7 +314,7 @@ export default function ApplicantDashboard() {
               </Button>
             </div>
           </div>
-        </motion.div>
+        </MotionDiv>
 
         {/* Main Content */}
         <Tabs defaultValue="board" className="space-y-4">
@@ -322,7 +333,7 @@ export default function ApplicantDashboard() {
             {/* Kanban Board */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {statusColumns.map(column => (
-                <motion.div
+                <MotionDiv
                   key={column.id}
                   ref={(el) => {
                     columnRefs.current[column.id] = el;
@@ -368,7 +379,7 @@ export default function ApplicantDashboard() {
                       </AnimatePresence>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </MotionDiv>
               ))}
             </div>
           </TabsContent>
@@ -378,7 +389,7 @@ export default function ApplicantDashboard() {
               <CardContent className="p-6">
                 <div className="space-y-4">
                   {filteredApplications.map(application => (
-                    <motion.div
+                    <MotionDiv
                       key={application.applicationId}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -418,7 +429,7 @@ export default function ApplicantDashboard() {
                         </Badge>
                       </div>
                       <Button size="sm" variant="outline">View</Button>
-                    </motion.div>
+                    </MotionDiv>
                   ))}
                 </div>
               </CardContent>
@@ -539,7 +550,7 @@ function DraggableJobCard({ application, onDragStart, onStatusChange, isColumnAc
   };
   
   return (
-    <motion.div
+    <MotionDiv
       drag
       dragSnapToOrigin
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
@@ -621,7 +632,7 @@ function DraggableJobCard({ application, onDragStart, onStatusChange, isColumnAc
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </MotionDiv>
   );
 }
 
@@ -653,7 +664,7 @@ function EventCard({ title, date, time, type, company }: {
   company: string 
 }) {
   return (
-    <motion.div 
+    <MotionDiv 
       className="flex justify-between items-center p-4 bg-white border rounded-lg shadow-sm"
       whileHover={{ scale: 1.01, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
@@ -682,7 +693,7 @@ function EventCard({ title, date, time, type, company }: {
           type === "assessment" ? "Start" :
           "Join"}
       </Button>
-    </motion.div>
+    </MotionDiv>
   );
 }
 
@@ -696,7 +707,7 @@ function RecommendedJobCard({ id, title, company, logo, match, location }: {
   location: string
 }) {
   return (
-    <motion.div 
+    <MotionDiv 
       className="p-4 bg-white border rounded-lg shadow-sm flex items-center gap-3"
       whileHover={{ scale: 1.01, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
@@ -721,7 +732,7 @@ function RecommendedJobCard({ id, title, company, logo, match, location }: {
           </Badge>
         </div>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 }
 
