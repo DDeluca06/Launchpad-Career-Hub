@@ -1,0 +1,25 @@
+name: CI - Lint and Build
+
+on:
+  pull_request:
+    branches: [ main ] # Or your main branch name
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18' # Or your preferred Node.js version
+      - name: Install pnpm
+        run: npm install -g pnpm # Install pnpm globally
+      - name: Install dependencies
+        run: pnpm install # Install dependencies using pnpm
+      - name: Run ESLint
+        run: pnpm run lint # Run ESLint to check for linting errors
+      - name: Run TypeScript check
+        run: pnpm run type-check # Run TypeScript check (ensure this script is in package.json)
+      - name: Build Next.js app
+        run: pnpm run build # Build the Next.js application
