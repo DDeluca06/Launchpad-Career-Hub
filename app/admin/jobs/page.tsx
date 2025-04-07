@@ -199,20 +199,16 @@ export default function AdminJobListings() {
                       <CardContent className="p-3">
                         <div className="flex gap-3">
                           <div className="flex items-center gap-4 mb-4">
-                            {job.logo ? (
-                              <div className="w-12 h-12 relative">
-                                <LaunchpadImage
-                                  imageId={job.logo}
-                                  alt={`${job.company} logo`}
-                                  width={48}
-                                  height={48}
-                                  className="object-contain"
-                                />
-                              </div>
+                            {job.company ? (
+                              <LaunchpadImage
+                                imageId={`company-${job.company.toLowerCase().replace(/\s+/g, '-')}`}
+                                width={32}
+                                height={32}
+                                className="object-contain"
+                                alt={`${job.company} logo`}
+                              />
                             ) : (
-                              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                                <Briefcase className="h-6 w-6 text-gray-400" />
-                              </div>
+                              <Briefcase className="h-6 w-6 text-gray-400" />
                             )}
                             <div>
                               <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
@@ -286,14 +282,20 @@ export default function AdminJobListings() {
                 
                 <div className="flex items-center gap-4 mb-6">
                   <div className="h-16 w-16 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
-                    <LaunchpadImage
-                      src={`/company-logos/${selectedJob.company.toLowerCase().replace(/\s+/g, '-')}.png`}
-                      alt={selectedJob.company}
-                      width={60}
-                      height={60}
-                      className="object-contain"
-                      fallbackSrc="/placeholder-logo.png"
-                    />
+                    {selectedJob.company ? (
+                      <LaunchpadImage
+                        imageId={`company-${selectedJob.company.toLowerCase().replace(/\s+/g, '-')}`}
+                        width={60}
+                        height={60}
+                        className="object-contain"
+                        alt={`${selectedJob.company} logo`}
+                        // Handle error if needed
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-full h-full bg-gray-100">
+                        <Briefcase className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <h3 className="font-medium text-lg">{selectedJob.company}</h3>

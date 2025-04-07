@@ -455,12 +455,12 @@ export default function AdminDashboard() {
                   {recentApplicants.map((user) => (
                     <div key={user.user_id} className="flex items-center gap-3 pb-3 border-b last:border-0 border-gray-100">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
-                        <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        <AvatarImage src="/placeholder-user.jpg" alt={user.username} />
+                        <AvatarFallback>{user.username.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <h4 className="text-sm font-medium">{user.name}</h4>
-                        <p className="text-xs text-gray-500 mt-1">{user.email}</p>
+                        <h4 className="text-sm font-medium">{user.username}</h4>
+                        <p className="text-xs text-gray-500 mt-1">{user.program || 'No program specified'}</p>
                       </div>
                       <Badge className="bg-launchpad-blue/10 text-launchpad-blue">
                         Recent
@@ -570,7 +570,14 @@ export default function AdminDashboard() {
             </div>
             
             <TabsContent value="applications" className="m-0">
-              <KanbanBoard />
+              <KanbanBoard 
+                jobs={[]} 
+                onJobUpdate={(job, status) => {
+                  // Safely cast the job to the expected type
+                  const typedJob = typeof job === 'object' ? job : { job_id: parseInt(job) };
+                  console.log(`Job ${typedJob.job_id} updated to status: ${status}`);
+                }} 
+              />
             </TabsContent>
             
             <TabsContent value="candidates" className="m-0">
