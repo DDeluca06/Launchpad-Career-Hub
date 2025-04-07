@@ -570,12 +570,20 @@ export default function AdminDashboard() {
             </div>
             
             <TabsContent value="applications" className="m-0">
-              {/* <KanbanBoard 
-                jobs={[]} 
-                // onJobUpdate={(_job, _status) => {
-                //   // Implementation will be added later
-                // }} 
-              /> */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <FileSpreadsheet className="h-12 w-12 text-gray-300 mb-3" />
+                    <h3 className="text-lg font-medium mb-2">Applications Overview</h3>
+                    <p className="text-gray-500 text-center max-w-md mb-4">
+                      The Kanban board for managing applications is currently under development.
+                    </p>
+                    <Button className="bg-launchpad-blue hover:bg-launchpad-teal text-white">
+                      View Applications List
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
             
             <TabsContent value="candidates" className="m-0">
