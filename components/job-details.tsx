@@ -26,16 +26,16 @@ export interface JobDetailsProps {
 }
 
 export function JobDetails({ job, onApplyClick, onSaveClick, onShareClick }: JobDetailsProps) {
-  const formatSalary = (salary: string) => {
-    if (!salary) return 'Not specified';
+  // const formatSalary = (salary: string) => {
+  //   if (!salary) return 'Not specified';
     
-    if (salary.includes('-')) {
-      const [min, max] = salary.split('-');
-      return `$${min.trim()} - $${max.trim()}`;
-    }
+  //   if (salary.includes('-')) {
+  //     const [min, max] = salary.split('-');
+  //     return `$${min.trim()} - $${max.trim()}`;
+  //   }
     
-    return salary;
-  };
+  //   return salary;
+  // };
   
   // Parse tags from the job
   const jobTags = job.tags || [];
@@ -73,7 +73,7 @@ export function JobDetails({ job, onApplyClick, onSaveClick, onShareClick }: Job
       {/* Header */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="h-16 w-16 rounded-md border border-gray-200 flex items-center justify-center bg-white overflow-hidden shrink-0">
-          <LaunchpadImage imageId="default-profile-picture" width={64} height={64} className="h-full w-full object-contain" />
+          <LaunchpadImage imageId="default-profile-picture" alt={`${job.company} company logo`} width={64} height={64} className="h-full w-full object-contain" />
         </div>
         <div className="space-y-1 flex-1">
           <h1 className="text-xl font-semibold">{job.title}</h1>

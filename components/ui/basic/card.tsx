@@ -3,7 +3,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { cva, type VariantProps } from "class-variance-authority"
-import { motion } from "framer-motion"
+import { motion, HTMLMotionProps } from "framer-motion"
 
 const cardVariants = cva(
   "rounded-lg border bg-white text-card-foreground shadow-sm transition-all",
@@ -44,14 +44,13 @@ const Card = React.forwardRef<
   const cardClassName = cn(cardVariants({ variant, size, hover, className }));
   
   if (animated) {
-    // Using type assertion to avoid TypeScript errors with motion.div props
     return (
       <motion.div
-        ref={ref}
+        ref={ref as React.ForwardedRef<HTMLDivElement>}
         className={cardClassName}
         whileHover={{ y: -5, scale: 1.02 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        {...props as {}}
+        {...props as HTMLMotionProps<"div">}
       />
     );
   }
@@ -132,4 +131,4 @@ export {
   CardTitle,
   CardDescription,
   CardContent 
-}; 
+};

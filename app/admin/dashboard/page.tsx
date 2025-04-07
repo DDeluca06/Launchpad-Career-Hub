@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { KanbanBoard } from "@/components/kanban-board"
+// import { KanbanBoard } from "@/components/kanban-board"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/basic/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs"
 import { Button } from "@/components/ui/basic/button"
@@ -570,14 +570,12 @@ export default function AdminDashboard() {
             </div>
             
             <TabsContent value="applications" className="m-0">
-              <KanbanBoard 
+              {/* <KanbanBoard 
                 jobs={[]} 
-                onJobUpdate={(job, status) => {
-                  // Safely cast the job to the expected type
-                  const typedJob = typeof job === 'object' ? job : { job_id: parseInt(job) };
-                  console.log(`Job ${typedJob.job_id} updated to status: ${status}`);
-                }} 
-              />
+                // onJobUpdate={(_job, _status) => {
+                //   // Implementation will be added later
+                // }} 
+              /> */}
             </TabsContent>
             
             <TabsContent value="candidates" className="m-0">

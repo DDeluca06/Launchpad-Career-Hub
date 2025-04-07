@@ -60,7 +60,10 @@ export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="job-type" className="text-sm font-medium text-gray-700">Job Type</Label>
+        <div className="flex items-center gap-2">
+          <Briefcase className="h-4 w-4 text-gray-500" />
+          <Label htmlFor="job-type" className="text-sm font-medium text-gray-700">Job Type</Label>
+        </div>
         <select
           multiple
           value={filters.jobTypes}
@@ -77,7 +80,10 @@ export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="location" className="text-sm font-medium text-gray-700">Location</Label>
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-gray-500" />
+          <Label htmlFor="location" className="text-sm font-medium text-gray-700">Location</Label>
+        </div>
         <select
           multiple
           value={filters.locations}
@@ -94,7 +100,10 @@ export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="experience-level" className="text-sm font-medium text-gray-700">Experience Level</Label>
+        <div className="flex items-center gap-2">
+          <GraduationCap className="h-4 w-4 text-gray-500" />
+          <Label htmlFor="experience-level" className="text-sm font-medium text-gray-700">Experience Level</Label>
+        </div>
         <select
           value={filters.experienceLevel}
           onChange={(e) => setFilters(prev => ({ ...prev, experienceLevel: e.target.value }))}
@@ -107,7 +116,10 @@ export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="salary-range" className="text-sm font-medium text-gray-700">Salary Range</Label>
+        <div className="flex items-center gap-2">
+          <BadgeDollarSign className="h-4 w-4 text-gray-500" />
+          <Label htmlFor="salary-range" className="text-sm font-medium text-gray-700">Salary Range</Label>
+        </div>
         <div className="flex gap-2">
           <Input
             type="number"
@@ -127,7 +139,10 @@ export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="keywords" className="text-sm font-medium text-gray-700">Keywords</Label>
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4 text-gray-500" />
+          <Label htmlFor="keywords" className="text-sm font-medium text-gray-700">Keywords</Label>
+        </div>
         <Input
           value={filters.keywords}
           onChange={(e) => setFilters(prev => ({ ...prev, keywords: e.target.value }))}

@@ -33,6 +33,14 @@ interface JobFilters {
   keywords: string;
 }
 
+interface ApplicationFormData {
+  name?: string;
+  email?: string;
+  phone?: string;
+  resume?: File;
+  coverLetter?: string;
+}
+
 const jobs: Job[] = [
   { 
     id: "1", 
@@ -149,7 +157,10 @@ export default function ApplicantJobListings() {
 
   // Handle applying filters
   const handleApplyFilters = (filters: JobFilters) => {
-    console.log('Applying filters:', filters);
+    // For development only
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Applying filters:', filters);
+    }
     setActiveFilters(filters);
     setFilterModalOpen(false);
   };
@@ -171,8 +182,11 @@ export default function ApplicantJobListings() {
   };
 
   // Function to handle application submission
-  const handleApplicationSubmit = (formData: any) => {
-    console.log("Application submitted:", formData);
+  const handleApplicationSubmit = (formData: ApplicationFormData) => {
+    // For development only
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Application submitted:", formData);
+    }
     // Here you would typically send the data to your backend
     setApplicationSubmitted(true);
     // Don't close the modal yet, show success message first
@@ -437,7 +451,7 @@ export default function ApplicantJobListings() {
             <h3 className="text-xl font-medium text-gray-900 mb-2">Application Successfully Submitted!</h3>
             <p className="text-gray-600 mb-6">
               Your application for {selectedJob?.title} at {selectedJob?.company} has been received.
-              We'll notify you when there's an update.
+              We&apos;ll notify you when there&apos;s an update.
             </p>
             <div className="flex gap-3 justify-center">
               <Button 

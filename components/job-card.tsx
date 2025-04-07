@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Badge } from "@/components/ui/basic/badge"
 import { Card, CardContent } from "@/components/ui/basic/card"
-import { cn } from "@/lib/utils"
 import { Briefcase } from "lucide-react"
 import { Image as LocalImage } from "@/components/ui/basic/image"
 import { Button } from "@/components/ui/basic/button"
@@ -48,7 +47,8 @@ export function JobCard({ job, onApply }: JobCardProps) {
               <LocalImage
                 src={job.logo}
                 alt={`${job.company} logo`}
-                fill
+                width={48}
+                height={48}
                 className="object-contain"
               />
             </div>

@@ -23,7 +23,7 @@ export function DashboardLayout({ children, isAdmin = false }: DashboardLayoutPr
             <Sheet>
               <SheetTrigger asChild className="md:hidden">
                 <Button variant="ghost" size="icon" className="mr-2">
-                  <Menu className="h-5 w-5" />
+                  {/* <Menu className="h-5 w-5" /> */}
                   <span className="sr-only">Toggle menu</span>
                 </Button>
               </SheetTrigger>
@@ -44,6 +44,7 @@ export function DashboardLayout({ children, isAdmin = false }: DashboardLayoutPr
             <div className="flex items-center">
               <LaunchpadImage 
                 imageId="newLogo" 
+                alt="Launchpad Logo" 
                 width={130} 
                 height={52} 
                 className="h-8 w-auto hidden md:block" 

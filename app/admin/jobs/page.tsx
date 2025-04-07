@@ -12,13 +12,13 @@ import { LaunchpadImage } from "@/components/ui/basic/image"
 import { Briefcase } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface JobFilter {
-  jobType?: string[];
-  location?: string[];
-  company?: string[];
-  experienceLevel?: string[];
-  salary?: string[];
-}
+// interface JobFilter {
+//   jobType?: string[];
+//   location?: string[];
+//   company?: string[];
+//   experienceLevel?: string[];
+//   salary?: string[];
+// }
 
 interface ExtendedJob extends Job {
   experience?: string;

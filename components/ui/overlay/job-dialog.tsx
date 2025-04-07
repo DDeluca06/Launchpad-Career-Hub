@@ -1,15 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { motion, AnimatePresence } from "framer-motion"
 import { 
   Dialog, 
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription, 
-  DialogFooter,
-  DialogClose
+  DialogDescription
 } from "@/components/ui/overlay/dialog"
 import { Button } from "@/components/ui/basic/button"
 import { 

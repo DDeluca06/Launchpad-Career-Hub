@@ -71,7 +71,7 @@ const Textarea: React.FC<TextareaProps> = ({ label, value, onChange, placeholder
   </div>
 );
 
-export function JobApplicationForm({ job, onSubmit }: JobApplicationFormProps) {
+export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
   const [formData, setFormData] = useState<JobApplicationData>({
     firstName: '',
     lastName: '',
