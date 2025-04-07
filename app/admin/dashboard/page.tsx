@@ -429,6 +429,49 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
           
+          {/* Recent Applicants */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Recent Applicants</CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs">View All</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 pb-3 border-b last:border-0 border-gray-100">
+                      <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-3 w-1/3 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentApplicants.map((user) => (
+                    <div key={user.user_id} className="flex items-center gap-3 pb-3 border-b last:border-0 border-gray-100">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
+                        <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium">{user.name}</h4>
+                        <p className="text-xs text-gray-500 mt-1">{user.email}</p>
+                      </div>
+                      <Badge className="bg-launchpad-blue/10 text-launchpad-blue">
+                        Recent
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
           {/* Upcoming Interviews */}
           <Card className="lg:col-span-3">
             <CardHeader>

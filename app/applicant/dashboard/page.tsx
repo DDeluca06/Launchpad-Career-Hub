@@ -357,6 +357,7 @@ export default function ApplicantDashboard() {
                             onDragStart={handleDragStart}
                             onStatusChange={handleStatusChange}
                             isColumnActive={activeColumn === column.id}
+                            isDragging={draggingJob === application.applicationId}
                           />
                         ))}
                         {getApplicationsByStatus(column.id as JobStatus).length === 0 && (
@@ -508,9 +509,10 @@ interface DraggableJobCardProps {
   onDragStart: (id: number) => void;
   onStatusChange: (id: number, status: JobStatus) => void;
   isColumnActive: boolean;
+  isDragging: boolean;
 }
 
-function DraggableJobCard({ application, onDragStart, onStatusChange, isColumnActive }: DraggableJobCardProps) {
+function DraggableJobCard({ application, onDragStart, onStatusChange, isColumnActive, isDragging }: DraggableJobCardProps) {
   const statuses: JobStatus[] = ["interested", "applied", "rejected"];
   
   // Get relative date from ISO string
@@ -548,7 +550,7 @@ function DraggableJobCard({ application, onDragStart, onStatusChange, isColumnAc
         if (Math.abs(info.offset.x) > 100) {
           const direction = info.offset.x > 0 ? 1 : -1;
           const currentIndex = statuses.indexOf(application.status);
-          let newIndex = currentIndex + direction;
+          const newIndex = currentIndex + direction;
           
           // Ensure the index is within bounds
           if (newIndex >= 0 && newIndex < statuses.length) {
@@ -569,7 +571,7 @@ function DraggableJobCard({ application, onDragStart, onStatusChange, isColumnAc
         damping: 25, 
         stiffness: 300 
       }}
-      className={`cursor-grab active:cursor-grabbing ${isColumnActive ? 'z-10' : ''}`}
+      className={`cursor-grab active:cursor-grabbing ${isColumnActive ? 'z-10' : ''} ${isDragging ? 'opacity-50' : ''}`}
     >
       <Card className="border shadow-sm hover:shadow-md transition-all duration-200">
         <CardContent className="p-3">
@@ -708,7 +710,7 @@ function RecommendedJobCard({ id, title, company, logo, match, location }: {
           className="object-contain"
         />
       </div>
-      <div className="flex-1">
+      <div className="flex-1" data-job-id={id}>
         <div className="flex justify-between items-start">
           <div>
             <h3 className="font-medium text-sm">{title}</h3>

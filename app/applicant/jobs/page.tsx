@@ -4,30 +4,36 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/basic/button"
 import { Card, CardContent } from "@/components/ui/basic/card"
 import { Input } from "@/components/ui/form/input"
-import { Search, Filter, MapPin, Briefcase, BadgeDollarSign, Clock, Building, CheckCircle, Plus } from "lucide-react"
+import { Search, Filter, MapPin, Briefcase, BadgeDollarSign, Clock, Building, CheckCircle } from "lucide-react"
 import { useState } from "react"
 import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal"
 import { JobFilters } from "@/components/job-filters"
 import { Badge } from "@/components/ui/basic/badge"
 import { Separator } from "@/components/ui/basic/separator"
 import { cn } from "@/lib/utils"
-import { JobCard } from "@/components/job-card"
-import { JobDetails } from "@/components/job-details"
-import { LaunchpadImage } from "@/components/ui/basic/image"
-import { JobApplicationForm } from "@/components/job-application-form"
 
-// Define JobFilters interface (same as in components/job-filters.tsx)
-interface JobFilters {
-  jobTypes: string[]
-  locations: string[]
-  remoteOnly: boolean
-  salary: [number, number]
-  experienceLevel: string
-  keywords: string
+interface Job {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  type: string;
+  salary: string;
+  description: string;
+  requirements: string[];
+  postedDate: string;
 }
 
-// Sample data with more details
-const jobs = [
+interface JobFilters {
+  jobTypes: string[];
+  locations: string[];
+  remoteOnly: boolean;
+  salary: [number, number];
+  experienceLevel: string;
+  keywords: string;
+}
+
+const jobs: Job[] = [
   { 
     id: "1", 
     title: "Frontend Developer", 
@@ -129,7 +135,7 @@ const jobs = [
 export default function ApplicantJobListings() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
-  const [selectedJob, setSelectedJob] = useState(jobs[0]);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(jobs[0]);
   const [activeFilters, setActiveFilters] = useState<JobFilters>({
     jobTypes: [],
     locations: [],
@@ -143,18 +149,18 @@ export default function ApplicantJobListings() {
 
   // Handle applying filters
   const handleApplyFilters = (filters: JobFilters) => {
+    console.log('Applying filters:', filters);
     setActiveFilters(filters);
     setFilterModalOpen(false);
-    console.log("Applied filters:", filters);
   };
-  
+
   // Function to open the filter modal
   const openFilterModal = () => {
     setFilterModalOpen(true);
   };
 
   // Function to select a job
-  const handleJobSelect = (job: any) => {
+  const handleJobSelect = (job: Job) => {
     setSelectedJob(job);
   };
   
@@ -283,7 +289,7 @@ export default function ApplicantJobListings() {
                   onClick={() => handleJobSelect(job)}
                   className={cn(
                     "bg-white rounded-lg border p-4 cursor-pointer transition-all hover:shadow-md",
-                    selectedJob.id === job.id ? "border-launchpad-blue border-l-4" : "border-gray-100"
+                    selectedJob?.id === job.id ? "border-launchpad-blue border-l-4" : "border-gray-100"
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -321,10 +327,10 @@ export default function ApplicantJobListings() {
                 <div className="mb-4">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <h2 className="text-2xl font-bold text-gray-900">{selectedJob.title}</h2>
+                      <h2 className="text-2xl font-bold text-gray-900">{selectedJob?.title}</h2>
                       <div className="flex items-center space-x-2 text-gray-600">
                         <Building className="h-4 w-4" />
-                        <span>{selectedJob.company}</span>
+                        <span>{selectedJob?.company}</span>
                       </div>
                     </div>
                     <Button 
@@ -338,19 +344,19 @@ export default function ApplicantJobListings() {
                   <div className="flex flex-wrap gap-3 mt-4">
                     <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
                       <MapPin className="h-3 w-3" />
-                      {selectedJob.location}
+                      {selectedJob?.location}
                     </Badge>
                     <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
                       <Briefcase className="h-3 w-3" />
-                      {selectedJob.type}
+                      {selectedJob?.type}
                     </Badge>
                     <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
                       <BadgeDollarSign className="h-3 w-3" />
-                      {selectedJob.salary}
+                      {selectedJob?.salary}
                     </Badge>
                     <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
                       <Clock className="h-3 w-3" />
-                      Posted {selectedJob.postedDate}
+                      Posted {selectedJob?.postedDate}
                     </Badge>
                   </div>
                 </div>
@@ -360,13 +366,13 @@ export default function ApplicantJobListings() {
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-medium mb-3 text-gray-900">Description</h3>
-                    <p className="text-gray-700">{selectedJob.description}</p>
+                    <p className="text-gray-700">{selectedJob?.description}</p>
                   </div>
                   
                   <div>
                     <h3 className="text-lg font-medium mb-3 text-gray-900">Requirements</h3>
                     <ul className="space-y-2">
-                      {selectedJob.requirements.map((req, index) => (
+                      {selectedJob?.requirements.map((req, index) => (
                         <li key={index} className="flex items-start gap-2">
                           <CheckCircle className="h-5 w-5 text-launchpad-teal shrink-0 mt-0.5" />
                           <span className="text-gray-700">{req}</span>
@@ -407,7 +413,7 @@ export default function ApplicantJobListings() {
         onSecondaryAction={() => setFilterModalOpen(false)}
       >
         <JobFilters
-          onApplyFilters={handleApplyFilters}
+          onApply={handleApplyFilters}
           initialFilters={activeFilters}
         />
       </MultiPurposeModal>
@@ -416,7 +422,7 @@ export default function ApplicantJobListings() {
       <MultiPurposeModal
         open={applicationModalOpen}
         onOpenChange={setApplicationModalOpen}
-        title={applicationSubmitted ? "Application Submitted!" : "Apply for " + selectedJob.title}
+        title={applicationSubmitted ? "Application Submitted!" : "Apply for " + selectedJob?.title}
         description={applicationSubmitted 
           ? "Thank you for your interest in this position." 
           : "Complete the form below to apply for this position"}
@@ -430,7 +436,7 @@ export default function ApplicantJobListings() {
             </div>
             <h3 className="text-xl font-medium text-gray-900 mb-2">Application Successfully Submitted!</h3>
             <p className="text-gray-600 mb-6">
-              Your application for {selectedJob.title} at {selectedJob.company} has been received.
+              Your application for {selectedJob?.title} at {selectedJob?.company} has been received.
               We'll notify you when there's an update.
             </p>
             <div className="flex gap-3 justify-center">
@@ -452,10 +458,51 @@ export default function ApplicantJobListings() {
             </div>
           </div>
         ) : (
-          <JobApplicationForm 
-            job={selectedJob} 
-            onSubmit={handleApplicationSubmit} 
-          />
+          <div>
+            <h3 className="text-lg font-medium mb-3 text-gray-900">Application Form</h3>
+            <p className="text-gray-700">Please fill out the form below to apply for this position.</p>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleApplicationSubmit({});
+            }}>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                  <Input type="text" className="block w-full border-gray-200 focus:border-launchpad-blue" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <Input type="email" className="block w-full border-gray-200 focus:border-launchpad-blue" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                  <Input type="tel" className="block w-full border-gray-200 focus:border-launchpad-blue" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Resume</label>
+                  <Input type="file" className="block w-full border-gray-200 focus:border-launchpad-blue" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Cover Letter</label>
+                  <textarea className="block w-full border-gray-200 focus:border-launchpad-blue" rows={5}></textarea>
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end mt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setApplicationModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  className="bg-launchpad-blue hover:bg-launchpad-teal"
+                  type="submit"
+                >
+                  Submit Application
+                </Button>
+              </div>
+            </form>
+          </div>
         )}
       </MultiPurposeModal>
     </DashboardLayout>
