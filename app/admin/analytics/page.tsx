@@ -118,6 +118,19 @@ const CHART_COLORS = [
 // Helper function to calculate chart domains
 const calculateDomain = (dataMax: number) => Math.ceil(dataMax * 1.2);
 
+/**
+ * Renders an overview card that displays a key metric along with its title, icon, and optional trend indicator.
+ *
+ * When loading, a skeleton placeholder is shown in place of the metric value. The trend indicator, if provided,
+ * displays an arrow reflecting whether the metric improved or declined compared to the previous month.
+ *
+ * @param title - A descriptive title for the metric.
+ * @param value - The current metric value, which can be either a number or a string.
+ * @param icon - A React element serving as the icon for the metric.
+ * @param trend - Optional trend data that includes a value and a flag indicating if the trend is positive.
+ * @param isLoading - A flag indicating whether the data is still loading.
+ * @returns A card component containing the overview metric details.
+ */
 function OverviewCard({ title, value, icon, trend, isLoading }: { 
   title: string; 
   value: number | string; 
@@ -156,6 +169,16 @@ function OverviewCard({ title, value, icon, trend, isLoading }: {
   )
 }
 
+/**
+ * Renders the admin analytics dashboard.
+ *
+ * This component initializes state for loading, filtering, and analytics data, and simulates fetching
+ * user, application, and job data from local storage services. It calculates key metrics—such as total applicants,
+ * available jobs, total applications, acceptance rate, and placement rate—and prepares datasets for various charts
+ * displaying applications over time, status distribution, top job categories, and placements by program.
+ *
+ * User interactions with filter options and date range selections update the dashboard view accordingly.
+ */
 export default function AdminAnalytics() {
   const [isLoading, setIsLoading] = useState(true)
   const [filterModalOpen, setFilterModalOpen] = useState(false)

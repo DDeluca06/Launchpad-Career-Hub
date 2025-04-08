@@ -30,6 +30,18 @@ interface DashboardNavProps {
   isAdmin?: boolean
 }
 
+/**
+ * Renders a navigation section with a header and list of navigation links.
+ *
+ * This component displays a section header using the provided title and iterates over
+ * an array of navigation items to generate stylized links. It highlights an item if
+ * its href matches the current pathname and displays an optional badge if specified.
+ *
+ * @param title - The header title for the navigation section.
+ * @param items - An array of navigation items, each containing details such as title, href, icon, and optional badge and color.
+ * @param pathname - The current path used to determine which navigation item is active.
+ * @returns A JSX element representing the complete navigation section.
+ */
 function NavSection({ title, items, pathname }: NavSectionProps) {
   return (
     <div className="px-3 py-2">
@@ -98,6 +110,17 @@ function NavSection({ title, items, pathname }: NavSectionProps) {
   )
 }
 
+/**
+ * Renders a role-based dashboard navigation menu.
+ *
+ * This component constructs the navigation for the dashboard, displaying sections that adjust according to whether the user is an admin.
+ * It provides main navigation links, a role-specific section ("Management" for admin or "Resources" for non-admin users), and utility shortcuts.
+ * A persistent logout button and a help section complete the menu.
+ *
+ * @param isAdmin - Indicates if the user has administrative privileges. Defaults to false.
+ *
+ * @returns A JSX element representing the complete dashboard navigation.
+ */
 export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
   const pathname = usePathname()
   const baseUrl = isAdmin ? "/admin" : "/applicant"

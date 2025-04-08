@@ -14,6 +14,21 @@ interface Activity {
   user?: User
 }
 
+/**
+ * Custom React hook to simulate fetching user activity data.
+ *
+ * This hook manages activity state including an array of activity objects,
+ * a loading indicator, and any error encountered during the simulated API call.
+ * It uses a one-second timeout to mimic data loading and returns dummy data.
+ *
+ * @returns An object with:
+ *  - activities: an array of activity objects.
+ *  - loading: a boolean indicating whether data is being loaded.
+ *  - error: an Error object if the simulation fails, otherwise null.
+ *
+ * @remarks
+ * Replace the dummy data and timeout simulation with a real API call when the backend is integrated.
+ */
 export function useActivity() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
