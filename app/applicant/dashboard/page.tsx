@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/basic/button"
@@ -8,8 +8,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
 import { Badge } from "@/components/ui/basic/badge"
 import { jobService, Job } from "@/lib/local-storage"
-import { Briefcase, Calendar, ChevronRight, FileSpreadsheet, MapPin, Plus, UserCircle, Users, Building, CheckCircle, Clock, Star } from "lucide-react"
+import { Briefcase, Calendar, ChevronRight, FileSpreadsheet, MapPin, Plus, UserCircle, Users, Building, CheckCircle, Clock, Star, Filter, Search, TrendingUp, Flag } from "lucide-react"
 import { extendedPalette } from "@/lib/colors"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs"
+import { cn } from "@/lib/utils"
+import dynamic from "next/dynamic"
+import { Input } from "@/components/ui/form/input"
+import { LaunchpadImage } from "@/components/launchpad-image"
+
+// Correctly type the dynamic imports
+const MotionDiv = dynamic(
+  () => import("framer-motion").then((mod) => mod.motion.div),
+  { ssr: false },
+);
+
+const AnimatePresence = dynamic(
+  () => import("framer-motion").then((mod) => mod.AnimatePresence),
+  { ssr: false },
+);
 
 // Define interfaces for the dashboard data
 interface ApplicantDashboardStats {
@@ -50,6 +66,64 @@ interface UpcomingInterview {
   logo?: string;
 }
 
+// Define job status types based on schema
+type JobStatus = "interested" | "applied" | "interview" | "rejected" | "offer" | "accepted";
+
+// Define job interface that combines backend schema with UI needs
+interface JobApplication {
+  applicationId: number;
+  jobId: number;
+  userId: number;
+  status: JobStatus;
+  appliedAt: string;
+  statusUpdatedAt: string;
+  resumeId?: number;
+  position: string;
+  // UI-specific properties
+  job: {
+    title: string;
+    company: string;
+    location?: string;
+    jobType?: string;
+    logo?: string;
+  };
+  priority?: "high" | "medium" | "low";
+}
+
+// Define status columns for the kanban board
+const statusColumns = [
+  {
+    id: "interested",
+    title: "Interested",
+    icon: <Flag className="h-4 w-4" />,
+    color: extendedPalette.lightBlue,
+  },
+  {
+    id: "applied",
+    title: "Applied",
+    icon: <Briefcase className="h-4 w-4" />,
+    color: extendedPalette.primaryBlue,
+  },
+  {
+    id: "interview",
+    title: "Interview",
+    icon: <Users className="h-4 w-4" />,
+    color: extendedPalette.primaryGreen,
+  },
+  {
+    id: "offer",
+    title: "Offer",
+    icon: <FileSpreadsheet className="h-4 w-4" />,
+    color: extendedPalette.primaryOrange,
+  },
+  {
+    id: "rejected",
+    title: "Rejected",
+    icon: <TrendingUp className="h-4 w-4 rotate-180" />,
+    color: extendedPalette.darkGray,
+  },
+];
+
 export default function ApplicantDashboard() {
   const [stats, setStats] = useState<ApplicantDashboardStats>({
     totalApplications: 0,
@@ -62,6 +136,19 @@ export default function ApplicantDashboard() {
   const [recommendations, setRecommendations] = useState<JobRecommendation[]>([]);
   const [upcomingInterviews, setUpcomingInterviews] = useState<UpcomingInterview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeColumn, setActiveColumn] = useState<string | null>(null);
+  const [draggingJob, setDraggingJob] = useState<number | null>(null);
+  const [jobStats, setJobStats] = useState({
+    total: 0,
+    applied: 0,
+    interested: 0,
+    rejected: 0,
+  });
+
+  // Refs for columns to handle drop zones
+  const columnRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Load dashboard data
   useEffect(() => {
@@ -74,13 +161,41 @@ export default function ApplicantDashboard() {
       // For now, we'll simulate with mock data
       const jobs = jobService.getAll();
       
+      // Transform jobs into application format
+      const mockApplications: JobApplication[] = jobs.map(job => ({
+        applicationId: job.job_id,
+        jobId: job.job_id,
+        userId: 1, // Mock user ID
+        status: "interested" as JobStatus,
+        appliedAt: new Date().toISOString(),
+        statusUpdatedAt: new Date().toISOString(),
+        position: job.title,
+        job: {
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          jobType: job.job_type,
+          logo: job.companyLogo || "/placeholder-logo.png"
+        }
+      }));
+      
+      setApplications(mockApplications);
+      
       // Calculate dashboard stats
       const dashboardStats: ApplicantDashboardStats = {
-        totalApplications: 8,
-        activeInterviews: 2,
-        savedJobs: 5,
+        totalApplications: mockApplications.length,
+        activeInterviews: mockApplications.filter(app => app.status === "interview").length,
+        savedJobs: mockApplications.filter(app => app.status === "interested").length,
         completedAssessments: 3
       };
+      
+      setStats(dashboardStats);
+      setJobStats({
+        total: mockApplications.length,
+        applied: mockApplications.filter(app => app.status === "applied").length,
+        interested: mockApplications.filter(app => app.status === "interested").length,
+        rejected: mockApplications.filter(app => app.status === "rejected").length,
+      });
       
       // Generate mock recent activity
       const mockActivity: RecentActivity[] = [
@@ -173,7 +288,6 @@ export default function ApplicantDashboard() {
         }
       ];
       
-      setStats(dashboardStats);
       setRecentActivity(mockActivity);
       setRecommendations(mockRecommendations);
       setUpcomingInterviews(mockInterviews);
@@ -182,6 +296,54 @@ export default function ApplicantDashboard() {
     
     loadDashboardData();
   }, []);
+
+  // Update stats when jobs change
+  useEffect(() => {
+    setJobStats({
+      total: applications.length,
+      applied: applications.filter((app) => app.status === "applied").length,
+      interested: applications.filter((app) => app.status === "interested").length,
+      rejected: applications.filter((app) => app.status === "rejected").length,
+    });
+  }, [applications]);
+
+  // Filter applications by search query
+  const filteredApplications = applications.filter((app) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      app.job.title.toLowerCase().includes(query) ||
+      app.job.company.toLowerCase().includes(query) ||
+      app.job.location?.toLowerCase().includes(query) ||
+      app.job.jobType?.toLowerCase().includes(query)
+    );
+  });
+
+  // Get applications by status
+  const getApplicationsByStatus = (status: JobStatus) => {
+    return filteredApplications.filter((app) => app.status === status);
+  };
+
+  // Start dragging a job
+  const handleDragStart = (applicationId: number) => {
+    setDraggingJob(applicationId);
+  };
+
+  // Update job status on drop
+  const handleStatusChange = (applicationId: number, newStatus: JobStatus) => {
+    setApplications((prev) =>
+      prev.map((app) =>
+        app.applicationId === applicationId
+          ? {
+              ...app,
+              status: newStatus,
+              statusUpdatedAt: new Date().toISOString(),
+            }
+          : app,
+      ),
+    );
+    setDraggingJob(null); // Reset dragging state
+  };
 
   return (
     <DashboardLayout>
@@ -330,6 +492,98 @@ export default function ApplicantDashboard() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Kanban Board Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Application Pipeline</h2>
+              <p className="text-gray-500">Track your job applications through different stages</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search jobs..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Filters
+              </Button>
+              <Button className="gap-2" style={{ backgroundColor: extendedPalette.primaryBlue }}>
+                <Plus className="h-4 w-4" />
+                Add Job
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            {statusColumns.map((column) => (
+              <MotionDiv
+                key={column.id}
+                ref={(el) => {
+                  columnRefs.current[column.id] = el;
+                }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col relative z-0"
+                onMouseEnter={() => setActiveColumn(column.id)}
+                onMouseLeave={() => setActiveColumn(null)}
+                data-column-id={column.id}
+              >
+                <Card
+                  className={`h-full border-t-4`}
+                  style={{ borderTopColor: column.color }}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="rounded-md p-1.5"
+                          style={{ backgroundColor: column.color }}
+                        >
+                          <div className="text-white">{column.icon}</div>
+                        </div>
+                        <CardTitle className="text-base font-semibold">
+                          {column.title}
+                        </CardTitle>
+                      </div>
+                      <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">
+                        {getApplicationsByStatus(column.id as JobStatus).length}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="overflow-y-auto max-h-[60vh] pt-0 px-3 pb-3 space-y-3 scroll-smooth">
+                    <AnimatePresence mode="popLayout">
+                      {getApplicationsByStatus(column.id as JobStatus).map(
+                        (application) => (
+                          <DraggableJobCard
+                            key={application.applicationId}
+                            application={application}
+                            onDragStart={handleDragStart}
+                            onStatusChange={handleStatusChange}
+                            isColumnActive={activeColumn === column.id}
+                            isDragging={draggingJob === application.applicationId}
+                          />
+                        ),
+                      )}
+                      {getApplicationsByStatus(column.id as JobStatus).length === 0 && (
+                        <div className="h-24 border-2 border-dashed rounded-md flex items-center justify-center">
+                          <p className="text-sm text-gray-400">Drop jobs here</p>
+                        </div>
+                      )}
+                    </AnimatePresence>
+                  </CardContent>
+                </Card>
+              </MotionDiv>
+            ))}
+          </div>
         </div>
 
         {/* Two Column Layout: Recent Activity and Upcoming Interviews */}
@@ -563,4 +817,146 @@ function formatRelativeTime(dateString: string): string {
   }
   
   return date.toLocaleDateString();
+}
+
+// Draggable Job Card Component
+interface DraggableJobCardProps {
+  application: JobApplication;
+  onDragStart: (id: number) => void;
+  onStatusChange: (id: number, status: JobStatus) => void;
+  isColumnActive: boolean;
+  isDragging: boolean;
+}
+
+function DraggableJobCard({
+  application,
+  onDragStart,
+  onStatusChange,
+  isColumnActive,
+  isDragging,
+}: DraggableJobCardProps) {
+  const statuses: JobStatus[] = ["interested", "applied", "interview", "offer", "rejected"];
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isDraggingLocal, setIsDraggingLocal] = useState(false);
+
+  // Get relative date from ISO string
+  const getRelativeDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return `${Math.floor(diffDays / 30)} months ago`;
+  };
+
+  // Calculate applied date or due date text
+  const getDateText = () => {
+    if (application.appliedAt) {
+      return `Applied ${getRelativeDate(application.appliedAt)}`;
+    }
+    return "";
+  };
+
+  return (
+    <MotionDiv
+      ref={cardRef}
+      drag
+      dragSnapToOrigin
+      dragElastic={0.1}
+      dragMomentum={false}
+      onDragStart={() => {
+        setIsDraggingLocal(true);
+        onDragStart(application.applicationId);
+      }}
+      onDragEnd={(event, info) => {
+        setIsDraggingLocal(false);
+        const targetElement = document.elementFromPoint(
+          (event as MouseEvent).clientX,
+          (event as MouseEvent).clientY
+        );
+        if (targetElement) {
+          const columnElement = targetElement.closest('[data-column-id]');
+          if (columnElement) {
+            const newStatus = columnElement.getAttribute('data-column-id') as JobStatus;
+            if (newStatus && newStatus !== application.status) {
+              onStatusChange(application.applicationId, newStatus);
+            }
+          }
+        }
+      }}
+      whileDrag={{
+        scale: 1.02,
+        boxShadow: "0 8px 20px -5px rgba(0, 0, 0, 0.1)",
+        zIndex: 9999,
+        position: "fixed",
+        width: cardRef.current?.offsetWidth,
+      }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ 
+        opacity: 1, 
+        y: 0,
+        position: isDraggingLocal ? "fixed" : "relative",
+        zIndex: isDraggingLocal ? 9999 : "auto"
+      }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+      transition={{
+        type: "spring",
+        damping: 25,
+        stiffness: 300,
+      }}
+      className={`cursor-grab active:cursor-grabbing ${isDraggingLocal ? "fixed z-[9999]" : "relative"}`}
+    >
+      <Card className="border shadow-sm hover:shadow-md transition-all duration-200">
+        <CardContent className="p-3">
+          <div className="flex justify-between items-start mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden">
+                <LaunchpadImage
+                  src={application.job.logo || "/placeholder-logo.png"}
+                  alt={application.job.company}
+                  width={24}
+                  height={24}
+                  className="object-contain"
+                />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm">{application.job.title}</h3>
+                <p className="text-xs text-gray-500">{application.job.company}</p>
+              </div>
+            </div>
+            {application.priority && (
+              <Badge
+                className={cn(
+                  "text-xs font-medium",
+                  application.priority === "high"
+                    ? "bg-red-100 text-red-600"
+                    : application.priority === "medium"
+                      ? "bg-amber-100 text-amber-600"
+                      : "bg-green-100 text-green-600",
+                )}
+              >
+                {application.priority}
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1 mt-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-500">{application.job.location}</span>
+              <span className="text-gray-500">{application.job.jobType}</span>
+            </div>
+            <div className="flex justify-between items-center text-xs mt-1">
+              <span className="text-gray-500">{getDateText()}</span>
+              <Badge variant="outline" className="text-xs bg-gray-50">
+                ID: {application.applicationId}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </MotionDiv>
+  );
 }

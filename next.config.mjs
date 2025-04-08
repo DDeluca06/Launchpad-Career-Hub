@@ -21,7 +21,8 @@ const nextConfig = {
     domains: [
       'w8d9q6vsv9.ufs.sh',
       'i0.wp.com',
-      '149667878.v2.pressablecdn.com'
+      '149667878.v2.pressablecdn.com',
+      'via.placeholder.com'
     ],
   },
   experimental: {
