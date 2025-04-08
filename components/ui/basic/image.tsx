@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react';
-import { Image as NextImage } from 'next/image';
+import NextImage from 'next/image';
 import { ALL_IMAGES } from '@/lib/images';
 
 interface ImageProps {
@@ -34,6 +34,10 @@ export function Image({ src, alt, className, width, height }: ImageProps) {
 
 export function LaunchpadImage({ imageId, alt, className, width, height }: LaunchpadImageProps) {
   const image = ALL_IMAGES[imageId];
+  if (!image || typeof image.src !== 'string') {
+    console.warn(`Image not found or invalid: ${imageId}`);
+    return null;
+  }
   if (!image) {
     console.warn(`Image not found: ${imageId}`);
     return null;
