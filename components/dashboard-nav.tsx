@@ -140,23 +140,6 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
     },
   ] : [];
 
-  const studentSectionItems: NavItem[] = isAdmin ? [] : [
-    {
-      title: "Learning",
-      href: `${baseUrl}/learning`,
-      icon: <GraduationCap />,
-      badge: 2,
-      color: extendedPalette.primaryOrange
-    },
-    {
-      title: "Events",
-      href: `${baseUrl}/events`,
-      icon: <Calendar />,
-      badge: 1,
-      color: extendedPalette.teal
-    },
-  ];
-
   const utilityItems: NavItem[] = [
     {
       title: "Calendar",
@@ -179,10 +162,6 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
         
         {isAdmin && adminSectionItems.length > 0 && (
           <NavSection title="Management" items={adminSectionItems} pathname={pathname} />
-        )}
-        
-        {!isAdmin && studentSectionItems.length > 0 && (
-          <NavSection title="Resources" items={studentSectionItems} pathname={pathname} />
         )}
         
         <NavSection title="Utilities" items={utilityItems} pathname={pathname} />

@@ -1,535 +1,998 @@
-"use client"
+"use client";
 
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { Button } from "@/components/ui/basic/button"
-import { Card, CardContent } from "@/components/ui/basic/card"
-import { Input } from "@/components/ui/form/input"
-import { Search, Filter, MapPin, Briefcase, BadgeDollarSign, Clock, Building, CheckCircle } from "lucide-react"
-import { useState } from "react"
-import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal"
-import { JobFilters } from "@/components/job-filters"
-import { Badge } from "@/components/ui/basic/badge"
-import { Separator } from "@/components/ui/basic/separator"
-import { cn } from "@/lib/utils"
+import { useState, Suspense } from "react";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card";
+import { Button } from "@/components/ui/basic/button";
+import { Input } from "@/components/ui/form/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/overlay/dialog";
+import { Search, RefreshCw, Briefcase, Globe, BookmarkPlus, Bookmark, MapPin, FilterX, Loader2, Clock, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { Badge } from "@/components/ui/basic/badge";
+import { Label } from "@/components/ui/basic/label";
+import { Textarea } from "@/components/ui/form/textarea";
+import { Checkbox } from "@/components/ui/form/checkbox";
+import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
 
+// Types
 interface Job {
   id: string;
   title: string;
   company: string;
   location: string;
-  type: string;
+  jobType: string;
+  experienceLevel: string;
   salary: string;
   description: string;
-  requirements: string[];
+  responsibilities: string[];
+  qualifications: string[];
+  benefits: string[];
   postedDate: string;
+  applicationDeadline: string;
+  companyLogoUrl: string;
+  industry: string;
+  isRemote: boolean;
 }
 
-interface JobFilters {
-  jobTypes: string[];
-  locations: string[];
-  remoteOnly: boolean;
-  salary: [number, number];
-  experienceLevel: string;
-  keywords: string;
+interface JobFilter {
+  type: keyof FilterOptions;
+  value: any;
 }
 
-const jobs: Job[] = [
-  { 
-    id: "1", 
-    title: "Frontend Developer", 
-    company: "Tech Co", 
-    location: "Remote", 
-    type: "Full-time",
-    description: "We are looking for a skilled Frontend Developer to join our team. You will be responsible for building user interfaces and implementing designs.",
-    requirements: [
-      "3+ years of experience with React",
-      "Strong knowledge of HTML, CSS, and JavaScript",
-      "Experience with responsive design",
-      "Familiarity with modern frontend tools"
+interface FilterOptions {
+  jobType: string[];
+  experienceLevel: string[];
+  location: string[];
+  isRemote: boolean | null;
+  industry: string[];
+}
+
+// Application tracking interfaces
+interface Application {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  company: string;
+  companyLogoUrl: string;
+  appliedDate: string;
+  status: 'submitted' | 'reviewing' | 'interviewing' | 'rejected' | 'offered' | 'accepted';
+  notes?: string;
+  nextSteps?: string;
+  interviewDate?: string;
+}
+
+// Mock data
+const mockJobs: Job[] = [
+  {
+    id: "1",
+    title: "Software Engineer",
+    company: "TechCorp",
+    location: "San Francisco, CA",
+    jobType: "Full-time",
+    experienceLevel: "Mid-level",
+    salary: "$120,000 - $150,000",
+    description: "We are looking for a software engineer to join our team and help build innovative web applications using React, Node.js, and TypeScript.",
+    responsibilities: [
+      "Design and implement frontend and backend features",
+      "Write clean, maintainable, and efficient code",
+      "Collaborate with cross-functional teams to define and implement new features",
+      "Ensure the technical feasibility of UI/UX designs",
+      "Optimize applications for maximum speed and scalability"
     ],
-    postedDate: "2 days ago",
-    salary: "$80k - $120k"
-  },
-  { 
-    id: "2", 
-    title: "Backend Engineer", 
-    company: "Software Inc", 
-    location: "New York", 
-    type: "Full-time",
-    description: "Join our engineering team to build scalable backend systems for our growing platform.",
-    requirements: [
-      "Experience with Node.js or Python",
-      "Knowledge of database systems",
-      "Experience with API design",
-      "Understanding of cloud infrastructure"
+    qualifications: [
+      "3+ years of experience in software development",
+      "Strong proficiency in JavaScript, TypeScript, and React",
+      "Experience with Node.js and Express",
+      "Familiarity with RESTful APIs and database design",
+      "Bachelor's degree in Computer Science or equivalent experience"
     ],
-    postedDate: "1 week ago",
-    salary: "$90k - $130k"
-  },
-  { 
-    id: "3", 
-    title: "Full Stack Developer", 
-    company: "Web Solutions", 
-    location: "San Francisco", 
-    type: "Contract",
-    description: "Looking for a versatile developer who can work on both frontend and backend technologies.",
-    requirements: [
-      "Experience with modern JavaScript frameworks",
-      "Knowledge of backend technologies",
-      "Database experience",
-      "Good communication skills"
+    benefits: [
+      "Competitive salary and equity",
+      "Health, dental, and vision insurance",
+      "Unlimited PTO",
+      "401(k) matching",
+      "Remote work options"
     ],
-    postedDate: "3 days ago",
-    salary: "$100k - $140k"
+    postedDate: "2023-04-15",
+    applicationDeadline: "2023-05-15",
+    companyLogoUrl: "https://via.placeholder.com/150",
+    industry: "Technology",
+    isRemote: true
   },
-  { 
-    id: "4", 
-    title: "UI/UX Designer", 
-    company: "Design Studio", 
-    location: "Remote", 
-    type: "Part-time",
-    description: "Join our creative team to design beautiful and functional user interfaces.",
-    requirements: [
-      "Portfolio of design work",
-      "Experience with Figma or similar tools",
-      "Understanding of user-centered design",
-      "Ability to collaborate with developers"
+  {
+    id: "2",
+    title: "Product Manager",
+    company: "InnovateCo",
+    location: "New York, NY",
+    jobType: "Full-time",
+    experienceLevel: "Senior",
+    salary: "$140,000 - $180,000",
+    description: "We're seeking an experienced Product Manager to lead the development and launch of our newest product line. You'll work closely with engineering, design, and marketing teams.",
+    responsibilities: [
+      "Define product vision, strategy, and roadmap",
+      "Gather and prioritize product requirements",
+      "Work closely with engineering and design teams",
+      "Analyze market data and customer feedback",
+      "Present product plans to stakeholders"
     ],
-    postedDate: "5 days ago",
-    salary: "$70k - $90k"
-  },
-  { 
-    id: "5", 
-    title: "DevOps Engineer", 
-    company: "Cloud Systems", 
-    location: "Seattle", 
-    type: "Full-time",
-    description: "Help us build and maintain our cloud infrastructure and deployment pipelines.",
-    requirements: [
-      "Experience with AWS or Azure",
-      "Knowledge of CI/CD practices",
-      "Containerization experience",
-      "Infrastructure as code"
-    ],
-    postedDate: "2 weeks ago",
-    salary: "$95k - $135k"
-  },
-  { 
-    id: "6", 
-    title: "Product Manager", 
-    company: "Product Co", 
-    location: "Boston", 
-    type: "Full-time",
-    description: "Lead product strategy and development for our growing suite of applications.",
-    requirements: [
-      "3+ years in product management",
+    qualifications: [
+      "5+ years of product management experience",
+      "Strong analytical and problem-solving skills",
+      "Excellent communication and presentation abilities",
       "Experience with agile methodologies",
-      "Strong analytical skills",
-      "Excellent communication"
+      "MBA or relevant technical degree preferred"
     ],
-    postedDate: "1 month ago",
-    salary: "$110k - $150k"
+    benefits: [
+      "Competitive compensation package",
+      "Comprehensive health benefits",
+      "Flexible work arrangements",
+      "Professional development budget",
+      "Parental leave"
+    ],
+    postedDate: "2023-04-10",
+    applicationDeadline: "2023-05-10",
+    companyLogoUrl: "https://via.placeholder.com/150",
+    industry: "Technology",
+    isRemote: false
   },
-]
+  {
+    id: "3",
+    title: "UX/UI Designer",
+    company: "DesignHub",
+    location: "Austin, TX",
+    jobType: "Contract",
+    experienceLevel: "Entry-level",
+    salary: "$70,000 - $90,000",
+    description: "Join our creative team as a UX/UI Designer to craft beautiful and functional interfaces for our web and mobile applications. You'll be responsible for the entire design process from wireframing to final implementation.",
+    responsibilities: [
+      "Create wireframes, prototypes, and high-fidelity mockups",
+      "Conduct user research and usability testing",
+      "Collaborate with developers to implement designs",
+      "Maintain design system and component library",
+      "Stay updated on latest design trends and best practices"
+    ],
+    qualifications: [
+      "1-2 years of experience in UX/UI design",
+      "Proficiency in design tools like Figma, Sketch, or Adobe XD",
+      "Basic understanding of HTML, CSS, and responsive design",
+      "Strong portfolio demonstrating design thinking",
+      "Excellent communication skills"
+    ],
+    benefits: [
+      "Competitive hourly rate",
+      "Flexible working hours",
+      "Portfolio development opportunities",
+      "Mentorship from senior designers",
+      "Potential for full-time conversion"
+    ],
+    postedDate: "2023-04-20",
+    applicationDeadline: "2023-05-20",
+    companyLogoUrl: "https://via.placeholder.com/150",
+    industry: "Design",
+    isRemote: true
+  }
+];
 
-export default function ApplicantJobListings() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterModalOpen, setFilterModalOpen] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(jobs[0]);
-  const [activeFilters, setActiveFilters] = useState<JobFilters>({
-    jobTypes: [],
-    locations: [],
-    remoteOnly: false,
-    salary: [0, 200] as [number, number],
-    experienceLevel: "any",
-    keywords: ""
-  });
-  const [applicationModalOpen, setApplicationModalOpen] = useState(false);
-  const [applicationSubmitted, setApplicationSubmitted] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [coverLetter, setCoverLetter] = useState("");
-  const [visibleJobCount, setVisibleJobCount] = useState(3); // Number of jobs to display initially
+// Mock applications data
+const mockApplications: Application[] = [
+  {
+    id: "app1",
+    jobId: "1",
+    jobTitle: "Software Engineer",
+    company: "TechCorp",
+    companyLogoUrl: "https://via.placeholder.com/150",
+    appliedDate: "2023-06-10",
+    status: "interviewing",
+    nextSteps: "Technical interview scheduled",
+    interviewDate: "2023-06-25"
+  },
+  {
+    id: "app2",
+    jobId: "2",
+    jobTitle: "Product Manager",
+    company: "InnovateCo",
+    companyLogoUrl: "https://via.placeholder.com/150",
+    appliedDate: "2023-06-05",
+    status: "reviewing",
+    notes: "Recruiter viewed application on June 8"
+  },
+  {
+    id: "app3",
+    jobId: "3",
+    jobTitle: "UX/UI Designer",
+    company: "DesignHub",
+    companyLogoUrl: "https://via.placeholder.com/150",
+    appliedDate: "2023-05-20",
+    status: "rejected",
+    notes: "Position was filled internally"
+  },
+  {
+    id: "app4",
+    jobId: "5",
+    jobTitle: "Frontend Developer",
+    company: "WebSolutions",
+    companyLogoUrl: "https://via.placeholder.com/150",
+    appliedDate: "2023-06-15",
+    status: "submitted"
+  },
+  {
+    id: "app5",
+    jobId: "4",
+    jobTitle: "Data Analyst",
+    company: "DataInsights",
+    companyLogoUrl: "https://via.placeholder.com/150",
+    appliedDate: "2023-05-30",
+    status: "offered",
+    notes: "Offer received: $85,000/year with benefits"
+  }
+];
 
-  // Handle applying filters
-  const handleApplyFilters = (filters: JobFilters) => {
-    // For development only
-    if (process.env.NODE_ENV === 'development') {
-      // console.log('Applying filters:', filters);
-    }
-    setActiveFilters(filters);
-    setFilterModalOpen(false);
-  };
-
-  // Function to open the filter modal
-  const openFilterModal = () => {
-    setFilterModalOpen(true);
-  };
-
-  // Function to select a job
-  const handleJobSelect = (job: Job) => {
-    setSelectedJob(job);
-  };
-  
-  // Function to open application modal
-  const openApplicationModal = () => {
-    setApplicationModalOpen(true);
-    setApplicationSubmitted(false);
-  };
-
-  // Function to handle application submission
-  const handleApplicationSubmit = () => {
-    // For development only
-    if (process.env.NODE_ENV === 'development') {
-      // console.log("Application submitted:", { name, email, phone, coverLetter });
-    }
-    // Here you would typically send the data to your backend
-    setApplicationSubmitted(true);
-    // Don't close the modal yet, show success message first
-  };
-
-  // Filter jobs by search query and active filters
-  const filteredJobs = jobs.filter(job => {
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchesQuery = 
-        job.title.toLowerCase().includes(query) ||
-        job.company.toLowerCase().includes(query) ||
-        job.location?.toLowerCase().includes(query) ||
-        job.type?.toLowerCase().includes(query) ||
-        job.description?.toLowerCase().includes(query);
-      
-      if (!matchesQuery) return false;
-    }
-    
-    // Filter by job type
-    if (activeFilters.jobTypes.length > 0) {
-      const jobType = job.type?.toLowerCase().replace('-', '_');
-      if (!jobType || !activeFilters.jobTypes.some(type => jobType.includes(type))) {
-        return false;
-      }
-    }
-    
-    // Filter by location
-    if (activeFilters.locations.length > 0) {
-      const jobLocation = job.location?.toLowerCase();
-      
-      // Handle remote only filter
-      if (activeFilters.remoteOnly && !jobLocation?.includes('remote')) {
-        return false;
-      }
-      
-      // If locations are selected and not remote only, check if job location matches any selected locations
-      if (!activeFilters.remoteOnly && !activeFilters.locations.some(location => 
-          jobLocation?.includes(location.replace('_', ' ')))) {
-        return false;
-      }
-    } else if (activeFilters.remoteOnly) {
-      // If only remote is selected
-      const jobLocation = job.location?.toLowerCase();
-      if (!jobLocation?.includes('remote')) {
-        return false;
-      }
-    }
-    
-    return true;
-  });
-
-  // Count active filters
-  const countActiveFilters = () => {
-    let count = 0;
-    if (activeFilters.jobTypes.length > 0) count += activeFilters.jobTypes.length;
-    if (activeFilters.locations.length > 0) count += activeFilters.locations.length;
-    if (activeFilters.remoteOnly) count += 1;
-    if (activeFilters.experienceLevel !== 'any') count += 1;
-    if (activeFilters.salary[0] > 0 || activeFilters.salary[1] < 200) count += 1;
-    if (activeFilters.keywords.trim()) count += 1;
-    return count;
-  };
-
-  // Handle loading more jobs
-  const handleLoadMore = () => {
-    setVisibleJobCount(prev => prev + 3); // Increase the number of visible jobs
-  };
-
+// Loading components
+function JobListSkeleton() {
   return (
-    <DashboardLayout>
-      <div className="container p-4 mx-auto max-w-screen-xl">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Browse Jobs</h1>
-        </div>
+    <div className="space-y-3">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <Card key={index} className="animate-pulse">
+          <CardContent className="p-3">
+            <div className="flex gap-3">
+              <div className="h-12 w-12 rounded bg-gray-200" />
+              <div className="flex-1 space-y-2">
+                <div className="h-5 bg-gray-200 rounded w-3/4" />
+                <div className="h-4 bg-gray-200 rounded w-1/2" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
-        {/* Search and Filter Bar - Simplified */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 mb-6">
-          <div className="flex gap-3">
-            <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input 
-                type="search" 
-                placeholder="Search job title, company, or keywords..." 
-                className="pl-10 border-gray-200 focus:border-launchpad-blue" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+function JobDetailsSkeleton() {
+  return (
+    <div className="animate-pulse p-6 space-y-4">
+      <div className="h-8 bg-gray-200 rounded w-1/2 mb-6" />
+      <div className="flex gap-3 mb-6">
+        <div className="h-16 w-16 rounded bg-gray-200" />
+        <div className="flex-1 space-y-2">
+          <div className="h-5 bg-gray-200 rounded w-3/4" />
+          <div className="h-4 bg-gray-200 rounded w-1/2" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="h-4 bg-gray-200 rounded w-full" />
+        <div className="h-4 bg-gray-200 rounded w-full" />
+        <div className="h-4 bg-gray-200 rounded w-3/4" />
+      </div>
+    </div>
+  );
+}
+
+export default function JobsPage() {
+  // State
+  const [jobs, setJobs] = useState<Job[]>(mockJobs);
+  const [filteredJobs, setFilteredJobs] = useState<Job[]>(mockJobs);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(mockJobs[0] || null);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    jobType: [],
+    experienceLevel: [],
+    location: [],
+    isRemote: null,
+    industry: [],
+  });
+  const [savedJobs, setSavedJobs] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [applyModalOpen, setApplyModalOpen] = useState<boolean>(false);
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<"jobs" | "applications">("jobs");
+  const [applications, setApplications] = useState<Application[]>(mockApplications);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [applicationData, setApplicationData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    resume: null as File | null,
+    coverLetter: ""
+  });
+
+  // Handler functions
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    if (!value.trim()) {
+      applyFilters(jobs, filterOptions);
+      return;
+    }
+    
+    const searchResults = jobs.filter(job => 
+      job.title.toLowerCase().includes(value.toLowerCase()) ||
+      job.company.toLowerCase().includes(value.toLowerCase()) ||
+      job.description.toLowerCase().includes(value.toLowerCase())
+    );
+    
+    applyFilters(searchResults, filterOptions);
+  };
+
+  const handleFilterChange = (filter: JobFilter) => {
+    const updatedFilters = { ...filterOptions };
+    
+    if (filter.type === 'isRemote') {
+      updatedFilters.isRemote = filter.value as boolean;
+    } else {
+      const values = updatedFilters[filter.type] as string[];
+      const index = values.indexOf(filter.value as string);
+      
+      if (index === -1) {
+        values.push(filter.value as string);
+      } else {
+        values.splice(index, 1);
+      }
+    }
+    
+    setFilterOptions(updatedFilters);
+    applyFilters(jobs, updatedFilters);
+  };
+
+  const applyFilters = (jobsToFilter: Job[], filters: FilterOptions) => {
+    let results = [...jobsToFilter];
+    
+    if (searchTerm) {
+      results = results.filter(job => 
+        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (filters.jobType.length > 0) {
+      results = results.filter(job => filters.jobType.includes(job.jobType));
+    }
+    
+    if (filters.experienceLevel.length > 0) {
+      results = results.filter(job => filters.experienceLevel.includes(job.experienceLevel));
+    }
+    
+    if (filters.location.length > 0) {
+      results = results.filter(job => filters.location.includes(job.location));
+    }
+    
+    if (filters.industry.length > 0) {
+      results = results.filter(job => filters.industry.includes(job.industry));
+    }
+    
+    if (filters.isRemote !== null) {
+      results = results.filter(job => job.isRemote === filters.isRemote);
+    }
+    
+    setFilteredJobs(results);
+  };
+
+  const toggleSaveJob = (jobId: string) => {
+    setSavedJobs(prevSavedJobs => {
+      if (prevSavedJobs.includes(jobId)) {
+        return prevSavedJobs.filter(id => id !== jobId);
+      } else {
+        return [...prevSavedJobs, jobId];
+      }
+    });
+  };
+
+  const isJobSaved = (jobId: string) => {
+    return savedJobs.includes(jobId);
+  };
+
+  const openApplyModal = (job: Job) => {
+    setSelectedJob(job);
+    setApplyModalOpen(true);
+  };
+
+  const resetFilters = () => {
+    setFilterOptions({
+      jobType: [],
+      experienceLevel: [],
+      location: [],
+      isRemote: null,
+      industry: [],
+    });
+    setSearchTerm("");
+    setFilteredJobs(jobs);
+  };
+
+  // Job Detail View Component
+  function JobDetails({ job }: { job: Job | null }) {
+    if (!job) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+          <div className="rounded-full bg-gray-100 p-4 mb-4">
+            <Search className="h-10 w-10 text-gray-400" />
+          </div>
+          <h3 className="text-xl font-medium mb-2">No Job Selected</h3>
+          <p className="text-gray-500 max-w-sm mb-4">
+            Please select a job from the list to view its details
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-6">
+        <div className="flex justify-between items-start mb-6">
+          <h2 className="text-2xl font-bold">{job.title}</h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => toggleSaveJob(job.id)}
+            className={isJobSaved(job.id) ? "text-yellow-500" : ""}
+          >
+            {isJobSaved(job.id) ? <Bookmark className="h-5 w-5 fill-current" /> : <BookmarkPlus className="h-5 w-5" />}
+          </Button>
+        </div>
+        
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
+            <img 
+              src={job.companyLogoUrl} 
+              alt={`${job.company} logo`} 
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <div>
+            <h3 className="font-medium text-lg">{job.company}</h3>
+            <p className="text-gray-500">{job.location}</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-gray-50 p-3 rounded">
+            <p className="text-xs text-gray-500">Job Type</p>
+            <p className="font-medium">{job.jobType}</p>
+          </div>
+          <div className="bg-gray-50 p-3 rounded">
+            <p className="text-xs text-gray-500">Experience</p>
+            <p className="font-medium">{job.experienceLevel}</p>
+          </div>
+          <div className="bg-gray-50 p-3 rounded">
+            <p className="text-xs text-gray-500">Salary Range</p>
+            <p className="font-medium">{job.salary}</p>
+          </div>
+          <div className="bg-gray-50 p-3 rounded">
+            <p className="text-xs text-gray-500">Deadline</p>
+            <p className="font-medium">{new Date(job.applicationDeadline).toLocaleDateString()}</p>
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <h3 className="font-medium mb-2">Job Description</h3>
+          <div className="text-gray-700">
+            {job.description}
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <h3 className="font-medium mb-2">Responsibilities</h3>
+          <ul className="list-disc pl-4 space-y-1">
+            {job.responsibilities.map((responsibility, index) => (
+              <li key={`resp-${index}`} className="text-gray-700">{responsibility}</li>
+            ))}
+          </ul>
+        </div>
+        
+        <div className="mb-6">
+          <h3 className="font-medium mb-2">Qualifications</h3>
+          <ul className="list-disc pl-4 space-y-1">
+            {job.qualifications.map((qualification, index) => (
+              <li key={`qual-${index}`} className="text-gray-700">{qualification}</li>
+            ))}
+          </ul>
+        </div>
+        
+        <div className="mb-6">
+          <h3 className="font-medium mb-2">Benefits</h3>
+          <ul className="list-disc pl-4 space-y-1">
+            {job.benefits.map((benefit, index) => (
+              <li key={`ben-${index}`} className="text-gray-700">{benefit}</li>
+            ))}
+          </ul>
+        </div>
+        
+        <div className="mt-8">
+          <Button 
+            onClick={() => openApplyModal(job)}
+            className="w-full md:w-auto"
+          >
+            Apply Now
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Application tracking component
+  function ApplicationsTracker() {
+    // Status badge with appropriate colors
+    const getStatusBadge = (status: Application['status']) => {
+      switch (status) {
+        case 'submitted':
+          return <Badge className="bg-blue-100 text-blue-800">Submitted</Badge>;
+        case 'reviewing':
+          return <Badge className="bg-purple-100 text-purple-800">Under Review</Badge>;
+        case 'interviewing':
+          return <Badge className="bg-green-100 text-green-800">Interviewing</Badge>;
+        case 'offered':
+          return <Badge className="bg-yellow-100 text-yellow-800">Offer Received</Badge>;
+        case 'accepted':
+          return <Badge className="bg-green-100 text-green-800">Accepted</Badge>;
+        case 'rejected':
+          return <Badge className="bg-red-100 text-red-800">Not Selected</Badge>;
+        default:
+          return <Badge>Unknown</Badge>;
+      }
+    };
+
+    // Status icon for visual indication
+    const getStatusIcon = (status: Application['status']) => {
+      switch (status) {
+        case 'submitted':
+          return <FileText className="h-5 w-5 text-blue-500" />;
+        case 'reviewing':
+          return <Clock className="h-5 w-5 text-purple-500" />;
+        case 'interviewing':
+          return <Briefcase className="h-5 w-5 text-green-500" />;
+        case 'offered':
+          return <FileText className="h-5 w-5 text-yellow-500" />;
+        case 'accepted':
+          return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+        case 'rejected':
+          return <XCircle className="h-5 w-5 text-red-500" />;
+        default:
+          return <FileText className="h-5 w-5" />;
+      }
+    };
+
+    // Format date to be more readable
+    const formatDate = (dateString: string) => {
+      const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+      return new Date(dateString).toLocaleDateString(undefined, options);
+    };
+
+    // Application detail view
+    function ApplicationDetail({ application }: { application: Application | null }) {
+      if (!application) {
+        return (
+          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+            <div className="rounded-full bg-gray-100 p-4 mb-4">
+              <FileText className="h-10 w-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-medium mb-2">No Application Selected</h3>
+            <p className="text-gray-500 max-w-sm mb-4">
+              Please select an application from the list to view details
+            </p>
+          </div>
+        );
+      }
+
+      return (
+        <div className="p-6">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h2 className="text-2xl font-bold">{application.jobTitle}</h2>
+              <p className="text-gray-600">{application.company}</p>
+            </div>
+            <div>
+              {getStatusBadge(application.status)}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
+              <img 
+                src={application.companyLogoUrl} 
+                alt={`${application.company} logo`} 
+                className="w-full h-full object-contain"
               />
             </div>
-            <Button 
-              onClick={openFilterModal}
-              className="bg-launchpad-blue hover:bg-launchpad-teal text-white gap-2 whitespace-nowrap relative"
-            >
-              <Filter className="h-4 w-4" />
-              Filters
-              {countActiveFilters() > 0 && (
-                <Badge className="ml-1 bg-white text-launchpad-blue font-bold text-xs h-5 absolute -top-2 -right-2">
-                  {countActiveFilters()}
-                </Badge>
+            <div>
+              <p className="text-sm text-gray-500">Application ID: {application.id}</p>
+              <p className="text-sm text-gray-500">Applied on {formatDate(application.appliedDate)}</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-4 mb-6">
+            <div className="bg-gray-50 p-4 rounded">
+              <h3 className="font-medium mb-2">Application Status</h3>
+              <div className="flex items-center gap-2">
+                {getStatusIcon(application.status)}
+                <span className="font-medium">{application.status.charAt(0).toUpperCase() + application.status.slice(1)}</span>
+              </div>
+              {application.notes && (
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600">{application.notes}</p>
+                </div>
               )}
+            </div>
+            
+            {application.nextSteps && (
+              <div className="bg-gray-50 p-4 rounded">
+                <h3 className="font-medium mb-2">Next Steps</h3>
+                <p>{application.nextSteps}</p>
+                {application.interviewDate && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">
+                      Interview scheduled for {formatDate(application.interviewDate)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <div className="mt-8 flex gap-3">
+            <Button variant="outline">
+              <FileText className="h-4 w-4 mr-2" />
+              View Job Details
+            </Button>
+            <Button variant="outline">
+              <Briefcase className="h-4 w-4 mr-2" />
+              Contact Recruiter
             </Button>
           </div>
         </div>
+      );
+    }
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-8 gap-6">
-          {/* Job Listings - Takes 3/8 of the space on large screens */}
-          <div className="lg:col-span-3 space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-medium text-gray-900">Available Positions</h2>
-              <span className="text-sm text-gray-500">{filteredJobs.length} jobs found</span>
-            </div>
-            
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Applications List */}
+        <Card className="lg:col-span-1 max-h-[calc(100vh-220px)] overflow-hidden flex flex-col">
+          <CardHeader className="pb-2">
+            <CardTitle>My Applications</CardTitle>
+            <CardDescription>{applications.length} applications submitted</CardDescription>
+          </CardHeader>
+          
+          <CardContent className="flex-1 overflow-auto p-3">
             <div className="space-y-3">
-              {filteredJobs.slice(0, visibleJobCount).map((job) => (
-                <div 
-                  key={job.id}
-                  onClick={() => handleJobSelect(job)}
+              {applications.map((application) => (
+                <Card 
+                  key={application.id} 
                   className={cn(
-                    "bg-white rounded-lg border p-4 cursor-pointer transition-all hover:shadow-md",
-                    selectedJob?.id === job.id ? "border-launchpad-blue border-l-4" : "border-gray-100"
+                    "cursor-pointer hover:shadow transition-shadow",
+                    selectedApplication?.id === application.id && "ring-2 ring-blue-400 border-l-4 border-blue-400"
                   )}
+                  onClick={() => setSelectedApplication(application)}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center text-gray-500 border border-gray-200">
-                      {job.company.charAt(0)}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{job.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{job.company}</p>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge variant="outline" className="flex items-center text-xs gap-1 font-normal border-gray-200">
-                          <MapPin className="h-3 w-3" />
-                          {job.location}
-                        </Badge>
-                        <Badge variant="outline" className="flex items-center text-xs gap-1 font-normal border-gray-200">
-                          <Briefcase className="h-3 w-3" />
-                          {job.type}
-                        </Badge>
-                        <Badge variant="outline" className="flex items-center text-xs gap-1 font-normal border-gray-200">
-                          <Clock className="h-3 w-3" />
-                          {job.postedDate}
-                        </Badge>
+                  <CardContent className="p-3">
+                    <div className="flex gap-3">
+                      <div className="w-12 h-12 rounded border flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={application.companyLogoUrl} 
+                          alt={`${application.company} logo`} 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 line-clamp-1">{application.jobTitle}</h3>
+                        <p className="text-sm text-gray-500 line-clamp-1">{application.company}</p>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-xs text-gray-400">{formatDate(application.appliedDate)}</span>
+                          {getStatusBadge(application.status)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
+              
+              {applications.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  You haven't submitted any applications yet
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Application Details */}
+        <Card className="lg:col-span-2 max-h-[calc(100vh-220px)] overflow-auto">
+          <ApplicationDetail application={selectedApplication} />
+        </Card>
+      </div>
+    );
+  }
 
-              {/* Load More Button */}
-              {visibleJobCount < filteredJobs.length && (
+  return (
+    <DashboardLayout>
+      <div className="container py-6 px-4 mx-auto">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Career Opportunities</h1>
+          <p className="text-gray-500 mt-1">Discover tech opportunities and track your applications</p>
+        </div>
+        
+        {/* Tab Navigation */}
+        <Tabs defaultValue="jobs" className="mb-6" onValueChange={(value) => setActiveTab(value as "jobs" | "applications")}>
+          <div className="flex justify-between items-center">
+            <TabsList>
+              <TabsTrigger value="jobs" className="px-6">Available Jobs</TabsTrigger>
+              <TabsTrigger value="applications" className="px-6">My Applications</TabsTrigger>
+            </TabsList>
+            
+            {activeTab === "jobs" && (
+              <div className="flex gap-3">
                 <Button 
                   variant="outline" 
-                  className="w-full mt-4"
-                  onClick={handleLoadMore}
+                  className="gap-1"
+                  onClick={() => setShowFilters(!showFilters)}
                 >
-                  Load More Jobs
+                  <FilterX className="h-4 w-4" />
+                  {showFilters ? "Hide Filters" : "Show Filters"}
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          <TabsContent value="jobs" className="mt-6">
+            {/* Search and Filters for Jobs Tab */}
+            <div className="flex flex-wrap gap-3 mb-6">
+              <div className="relative flex-1 min-w-[260px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <Input
+                  placeholder="Search job titles, companies, or keywords..."
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
+              </div>
+              
+              {(filterOptions.jobType.length > 0 || 
+                filterOptions.experienceLevel.length > 0 || 
+                filterOptions.location.length > 0 || 
+                filterOptions.industry.length > 0 || 
+                filterOptions.isRemote !== null) && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={resetFilters}
+                  className="text-xs flex items-center gap-1"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Reset
                 </Button>
               )}
             </div>
-          </div>
+            
+            {/* Filters */}
+            {showFilters && (
+              <Card className="p-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <h3 className="font-medium mb-2">Job Type</h3>
+                    <div className="space-y-2">
+                      {["Full-time", "Part-time", "Contract", "Internship"].map(type => (
+                        <div key={type} className="flex items-center">
+                          <Checkbox 
+                            id={`job-type-${type}`}
+                            checked={filterOptions.jobType.includes(type)}
+                            onCheckedChange={() => handleFilterChange({ type: 'jobType', value: type })}
+                          />
+                          <Label htmlFor={`job-type-${type}`} className="ml-2">{type}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-          {/* Job Details - Takes 5/8 of the space on large screens */}
-          <div className="lg:col-span-5">
-            <Card className="border-gray-100 shadow-sm">
-              <CardContent className="p-6">
-                <div className="mb-4">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <h2 className="text-2xl font-bold text-gray-900">{selectedJob?.title}</h2>
-                      <div className="flex items-center space-x-2 text-gray-600">
-                        <Building className="h-4 w-4" />
-                        <span>{selectedJob?.company}</span>
+                  <div>
+                    <h3 className="font-medium mb-2">Experience Level</h3>
+                    <div className="space-y-2">
+                      {["Entry-level", "Mid-level", "Senior", "Executive"].map(level => (
+                        <div key={level} className="flex items-center">
+                          <Checkbox 
+                            id={`exp-level-${level}`}
+                            checked={filterOptions.experienceLevel.includes(level)}
+                            onCheckedChange={() => handleFilterChange({ type: 'experienceLevel', value: level })}
+                          />
+                          <Label htmlFor={`exp-level-${level}`} className="ml-2">{level}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-medium mb-2">Remote Work</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center">
+                        <Checkbox 
+                          id="remote-yes"
+                          checked={filterOptions.isRemote === true}
+                          onCheckedChange={() => handleFilterChange({ type: 'isRemote', value: true })}
+                        />
+                        <Label htmlFor="remote-yes" className="ml-2">Remote</Label>
+                      </div>
+                      <div className="flex items-center">
+                        <Checkbox 
+                          id="remote-no"
+                          checked={filterOptions.isRemote === false}
+                          onCheckedChange={() => handleFilterChange({ type: 'isRemote', value: false })}
+                        />
+                        <Label htmlFor="remote-no" className="ml-2">On-site</Label>
                       </div>
                     </div>
-                    <Button 
-                      className="bg-launchpad-blue hover:bg-launchpad-teal"
-                      onClick={openApplicationModal}
-                    >
-                      Apply Now
-                    </Button>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-3 mt-4">
-                    <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
-                      <MapPin className="h-3 w-3" />
-                      {selectedJob?.location}
-                    </Badge>
-                    <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
-                      <Briefcase className="h-3 w-3" />
-                      {selectedJob?.type}
-                    </Badge>
-                    <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
-                      <BadgeDollarSign className="h-3 w-3" />
-                      {selectedJob?.salary}
-                    </Badge>
-                    <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
-                      <Clock className="h-3 w-3" />
-                      Posted {selectedJob?.postedDate}
-                    </Badge>
                   </div>
                 </div>
+              </Card>
+            )}
+            
+            {/* Jobs Listing and Details */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Job Listings Column */}
+              <Card className="lg:col-span-1 max-h-[calc(100vh-320px)] overflow-hidden flex flex-col">
+                <CardHeader className="pb-2">
+                  <CardTitle>Available Jobs</CardTitle>
+                  <CardDescription>{filteredJobs.length} positions found</CardDescription>
+                </CardHeader>
                 
-                <Separator className="my-6" />
-                
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-3 text-gray-900">Description</h3>
-                    <p className="text-gray-700">{selectedJob?.description}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-3 text-gray-900">Requirements</h3>
-                    <ul className="space-y-2">
-                      {selectedJob?.requirements.map((req, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <CheckCircle className="h-5 w-5 text-launchpad-teal shrink-0 mt-0.5" />
-                          <span className="text-gray-700">{req}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                
-                <div className="mt-8 flex gap-4">
-                  <Button 
-                    className="flex-1 gap-2 bg-launchpad-blue hover:bg-launchpad-teal"
-                    onClick={openApplicationModal}
-                  >
-                    Apply Now
-                  </Button>
-                  <Button variant="outline" className="flex-1 gap-2">
-                    Save Job
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                <CardContent className="flex-1 overflow-auto p-3">
+                  <Suspense fallback={<JobListSkeleton />}>
+                    {loading ? (
+                      <JobListSkeleton />
+                    ) : filteredJobs.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        No jobs found matching your criteria
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {filteredJobs.map((job) => (
+                          <Card 
+                            key={job.id} 
+                            className={cn(
+                              "cursor-pointer hover:shadow transition-shadow",
+                              selectedJob?.id === job.id && "ring-2 ring-blue-400 border-l-4 border-blue-400"
+                            )}
+                            onClick={() => setSelectedJob(job)}
+                          >
+                            <CardContent className="p-3">
+                              <div className="flex gap-3">
+                                <div className="w-12 h-12 rounded border flex items-center justify-center overflow-hidden">
+                                  <img 
+                                    src={job.companyLogoUrl} 
+                                    alt={`${job.company} logo`} 
+                                    className="w-full h-full object-contain"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="font-medium text-gray-900 line-clamp-1">{job.title}</h3>
+                                  <p className="text-sm text-gray-500 line-clamp-1">{job.company}</p>
+                                  <div className="flex flex-wrap gap-2 mt-1">
+                                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                      <MapPin className="h-3 w-3" />
+                                      {job.location}
+                                    </Badge>
+                                    {job.isRemote && (
+                                      <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                        <Globe className="h-3 w-3" />
+                                        Remote
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </Suspense>
+                </CardContent>
+              </Card>
+              
+              {/* Job Details Column */}
+              <Card className="lg:col-span-2 max-h-[calc(100vh-320px)] overflow-auto">
+                <Suspense fallback={<JobDetailsSkeleton />}>
+                  {loading ? <JobDetailsSkeleton /> : <JobDetails job={selectedJob} />}
+                </Suspense>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="applications" className="mt-6">
+            <ApplicationsTracker />
+          </TabsContent>
+        </Tabs>
       </div>
       
-      {/* Filter Modal */}
-      <MultiPurposeModal
-        open={filterModalOpen}
-        onOpenChange={setFilterModalOpen}
-        title="Find Your Ideal Job"
-        description="Customize your search to discover the perfect opportunities"
-        size="lg"
-        showFooter={true}
-        primaryActionText="Apply Filters"
-        onPrimaryAction={() => {
-          setFilterModalOpen(false);
-        }}
-        secondaryActionText="Cancel"
-        onSecondaryAction={() => setFilterModalOpen(false)}
-      >
-        <JobFilters
-          onApply={handleApplyFilters}
-          initialFilters={activeFilters}
-        />
-      </MultiPurposeModal>
-
-      {/* Job Application Modal */}
-      <MultiPurposeModal
-        open={applicationModalOpen}
-        onOpenChange={setApplicationModalOpen}
-        title={applicationSubmitted ? "Application Submitted!" : "Apply for " + selectedJob?.title}
-        description={applicationSubmitted 
-          ? "Thank you for your interest in this position." 
-          : "Complete the form below to apply for this position"}
-        size="lg"
-        showFooter={false}
-      >
-        {applicationSubmitted ? (
-          <div className="text-center py-8">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">Application Successfully Submitted!</h3>
-            <p className="text-gray-600 mb-6">
-              Your application for {selectedJob?.title} at {selectedJob?.company} has been received.
-              We&apos;ll notify you when there&apos;s an update.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <Button 
-                variant="outline" 
-                onClick={() => setApplicationModalOpen(false)}
-              >
-                Close
-              </Button>
-              <Button
-                className="bg-launchpad-blue hover:bg-launchpad-teal"
-                onClick={() => {
-                  setApplicationModalOpen(false);
-                  // Navigate to dashboard or another page if needed
-                }}
-              >
-                View My Applications
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <h3 className="text-lg font-medium mb-3 text-gray-900">Application Form</h3>
-            <p className="text-gray-700">Please fill out the form below to apply for this position.</p>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              handleApplicationSubmit();
-            }}>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
-                  <Input type="text" className="block w-full border-gray-200 focus:border-launchpad-blue" value={name} onChange={(e) => setName(e.target.value)} />
+      {/* Apply Modal */}
+      <Dialog open={applyModalOpen} onOpenChange={setApplyModalOpen}>
+        <DialogContent className="max-w-lg">
+          {selectedJob && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Apply for {selectedJob.title}</DialogTitle>
+                <DialogDescription>
+                  Complete the application for {selectedJob.company}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="first-name">First Name</Label>
+                    <Input 
+                      id="first-name" 
+                      placeholder="John"
+                      value={applicationData.firstName}
+                      onChange={(e) => setApplicationData({...applicationData, firstName: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="last-name">Last Name</Label>
+                    <Input 
+                      id="last-name" 
+                      placeholder="Doe"
+                      value={applicationData.lastName}
+                      onChange={(e) => setApplicationData({...applicationData, lastName: e.target.value})}
+                    />
+                  </div>
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <Input type="email" className="block w-full border-gray-200 focus:border-launchpad-blue" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="john.doe@example.com"
+                    value={applicationData.email}
+                    onChange={(e) => setApplicationData({...applicationData, email: e.target.value})}
+                  />
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                  <Input type="tel" className="block w-full border-gray-200 focus:border-launchpad-blue" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input 
+                    id="phone" 
+                    placeholder="(123) 456-7890"
+                    value={applicationData.phone}
+                    onChange={(e) => setApplicationData({...applicationData, phone: e.target.value})}
+                  />
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Cover Letter</label>
-                  <textarea className="block w-full border-gray-200 focus:border-launchpad-blue" rows={5} value={coverLetter} onChange={(e) => setCoverLetter(e.target.value)}></textarea>
+                  <Label htmlFor="resume">Resume</Label>
+                  <Input 
+                    id="resume" 
+                    type="file" 
+                    className="cursor-pointer"
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        setApplicationData({...applicationData, resume: files[0]});
+                      }
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="cover-letter">Cover Letter (Optional)</Label>
+                  <Textarea 
+                    id="cover-letter" 
+                    placeholder="Why are you interested in this position?"
+                    value={applicationData.coverLetter}
+                    onChange={(e) => setApplicationData({...applicationData, coverLetter: e.target.value})}
+                  />
                 </div>
               </div>
-              <div className="flex gap-3 justify-end mt-6">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setApplicationModalOpen(false)}
-                >
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setApplyModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button 
-                  className="bg-launchpad-blue hover:bg-launchpad-teal"
-                  type="submit"
-                >
-                  Submit Application
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
-      </MultiPurposeModal>
+                <Button type="submit">Submit Application</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
-  )
+  );
 }
