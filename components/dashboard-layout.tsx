@@ -16,6 +16,14 @@ interface DashboardLayoutProps {
   isAdmin?: boolean
 }
 
+/**
+ * Renders a responsive dashboard layout featuring a header, sidebar, and main content area.
+ *
+ * The layout adapts to different screen sizes by toggling a mobile menu and adjusting navbar styling based on scroll position. It includes a dynamic header with navigation controls, notifications, and a user profile section, and updates displayed labels between an admin or student view based on the provided {@link isAdmin} flag.
+ *
+ * @param children - The content rendered within the main area of the dashboard.
+ * @param isAdmin - Determines whether to display admin-specific labels and navigation.
+ */
 export function DashboardLayout({ children, isAdmin = false }: DashboardLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)

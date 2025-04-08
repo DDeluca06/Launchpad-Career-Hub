@@ -14,6 +14,15 @@ import { extendedPalette } from "@/lib/colors"
 import { userService, User } from "@/lib/local-storage"
 import { useTheme } from "next-themes"
 
+/**
+ * Renders the admin settings page.
+ *
+ * This component provides an interface for managing appearance preferences and user access for administrators.
+ * It loads user data from local storage, supports filtering by username, toggles admin status for users,
+ * and simulates saving settings with a temporary indicator.
+ *
+ * @returns The JSX element representing the admin settings page in the dashboard layout.
+ */
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState("userAccess")

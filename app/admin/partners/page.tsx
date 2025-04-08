@@ -17,7 +17,16 @@ import { Textarea } from "@/components/ui/form/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/form/select"
 import { cn } from "@/lib/utils"
 
-// Stats card component
+/**
+ * Renders a stat card displaying a title, a statistic value, and an icon.
+ *
+ * When the component is in a loading state, a placeholder skeleton is shown instead of the value.
+ *
+ * @param title - The label for the stat card, displayed above the statistic.
+ * @param value - The statistic to display, which can be a number or a string.
+ * @param icon - The icon element rendered within a circular container.
+ * @param isLoading - Indicates whether the statistic is loading, triggering the display of a skeleton.
+ */
 function StatCard({ 
   title, 
   value, 
@@ -50,7 +59,19 @@ function StatCard({
   );
 }
 
-// Partner card component with improved UI
+/**
+ * Renders a card displaying summary information for a partner organization.
+ *
+ * The card presents the partner's logo (or generated initials if no logo is provided), name, location,
+ * industry, a brief description, and key statistics (jobs available, number of applicants, and success rate).
+ * A colored accent is chosen based on the partner's identifier, and the card is visually highlighted when selected.
+ *
+ * @param partner - The partner details used to populate the card's content.
+ * @param onSelect - Callback invoked with the partner object when the card is clicked.
+ * @param isSelected - Optional flag indicating whether the card should be visually highlighted as selected.
+ *
+ * @returns The rendered partner card element.
+ */
 function PartnerCard({ 
   partner, 
   onSelect, 
@@ -148,7 +169,15 @@ function PartnerCard({
   );
 }
 
-// Partner details component
+/**
+ * Renders the detailed view for a partner organization.
+ *
+ * Displays comprehensive information including logo, industry, location, job statistics, and contact details. Also shows upcoming events and provides "Edit" and "Delete" actions via callbacks. If no partner is selected, a placeholder message is shown.
+ *
+ * @param partner The partner object to display, or null to indicate no selection.
+ * @param onEdit Callback invoked when the user clicks the edit button.
+ * @param onDelete Callback invoked when the user clicks the delete button.
+ */
 function PartnerDetails({ 
   partner, 
   onEdit, 
@@ -400,6 +429,13 @@ function PartnerDetails({
   );
 }
 
+/**
+ * Renders the partner management dashboard.
+ *
+ * This component loads partner data from local storage or uses example data if none exist. It displays overall
+ * statistics, a searchable and filterable list of partner organizations, and detailed information for a selected partner.
+ * Users can create, edit, and delete partners through integrated modals.
+ */
 export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);

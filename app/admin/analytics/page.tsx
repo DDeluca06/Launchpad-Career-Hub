@@ -143,6 +143,16 @@ function OverviewCard({ title, value, icon, trend, isLoading }: { title: string;
   );
 }
 
+/**
+ * Renders the admin analytics dashboard.
+ *
+ * This component initializes state for loading, filtering, and analytics data, and simulates fetching
+ * user, application, and job data from local storage services. It calculates key metrics—such as total applicants,
+ * available jobs, total applications, acceptance rate, and placement rate—and prepares datasets for various charts
+ * displaying applications over time, status distribution, top job categories, and placements by program.
+ *
+ * User interactions with filter options and date range selections update the dashboard view accordingly.
+ */
 export default function AdminAnalytics() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterModalOpen, setFilterModalOpen] = useState(false);

@@ -54,6 +54,17 @@ interface StatCardProps {
   className?: string
 }
 
+/**
+ * Renders a statistic card that displays a title, value, and icon.
+ *
+ * When the data is loading, a skeleton placeholder is shown instead of the statistic value.
+ *
+ * @param title - The label for the statistic.
+ * @param value - The statistic value to display.
+ * @param icon - The icon associated with the statistic.
+ * @param isLoading - Indicates whether the statistic value is currently loading.
+ * @param className - Optional CSS class names to customize the card's styling.
+ */
 function StatCard({ title, value, icon, isLoading, className }: StatCardProps) {
   return (
     <Card className={cn("overflow-hidden", className)}>
@@ -76,6 +87,17 @@ function StatCard({ title, value, icon, isLoading, className }: StatCardProps) {
   )
 }
 
+/**
+ * Renders the applicant management dashboard.
+ *
+ * This component fetches user and application data to compile a detailed list of applicants,
+ * complete with mock status values for demonstration purposes. It displays overall statistics,
+ * supports search and filter functionality, and provides modals for creating a new user or performing
+ * a bulk CSV upload. Applicant data and UI states are managed using React hooks, and errors encountered
+ * during data operations are logged to the console.
+ *
+ * @returns The applicant management page rendered as JSX.
+ */
 export default function ApplicantsPage() {
   const [applicants, setApplicants] = useState<ApplicantWithDetails[]>([])
   const [filteredApplicants, setFilteredApplicants] = useState<ApplicantWithDetails[]>([])

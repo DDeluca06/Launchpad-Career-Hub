@@ -131,6 +131,19 @@ const jobs: Job[] = [
   },
 ]
 
+/**
+ * Renders an interactive job listings interface for applicants.
+ *
+ * This component provides a complete UI for searching, filtering, selecting, and applying to job positions.
+ * It displays a list of available jobs with lazy-loading via a "Load More Jobs" button, showcases job details,
+ * and manages two modals: one for applying filters and another for submitting job applications.
+ *
+ * The component maintains internal state for search queries, filter settings, job selection, form inputs,
+ * and application submission status.
+ *
+ * @example
+ * <ApplicantJobListings />
+ */
 export default function ApplicantJobListings() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterModalOpen, setFilterModalOpen] = useState(false);

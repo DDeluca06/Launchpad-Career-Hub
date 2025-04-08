@@ -20,6 +20,11 @@ type CalendarDay = {
   events: typeof EXAMPLE_EVENTS;
 }
 
+/**
+ * Renders the calendar interface for managing and viewing events on an admin dashboard.
+ *
+ * The CalendarPage component maintains state for the current and selected dates, calendar days, and events. It simulates data loading and computes the calendar grid with events assigned to their corresponding days. Users can navigate between months or return to today, view detailed event cards for the selected day, and see upcoming and recent events in a sidebar. Quick action buttons also provide shortcuts to create or view events.
+ */
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([])
