@@ -7,6 +7,17 @@ interface CompanyLogoProps {
   className?: string
 }
 
+/**
+ * Renders an avatar displaying the company logo.
+ *
+ * The component attempts to load the company logo from a hypothetical API endpoint using the provided company name.
+ * If the logo image fails to load, it falls back to displaying the company's initials on a background color that is
+ * consistently generated based on the company name. The avatar's dimensions are determined by the specified size.
+ *
+ * @param company - The name of the company used to fetch the logo and generate fallback initials.
+ * @param size - Optional avatar size ("sm", "md", or "lg"), defaulting to "md".
+ * @param className - Optional additional CSS classes for custom styling.
+ */
 export function CompanyLogo({ company, size = "md", className }: CompanyLogoProps) {
   // Map size to dimensions
   const sizeMap = {

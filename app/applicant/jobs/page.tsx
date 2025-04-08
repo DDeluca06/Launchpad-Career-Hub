@@ -132,6 +132,17 @@ const jobs: Job[] = [
   },
 ]
 
+/**
+ * Renders an applicant-facing job listings interface with integrated search, filtering, and application modals.
+ *
+ * This component displays available job positions with details such as title, company, location, and posted date.
+ * It includes a search bar for filtering jobs by keywords, a filter modal for applying various job criteria,
+ * and an application modal for submitting job applications. The component manages local state for tracking the
+ * search query, active filters, selected job, and the number of listings displayed—with a "Load More Jobs" option
+ * to incrementally reveal additional positions.
+ *
+ * @component
+ */
 export default function ApplicantJobListings() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterModalOpen, setFilterModalOpen] = useState(false);

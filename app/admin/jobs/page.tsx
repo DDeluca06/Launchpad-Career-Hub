@@ -25,7 +25,14 @@ interface JobFiltersType {
   keywords: string;
 }
 
-// Loading components
+/**
+ * Renders a loading skeleton for the job listings.
+ *
+ * This component displays six animated placeholder cards to simulate the layout of job listings
+ * during the data loading phase.
+ *
+ * @returns A React element containing animated skeleton cards.
+ */
 function JobListSkeleton() {
   return (
     <div className="space-y-3">
@@ -46,6 +53,12 @@ function JobListSkeleton() {
   )
 }
 
+/**
+ * Renders a loading skeleton for the job details section.
+ *
+ * This component displays placeholder elements that mimic the layout of the job details,
+ * providing visual feedback while the actual content is being loaded.
+ */
 function JobDetailsSkeleton() {
   return (
     <div className="animate-pulse p-6 space-y-4">
@@ -84,7 +97,22 @@ interface JobDetailsProps {
   onDelete: () => void;
 }
 
-// Job list component with loading state
+/**
+ * Renders a list of job cards with filtering and selection functionality.
+ *
+ * When in a loading state, a loading skeleton is displayed. Otherwise, the component
+ * filters the provided jobs using the search query across title, company, description,
+ * and location fields. Each job card displays relevant job details such as the company
+ * logo, title, company name, location, and the number of applicants. The currently
+ * selected job is visually highlighted, and selecting a job triggers the provided callback.
+ *
+ * @param jobs - The array of jobs to display.
+ * @param selectedJob - The job that is currently selected, used to highlight the corresponding card.
+ * @param onSelectJob - Callback invoked when a job card is clicked.
+ * @param applicationsCount - Mapping of job IDs to their respective applicant counts.
+ * @param isLoading - Indicates whether the job data is still being loaded.
+ * @param searchQuery - The search term used to filter the list of jobs.
+ */
 function JobList({ jobs, selectedJob, onSelectJob, applicationsCount, isLoading, searchQuery }: JobListProps) {
   if (isLoading) return <JobListSkeleton />;
 
@@ -150,6 +178,17 @@ function JobList({ jobs, selectedJob, onSelectJob, applicationsCount, isLoading,
   );
 }
 
+/**
+ * Renders detailed information about a selected job.
+ *
+ * When data is loading, a skeleton placeholder is shown. If no job is selected, the component prompts the user to select a job or add a new one. Otherwise, it displays the job's title, company details, job specifics (including job type and application count), description, and requirements, along with edit and delete action buttons.
+ *
+ * @param job - The selected job object containing its details. When undefined, a prompt to select or create a job is displayed.
+ * @param applicationsCount - An object mapping job IDs to their respective application counts.
+ * @param isLoading - A flag that determines whether the job details are in the process of loading.
+ * @param onEdit - Callback invoked when the "Edit" button is clicked.
+ * @param onDelete - Callback invoked when the "Delete" button is clicked.
+ */
 function JobDetails({ job, applicationsCount, isLoading, onEdit, onDelete }: JobDetailsProps) {
   if (isLoading) return <JobDetailsSkeleton />;
   
@@ -246,6 +285,19 @@ function JobDetails({ job, applicationsCount, isLoading, onEdit, onDelete }: Job
   );
 }
 
+/**
+ * Renders the administrative dashboard for managing job listings.
+ *
+ * This component initializes and controls the state and UI for job management. It
+ * loads dummy job data along with application counts to simulate a backend API response,
+ * and provides features for searching, filtering, selecting, editing, deleting, and
+ * importing job postings. The component coordinates several modals and child components
+ * to improve user interactivity and manage various administrative actions.
+ *
+ * @remark
+ * In a production setting, the dummy data and simulated deletion via an external job
+ * service would be replaced with actual API calls to manage job listings.
+ */
 export default function AdminJobListings() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);

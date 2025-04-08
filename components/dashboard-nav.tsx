@@ -30,6 +30,17 @@ interface DashboardNavProps {
   isAdmin?: boolean
 }
 
+/**
+ * Renders a navigation section with a header and a list of navigation links.
+ *
+ * This component displays a section heading based on the provided title and maps over the given navigation items.
+ * Each item is rendered as a link that highlights when its href matches the current pathname, featuring an animated
+ * background indicator and dynamic color styling. An optional badge is shown if specified.
+ *
+ * @param title - The section header text.
+ * @param items - An array of navigation items, each with properties like title, href, icon, and optionally a badge and color.
+ * @param pathname - The current URL path used to determine the active navigation item.
+ */
 function NavSection({ title, items, pathname }: NavSectionProps) {
   return (
     <div className="px-3 py-2">
@@ -98,6 +109,23 @@ function NavSection({ title, items, pathname }: NavSectionProps) {
   )
 }
 
+/**
+ * Renders the dashboard navigation menu.
+ *
+ * This component builds a navigation menu that adapts its sections based on the user's role.
+ * It displays main navigation items common to all users and conditionally includes management
+ * sections for administrators or resource sections for applicants. The menu also provides utility links,
+ * a logout button, and a help section.
+ *
+ * @param isAdmin - When true, renders admin-specific navigation items; defaults to false.
+ * @returns A JSX element representing the complete dashboard navigation.
+ *
+ * @example
+ * <DashboardNav /> // Renders the navigation menu for an applicant.
+ *
+ * @example
+ * <DashboardNav isAdmin /> // Renders the navigation menu with admin-specific items.
+ */
 export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
   const pathname = usePathname()
   const baseUrl = isAdmin ? "/admin" : "/applicant"

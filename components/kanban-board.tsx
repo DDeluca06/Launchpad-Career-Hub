@@ -23,6 +23,18 @@ interface KanbanBoardProps {
   onJobUpdate: (jobId: string, updates: Partial<KanbanJob>) => void;
 }
 
+/**
+ * Renders a Kanban board to display job applications organized by status.
+ *
+ * This component categorizes jobs into columns based on their status
+ * (e.g., "applied", "interview-scheduled", "interview-completed", "offer-received", and "rejected")
+ * and displays each job in a card format. Jobs with an associated logo are rendered using Next.js's Image component,
+ * while those without display a placeholder. User actions, such as rejecting a job, trigger the provided update callback.
+ *
+ * @param jobs - Array of job applications.
+ * @param onJobUpdate - Callback function invoked with a job ID and update object when a job's status changes.
+ * @returns A JSX element representing the Kanban board.
+ */
 export function KanbanBoard({ jobs, onJobUpdate }: KanbanBoardProps) {
   const [columns, setColumns] = useState<Record<string, KanbanJob[]> & { [key: string]: KanbanJob[] }>({
     'applied': [],

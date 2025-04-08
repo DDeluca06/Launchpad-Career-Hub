@@ -13,6 +13,16 @@ import { Check, Save, RefreshCw, Moon, Sun, Shield, UserCircle, Search } from "l
 import { extendedPalette } from "@/lib/colors"
 import { userService, User } from "@/lib/local-storage"
 
+/**
+ * Renders the admin settings page interface.
+ *
+ * This component provides administrators with a dashboard to manage settings and user access. It includes two main tabs:
+ * one for modifying appearance settings (switching between light and dark themes) and another for managing user access
+ * (searching through users and toggling their admin status). On mount, it loads user data and updates the interface
+ * accordingly. A temporary saved indicator provides feedback when changes are saved.
+ *
+ * @returns A JSX element representing the settings page UI.
+ */
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("userAccess")
   const [savedIndicator, setSavedIndicator] = useState(false)

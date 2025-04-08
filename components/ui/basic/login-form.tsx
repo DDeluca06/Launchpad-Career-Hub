@@ -9,6 +9,18 @@ import { extendedPalette } from "@/lib/colors"
 import { useRouter } from "next/navigation"
 import { UserCircle, Lock, AlertCircle } from "lucide-react"
 
+/**
+ * Renders a login form that enables users to sign in as either an admin or a student.
+ *
+ * This component displays a card with a form that includes input fields for username and password,
+ * a sign-in button, and a toggle to switch between admin and student login modes. It validates that
+ * both fields are provided and simulates an API call with a delay to authenticate against hardcoded
+ * demo credentials. In admin mode, the valid credentials are "admin" and "admin123"; in student mode, they
+ * are "student" and "student123". On successful authentication, it redirects the user to the corresponding
+ * dashboard; otherwise, an error message is shown.
+ *
+ * The UI also provides demo credentials in the footer for user reference.
+ */
 export function LoginForm() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [username, setUsername] = useState("")

@@ -29,6 +29,12 @@ interface Activity {
   user?: User
 }
 
+/**
+ * Displays a loading skeleton for a statistic card.
+ *
+ * This component renders a card containing placeholder elements for the title, value, and icon,
+ * providing a visual cue that the statistic data is currently being loaded.
+ */
 function StatCardLoading() {
   return (
     <Card className="p-4 bg-white border border-gray-100 shadow-sm">
@@ -43,6 +49,12 @@ function StatCardLoading() {
   )
 }
 
+/**
+ * Renders a responsive grid of StatCardLoading placeholders for dashboard sections.
+ *
+ * This component displays four loading skeleton cards arranged in a grid layout,
+ * providing a visual indication that the dashboard content is being loaded.
+ */
 function DashboardSectionLoading() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -53,6 +65,12 @@ function DashboardSectionLoading() {
   )
 }
 
+/**
+ * Renders loading skeletons for recent activity items.
+ *
+ * This component displays five skeleton placeholders that simulate the layout of an activity entry,
+ * each with an icon and two text lines, to indicate that the activity data is still loading.
+ */
 function ActivityLoading() {
   return (
     <div className="space-y-4">
@@ -69,6 +87,17 @@ function ActivityLoading() {
   )
 }
 
+/**
+ * Renders a dashboard overview of statistics.
+ *
+ * This component fetches statistics using the `useStats` hook and conditionally displays:
+ * - A loading skeleton via `DashboardSectionLoading` if data is being fetched.
+ * - An error message if the fetch fails.
+ * - A responsive grid of `StatCard` components with details such as total jobs,
+ *   total applicants, active interviews, and offers sent once data is available.
+ *
+ * @returns A React element representing the statistics overview section.
+ */
 function StatsOverview() {
   const { stats, loading, error } = useStats()
 
@@ -101,6 +130,16 @@ function StatsOverview() {
   )
 }
 
+/**
+ * Renders a card displaying a statistic with a title, numeric value, and icon.
+ *
+ * This component renders a styled card that presents a statistic. The card includes
+ * a title, its corresponding numeric value, and an accompanying icon within a rounded container.
+ *
+ * @param title - The label for the statistic.
+ * @param value - The numeric value to display.
+ * @param icon - A React node that renders the icon associated with the statistic.
+ */
 function StatCard({ title, value, icon }: { title: string; value: number; icon: React.ReactNode }) {
   return (
     <Card className="bg-white">
@@ -117,6 +156,23 @@ function StatCard({ title, value, icon }: { title: string; value: number; icon: 
   )
 }
 
+/**
+ * Renders a dashboard section card featuring a header, statistics grid, and a footer with a navigation button.
+ *
+ * The card starts with an accent-colored top border defined by the provided color and includes:
+ * - A header displaying the icon and title alongside a description.
+ * - A content area that lays out each statistic (with label and value) in a grid, where each value is styled using the accent color.
+ * - A footer containing a "View Details" button that navigates to the specified URL.
+ *
+ * @param title - The section title displayed in the header.
+ * @param description - A short description of the section.
+ * @param icon - An icon element representing the section.
+ * @param href - The URL to navigate to when the "View Details" button is clicked.
+ * @param stats - An array of statistics, each with a label and value.
+ * @param color - The accent color used for the top border and statistic values.
+ *
+ * @returns The rendered dashboard section card.
+ */
 function DashboardSection({ 
   title, 
   description, 
@@ -169,6 +225,20 @@ function DashboardSection({
   )
 }
 
+/**
+ * Renders an activity icon with a colored background based on the activity type.
+ *
+ * Supported activity types determine the displayed icon and color:
+ * - "application": Shows a FileSpreadsheet icon with a primary blue color.
+ * - "status_change": Shows a ChevronRight icon with a primary green color.
+ * - "interview": Shows a UserCircle icon with a teal color.
+ * - "offer": Shows a FileSpreadsheet icon with a primary orange color.
+ * Any other value defaults to the FileSpreadsheet icon with a primary blue color.
+ *
+ * @param type - The activity type that influences the icon and styling.
+ *
+ * @returns A JSX element containing the styled activity icon.
+ */
 function ActivityIcon({ type }: { type: string }) {
   let icon;
   let color;
@@ -202,6 +272,19 @@ function ActivityIcon({ type }: { type: string }) {
   );
 }
 
+/**
+ * Converts a date string into a human-readable relative time.
+ *
+ * This function calculates the elapsed time from the provided date to the current time and returns:
+ * - "just now" if less than 60 seconds have passed,
+ * - "Xm ago" if less than 60 minutes have passed,
+ * - "Xh ago" if less than 24 hours have passed,
+ * - "Xd ago" if less than 7 days have passed,
+ * - Otherwise, it returns the locale-specific date representation.
+ *
+ * @param dateString - The date string to format.
+ * @returns A string representing the relative time from the given date to now.
+ */
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -229,6 +312,14 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString();
 }
 
+/**
+ * Renders the Recent Activity section of the admin dashboard.
+ *
+ * This component retrieves recent activity data using the custom hook and displays each activity as a card.
+ * While the data is loading, a loading skeleton is shown; if an error occurs, an error message is displayed.
+ * Each activity card features an icon corresponding to the activity type, a title, a description, a relative timestamp,
+ * and, if available, a user avatar.
+ */
 function RecentActivitySection() {
   const { activities, loading, error } = useActivity()
 
@@ -268,6 +359,17 @@ function RecentActivitySection() {
   )
 }
 
+/**
+ * Renders the administrative dashboard page.
+ *
+ * This component composes the admin dashboard layout by displaying a header,
+ * a statistics overview, various dashboard sections for metrics like student progress,
+ * internship opportunities, applications, partner companies, workshops & events, and the mentor program,
+ * as well as a recent activity feed. It uses React's Suspense component to provide loading skeletons
+ * while data is being fetched.
+ *
+ * @returns The React element representing the admin dashboard.
+ */
 export default function AdminDashboard() {
   return (
     <DashboardLayout isAdmin>

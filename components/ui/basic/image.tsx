@@ -20,6 +20,19 @@ interface LaunchpadImageProps {
   height?: number;
 }
 
+/**
+ * Renders an image using the NextImage component if a valid source is provided.
+ *
+ * If the image source is missing, a warning is logged and null is returned to prevent rendering an incomplete image.
+ *
+ * @param src - The URL or path of the image to display.
+ * @param alt - The alternative text description for the image.
+ * @param className - The CSS class applied to the image element.
+ * @param width - The width of the image.
+ * @param height - The height of the image.
+ *
+ * @returns A NextImage component configured with the provided properties, or null if the source is missing.
+ */
 export function Image({ src, alt, className, width, height }: ImageProps) {
   // Use a fallback image if the source is invalid
   if (!src) {
@@ -38,6 +51,17 @@ export function Image({ src, alt, className, width, height }: ImageProps) {
   );
 }
 
+/**
+ * Renders an image based on a preset identifier with fallback handling.
+ *
+ * This function retrieves an image object from a predefined collection using the provided imageId.
+ * If the image is not found or its source is invalid (i.e., not a string), a warning is logged and a
+ * fallback UI is displayed. For external image URLs (determined by specific domain checks), the image
+ * is rendered with optimization disabled using NextImage; otherwise, it is rendered normally.
+ *
+ * @example
+ * <LaunchpadImage imageId="logo" alt="Company Logo" width={150} height={150} />
+ */
 export function LaunchpadImage({ imageId, alt, className, width, height }: LaunchpadImageProps) {
   const image = ALL_IMAGES[imageId];
   

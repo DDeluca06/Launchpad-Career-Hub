@@ -20,6 +20,13 @@ type CalendarDay = {
   events: typeof EXAMPLE_EVENTS;
 }
 
+/**
+ * Renders the Calendar page for the admin dashboard.
+ *
+ * This component displays an interactive calendar interface for viewing and managing events.
+ * It allows users to navigate between months, select dates to view daily events, and see lists of upcoming and recent events.
+ * Data is simulated with a loading state and calendar days are dynamically generated based on the current date.
+ */
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([])

@@ -118,6 +118,19 @@ const CHART_COLORS = [
 // Helper function to calculate chart domains
 const calculateDomain = (dataMax: number) => Math.ceil(dataMax * 1.2);
 
+/**
+ * Renders a card displaying a metric overview with a title, value, icon, and an optional trend indicator.
+ *
+ * When in a loading state, it shows a skeleton loader instead of the value and trend. If trend data is provided,
+ * it displays an indicator showing whether the metric has increased or decreased relative to the previous month.
+ *
+ * @param title - The label for the metric.
+ * @param value - The metric's value; displayed when not loading.
+ * @param icon - A visual element representing the metric.
+ * @param trend - Optional trend information including a display value and a flag indicating positive change.
+ * @param isLoading - If true, a loading skeleton replaces the metric value and trend.
+ * @returns A card element representing the overview metric.
+ */
 function OverviewCard({ title, value, icon, trend, isLoading }: { 
   title: string; 
   value: number | string; 
@@ -156,6 +169,15 @@ function OverviewCard({ title, value, icon, trend, isLoading }: {
   )
 }
 
+/**
+ * Renders the admin analytics dashboard with metrics, charts, and filtering options.
+ *
+ * This component simulates fetching and processing analytics data, including overview metrics,
+ * applications over time, application status distribution, top job categories, and placements by program.
+ * It manages loading states and provides user interactions for applying filters and changing the date range.
+ *
+ * @remark Integration points currently simulate API calls and data processing; update these integrations for production use.
+ */
 export default function AdminAnalytics() {
   const [isLoading, setIsLoading] = useState(true)
   const [filterModalOpen, setFilterModalOpen] = useState(false)

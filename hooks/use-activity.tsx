@@ -14,6 +14,17 @@ interface Activity {
   user?: User
 }
 
+/**
+ * Custom React hook that manages the state of user activities.
+ *
+ * This hook simulates an asynchronous API call by using a timeout to load dummy activity data.
+ * It maintains the activities list, a loading flag, and an error state for use in components.
+ *
+ * @returns An object containing:
+ *  - activities: An array of activity objects.
+ *  - loading: A boolean indicating whether the activities are still being loaded.
+ *  - error: An Error object if an error occurred during loading, otherwise null.
+ */
 export function useActivity() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)

@@ -36,7 +36,18 @@ interface Partner {
   logo_url?: string;
 }
 
-// Stats card component
+/**
+ * Renders a statistic card that displays a title, a value (or a loading placeholder), and an accompanying icon.
+ *
+ * When the `isLoading` flag is true, the card shows a skeleton placeholder in place of the value.
+ *
+ * @param title - The label for the statistic.
+ * @param value - The statistic value to display (as a number or string).
+ * @param icon - The visual icon to include alongside the statistic.
+ * @param isLoading - Indicates if the card should display a loading state.
+ *
+ * @returns A card element presenting the statistic information.
+ */
 function StatCard({ 
   title, 
   value, 
@@ -69,7 +80,21 @@ function StatCard({
   );
 }
 
-// Partner card component with improved UI
+/**
+ * Renders a card that displays key details about a partner organization.
+ *
+ * The card shows the partner's logo (or initials if no logo is provided), name, location, industry,
+ * status, a brief description, and statistics such as jobs available, number of applicants, and hiring
+ * success rate. It applies a consistent color scheme based on the partner's identifier and provides visual
+ * feedback when selected.
+ *
+ * @param partner - The partner object containing attributes like partner_id, name, description, industry,
+ *                  location, jobs available, applicants, applicants hired, and optionally a logo URL.
+ * @param onSelect - Callback invoked when the card is clicked, receiving the partner object.
+ * @param isSelected - Optional flag indicating whether the card is currently selected, affecting its styling.
+ *
+ * @returns A JSX element representing the partner card.
+ */
 function PartnerCard({ 
   partner, 
   onSelect, 
@@ -167,7 +192,18 @@ function PartnerCard({
   );
 }
 
-// Partner details component
+/**
+ * Renders detailed information for a selected partner organization.
+ *
+ * When a partner is provided, this component displays its name, logo (or a fallback with initials),
+ * industry, location, website, job statistics (available jobs, applicants, hired), contact details,
+ * and a list of upcoming events. If no partner is selected, it presents a placeholder prompting the user to select one.
+ *
+ * @param partner - The partner organization to display; use null when none is selected.
+ * @param onEdit - Callback triggered when the edit button is clicked.
+ * @param onDelete - Callback triggered when the delete button is clicked.
+ * @returns A JSX element representing the detailed view of the partner.
+ */
 function PartnerDetails({ 
   partner, 
   onEdit, 
@@ -419,6 +455,14 @@ function PartnerDetails({
   );
 }
 
+/**
+ * Renders the dashboard interface for managing partner organizations.
+ *
+ * This component fetches partner data from local storage (or falls back to example data if none exists) and manages state
+ * for the partner list, current selection, search query, and active filters. It enables users to create, edit, and delete
+ * partner organizations via modal dialogs while displaying statistics, a list of partner cards, and detailed information
+ * for a selected partner.
+ */
 export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
