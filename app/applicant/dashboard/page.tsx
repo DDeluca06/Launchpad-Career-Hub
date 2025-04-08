@@ -1,36 +1,19 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { Button } from "@/components/ui/basic/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/basic/card";
-import dynamic from "next/dynamic";
-import { Input } from "@/components/ui/form/input";
-import {
-  Search,
-  Filter,
-  Calendar,
-  Briefcase,
-  PlusCircle,
-  TrendingUp,
-  Flag,
-  Users,
-} from "lucide-react";
-import { extendedPalette } from "@/lib/colors";
-import { Badge } from "@/components/ui/basic/badge";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/navigation/tabs";
-import { cn } from "@/lib/utils";
-import { LaunchpadImage } from "@/components/launchpad-image";
+import { useState, useRef, useEffect } from "react"
+import Link from "next/link"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import { Button } from "@/components/ui/basic/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/basic/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
+import { Badge } from "@/components/ui/basic/badge"
+import { jobService, Job } from "@/lib/local-storage"
+import { Briefcase, Calendar, ChevronRight, FileSpreadsheet, MapPin, Plus, UserCircle, Users, Building, Clock, Star, Filter, Search, TrendingUp, Flag } from "lucide-react"
+import { extendedPalette } from "@/lib/colors"
+import { cn } from "@/lib/utils"
+import dynamic from "next/dynamic"
+import { Input } from "@/components/ui/form/input"
+import { LaunchpadImage } from "@/components/launchpad-image"
 
 // Correctly type the dynamic imports
 const MotionDiv = dynamic(
@@ -43,14 +26,47 @@ const AnimatePresence = dynamic(
   { ssr: false },
 );
 
+// Define interfaces for the dashboard data
+interface ApplicantDashboardStats {
+  totalApplications: number;
+  activeInterviews: number;
+  savedJobs: number;
+  completedAssessments: number;
+}
+
+interface RecentActivity {
+  id: number;
+  type: 'application' | 'status_change' | 'interview' | 'offer' | 'saved';
+  title: string;
+  description: string;
+  timestamp: string;
+  job?: Job;
+}
+
+interface JobRecommendation {
+  id: number;
+  title: string;
+  company: string;
+  location: string;
+  matchPercentage: number;
+  logo?: string;
+  isNew: boolean;
+}
+
+// Define the interface for the interviews
+interface UpcomingInterview {
+  id: number;
+  company: string;
+  position: string;
+  date: string;
+  time: string;
+  type: string;
+  interviewer: string;
+  logo?: string;
+}
+
 // Define job status types based on schema
-type JobStatus =
-  | "interested"
-  | "applied"
-  | "interview"
-  | "rejected"
-  | "offer"
-  | "accepted";
+type JobStatus = "interested" | "applied" | "interview" | "rejected" | "offer" | "accepted";
 
 // Define job interface that combines backend schema with UI needs
 interface JobApplication {
@@ -73,108 +89,6 @@ interface JobApplication {
   priority?: "high" | "medium" | "low";
 }
 
-// Sample data - this would come from the database soon
-const initialApplications: JobApplication[] = [
-  {
-    applicationId: 1,
-    jobId: 1,
-    userId: 2,
-    status: "applied",
-    appliedAt: "2023-04-05T12:00:00Z",
-    statusUpdatedAt: "2023-04-05T12:00:00Z",
-    position: "1",
-    job: {
-      title: "Frontend Developer",
-      company: "Tech Co",
-      location: "Remote",
-      jobType: "Full-time",
-      logo: "/placeholder-logo.png",
-    },
-    priority: "high",
-  },
-  {
-    applicationId: 2,
-    jobId: 2,
-    userId: 2,
-    status: "interested",
-    appliedAt: "",
-    statusUpdatedAt: "2023-04-01T10:00:00Z",
-    position: "1",
-    job: {
-      title: "Backend Engineer",
-      company: "Software Inc",
-      location: "Philadelphia, PA",
-      jobType: "Full-time",
-      logo: "/placeholder-logo.png",
-    },
-    priority: "medium",
-  },
-  {
-    applicationId: 3,
-    jobId: 3,
-    userId: 2,
-    status: "applied",
-    appliedAt: "2023-03-29T15:00:00Z",
-    statusUpdatedAt: "2023-03-29T15:00:00Z",
-    position: "2",
-    job: {
-      title: "Full Stack Developer",
-      company: "Web Solutions",
-      location: "Remote",
-      jobType: "Contract",
-      logo: "/placeholder-logo.png",
-    },
-  },
-  {
-    applicationId: 4,
-    jobId: 4,
-    userId: 2,
-    status: "interested",
-    appliedAt: "",
-    statusUpdatedAt: "2023-03-25T09:00:00Z",
-    position: "2",
-    job: {
-      title: "UI/UX Designer",
-      company: "Design Studio",
-      location: "New York, NY",
-      jobType: "Part-time",
-      logo: "/placeholder-logo.png",
-    },
-  },
-  {
-    applicationId: 5,
-    jobId: 5,
-    userId: 2,
-    status: "rejected",
-    appliedAt: "2023-03-10T11:00:00Z",
-    statusUpdatedAt: "2023-03-15T14:00:00Z",
-    position: "1",
-    job: {
-      title: "DevOps Engineer",
-      company: "Cloud Systems",
-      location: "Boston, MA",
-      jobType: "Full-time",
-      logo: "/placeholder-logo.png",
-    },
-  },
-  {
-    applicationId: 6,
-    jobId: 6,
-    userId: 2,
-    status: "interested",
-    appliedAt: "",
-    statusUpdatedAt: "2023-03-20T16:00:00Z",
-    position: "3",
-    job: {
-      title: "Product Manager",
-      company: "Product Co",
-      location: "Philadelphia, PA",
-      jobType: "Full-time",
-      logo: "/placeholder-logo.png",
-    },
-  },
-];
-
 // Define status columns for the kanban board
 const statusColumns = [
   {
@@ -190,6 +104,18 @@ const statusColumns = [
     color: extendedPalette.primaryBlue,
   },
   {
+    id: "interview",
+    title: "Interview",
+    icon: <Users className="h-4 w-4" />,
+    color: extendedPalette.primaryGreen,
+  },
+  {
+    id: "offer",
+    title: "Offer",
+    icon: <FileSpreadsheet className="h-4 w-4" />,
+    color: extendedPalette.primaryOrange,
+  },
+  {
     id: "rejected",
     title: "Rejected",
     icon: <TrendingUp className="h-4 w-4 rotate-180" />,
@@ -198,31 +124,186 @@ const statusColumns = [
 ];
 
 export default function ApplicantDashboard() {
-  const [applications, setApplications] =
-    useState<JobApplication[]>(initialApplications);
+  const [stats, setStats] = useState<ApplicantDashboardStats>({
+    totalApplications: 0,
+    activeInterviews: 0,
+    savedJobs: 0,
+    completedAssessments: 0
+  });
+  
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [recommendations, setRecommendations] = useState<JobRecommendation[]>([]);
+  const [upcomingInterviews, setUpcomingInterviews] = useState<UpcomingInterview[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
   const [draggingJob, setDraggingJob] = useState<number | null>(null);
+  
+  // Job statistics for analytics and future dashboard enhancements
   const [jobStats, setJobStats] = useState({
-    total: initialApplications.length,
-    applied: initialApplications.filter((app) => app.status === "applied")
-      .length,
-    interested: initialApplications.filter((app) => app.status === "interested")
-      .length,
-    rejected: initialApplications.filter((app) => app.status === "rejected")
-      .length,
+    total: 0,
+    applied: 0,
+    interested: 0,
+    rejected: 0,
   });
 
   // Refs for columns to handle drop zones
   const columnRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Load dashboard data
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      if (typeof window === 'undefined') return;
+      
+      setIsLoading(true);
+      
+      // In a real app, we would fetch user-specific data
+      // For now, we'll simulate with mock data
+      const jobs = jobService.getAll();
+      
+      // Transform jobs into application format
+      const mockApplications: JobApplication[] = jobs.map(job => ({
+        applicationId: job.job_id,
+        jobId: job.job_id,
+        userId: 1, // Mock user ID
+        status: "interested" as JobStatus,
+        appliedAt: new Date().toISOString(),
+        statusUpdatedAt: new Date().toISOString(),
+        position: job.title,
+        job: {
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          jobType: job.job_type,
+          logo: job.companyLogo || "/placeholder-logo.png"
+        }
+      }));
+      
+      setApplications(mockApplications);
+      
+      // Calculate dashboard stats
+      const dashboardStats: ApplicantDashboardStats = {
+        totalApplications: mockApplications.length,
+        activeInterviews: mockApplications.filter(app => app.status === "interview").length,
+        savedJobs: mockApplications.filter(app => app.status === "interested").length,
+        completedAssessments: 3
+      };
+      
+      setStats(dashboardStats);
+      setJobStats({
+        total: mockApplications.length,
+        applied: mockApplications.filter(app => app.status === "applied").length,
+        interested: mockApplications.filter(app => app.status === "interested").length,
+        rejected: mockApplications.filter(app => app.status === "rejected").length,
+      });
+      
+      // Generate mock recent activity
+      const mockActivity: RecentActivity[] = [
+        {
+          id: 1,
+          type: 'application',
+          title: 'Application Submitted',
+          description: 'You applied for Frontend Developer at Tech Co',
+          timestamp: '2023-04-05T10:30:00Z',
+          job: jobs.find(j => j.title === 'Frontend Developer')
+        },
+        {
+          id: 2,
+          type: 'status_change',
+          title: 'Application Update',
+          description: 'Your application for UX Designer is now in review',
+          timestamp: '2023-04-04T14:15:00Z',
+          job: jobs.find(j => j.title === 'UX Designer')
+        },
+        {
+          id: 3,
+          type: 'interview',
+          title: 'Interview Scheduled',
+          description: 'Technical interview for Backend Engineer position',
+          timestamp: '2023-04-03T09:45:00Z',
+          job: jobs.find(j => j.title === 'Backend Engineer')
+        },
+        {
+          id: 4,
+          type: 'saved',
+          title: 'Job Saved',
+          description: 'You saved the Product Manager position for later',
+          timestamp: '2023-04-02T16:20:00Z',
+          job: jobs.find(j => j.title === 'Product Manager')
+        }
+      ];
+      
+      // Generate job recommendations
+      const mockRecommendations: JobRecommendation[] = [
+        {
+          id: 101,
+          title: "Senior Frontend Developer",
+          company: "Tech Innovations",
+          location: "Remote",
+          matchPercentage: 92,
+          logo: "/placeholder-logo.png",
+          isNew: true
+        },
+        {
+          id: 102,
+          title: "React Developer",
+          company: "Digital Solutions",
+          location: "Philadelphia, PA",
+          matchPercentage: 87,
+          logo: "/placeholder-logo.png",
+          isNew: false
+        },
+        {
+          id: 103,
+          title: "Full Stack Engineer",
+          company: "Startup Hub",
+          location: "Remote",
+          matchPercentage: 78,
+          logo: "/placeholder-logo.png",
+          isNew: true
+        }
+      ];
+      
+      // Generate upcoming interviews
+      const mockInterviews = [
+        {
+          id: 201,
+          company: "Tech Co",
+          position: "Frontend Developer",
+          date: "Apr 15, 2023",
+          time: "10:00 AM",
+          type: "Technical",
+          interviewer: "Alex Johnson",
+          logo: "/placeholder-logo.png"
+        },
+        {
+          id: 202,
+          company: "Digital Solutions",
+          position: "React Developer",
+          date: "Apr 18, 2023",
+          time: "2:00 PM",
+          type: "Behavioral",
+          interviewer: "Sam Williams",
+          logo: "/placeholder-logo.png"
+        }
+      ];
+      
+      setRecentActivity(mockActivity);
+      setRecommendations(mockRecommendations);
+      setUpcomingInterviews(mockInterviews);
+      setIsLoading(false);
+    };
+    
+    loadDashboardData();
+  }, []);
 
   // Update stats when jobs change
   useEffect(() => {
     setJobStats({
       total: applications.length,
       applied: applications.filter((app) => app.status === "applied").length,
-      interested: applications.filter((app) => app.status === "interested")
-        .length,
+      interested: applications.filter((app) => app.status === "interested").length,
       rejected: applications.filter((app) => app.status === "rejected").length,
     });
   }, [applications]);
@@ -230,7 +311,6 @@ export default function ApplicantDashboard() {
   // Filter applications by search query
   const filteredApplications = applications.filter((app) => {
     if (!searchQuery) return true;
-
     const query = searchQuery.toLowerCase();
     return (
       app.job.title.toLowerCase().includes(query) ||
@@ -263,311 +343,339 @@ export default function ApplicantDashboard() {
           : app,
       ),
     );
+    setDraggingJob(null); // Reset dragging state
   };
 
   return (
     <DashboardLayout>
-      <div className="container p-6 mx-auto">
-        {/* Dashboard Header */}
-        <MotionDiv
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="mb-8"
-        >
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <div className="container py-6 px-4 mx-auto pb-24">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
+            <p className="text-gray-500 mt-1">Track your job search progress and opportunities</p>
+          </div>
+        
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Schedule Interview
+            </Button>
+            <Button className="gap-2" style={{ backgroundColor: extendedPalette.primaryBlue }}>
+              <Plus className="h-4 w-4" />
+              Save New Job
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatCard 
+            title="Total Applications"
+            value={jobStats.total}
+            icon={<Briefcase className="h-5 w-5" style={{ color: extendedPalette.primaryBlue }} />}
+            isLoading={isLoading}
+            subtitle={`${jobStats.applied} applied • ${jobStats.interested} interested`}
+          />
+          <StatCard 
+            title="Active Interviews"
+            value={stats.activeInterviews}
+            icon={<Users className="h-5 w-5" style={{ color: extendedPalette.primaryGreen }} />}
+            isLoading={isLoading}
+          />
+          <StatCard 
+            title="Saved Jobs"
+            value={stats.savedJobs}
+            icon={<Star className="h-5 w-5" style={{ color: extendedPalette.teal }} />}
+            isLoading={isLoading}
+          />
+          <StatCard 
+            title="Response Rate"
+            value={jobStats.total > 0 ? Math.round((jobStats.applied / jobStats.total) * 100) : 0}
+            icon={<TrendingUp className="h-5 w-5" style={{ color: extendedPalette.primaryOrange }} />}
+            isLoading={isLoading}
+            suffix="%"
+          />
+        </div>
+          
+        {/* Main Dashboard Sections */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {/* Job Applications Section */}
+          <DashboardSection
+            title="My Applications"
+            description="Track your job applications"
+            icon={<Briefcase className="h-6 w-6" style={{ color: extendedPalette.primaryBlue }} />}
+            href="/applicant/jobs"
+            stats={[
+              { label: "Total", value: String(stats.totalApplications) },
+              { label: "In Progress", value: "5" },
+              { label: "Completed", value: "3" }
+            ]}
+            color={extendedPalette.primaryBlue}
+          />
+          
+          {/* Calendar Section */}
+          <DashboardSection
+            title="My Calendar"
+            description="View upcoming interviews and events"
+            icon={<Calendar className="h-6 w-6" style={{ color: extendedPalette.primaryGreen }} />}
+            href="/applicant/calendar"
+            stats={[
+              { label: "Interviews", value: String(stats.activeInterviews) },
+              { label: "This Week", value: "1" },
+              { label: "Next Week", value: "1" }
+            ]}
+            color={extendedPalette.primaryGreen}
+          />
+          
+          {/* Profile Section */}
+          <DashboardSection
+            title="My Profile"
+            description="Update your skills and resume"
+            icon={<UserCircle className="h-6 w-6" style={{ color: extendedPalette.teal }} />}
+            href="/applicant/settings"
+            stats={[
+              { label: "Skills", value: "12" },
+              { label: "Profile", value: "85%" },
+              { label: "Resume", value: "Updated" }
+            ]}
+            color={extendedPalette.teal}
+          />
+        </div>
+        
+        {/* Job Recommendations */}
+        <div className="mb-8">
+          <Card className="border border-gray-200 shadow-sm">
+            <CardHeader className="pb-2 border-b bg-gray-50">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg font-medium flex items-center gap-2">
+                  <Star className="h-5 w-5" style={{ color: extendedPalette.primaryBlue }} />
+                  Job Recommendations
+                </CardTitle>
+                <Link href="/applicant/jobs">
+                  <Button variant="ghost" size="sm">View All</Button>
+                </Link>
+              </div>
+              <CardDescription>Jobs that match your skills and preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="space-y-4">
+                {recommendations.map((job) => (
+                  <div key={job.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={job.logo} alt={job.company} />
+                        <AvatarFallback>{job.company.substring(0, 2)}</AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium">{job.title}</h3>
+                        {job.isNew && (
+                          <Badge className="bg-green-100 text-green-600 hover:bg-green-200">New</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Building className="h-3.5 w-3.5 mr-1" />
+                        {job.company}
+                        <span className="mx-1.5">•</span>
+                        <MapPin className="h-3.5 w-3.5 mr-1" />
+                        {job.location}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Link href={`/applicant/jobs/${job.id}`}>
+                        <Button size="sm" variant="outline">View Job</Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Kanban Board Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                My Job Dashboard
-              </h1>
-              <p className="text-gray-500 dark:text-gray-400">
-                Track and manage your job applications
-              </p>
+              <h2 className="text-xl font-semibold text-gray-900">Application Pipeline</h2>
+              <p className="text-gray-500">Track your job applications through different stages</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                Schedule Interview
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search jobs..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Filters
               </Button>
-              <Button className="gap-2 bg-launchpad-blue hover:bg-launchpad-teal text-white">
-                <PlusCircle className="h-4 w-4" />
+              <Button className="gap-2" style={{ backgroundColor: extendedPalette.primaryBlue }}>
+                <Plus className="h-4 w-4" />
                 Add Job
               </Button>
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <StatsCard
-              title="Total Jobs"
-              value={jobStats.total}
-              icon={<Briefcase className="h-5 w-5" />}
-              color="bg-launchpad-blue"
-            />
-            <StatsCard
-              title="Applications Sent"
-              value={jobStats.applied}
-              icon={<TrendingUp className="h-5 w-5" />}
-              color="bg-launchpad-green"
-            />
-            <StatsCard
-              title="Interested"
-              value={jobStats.interested}
-              icon={<Flag className="h-5 w-5" />}
-              color="bg-launchpad-lightBlue"
-            />
-            <StatsCard
-              title="Rejected"
-              value={jobStats.rejected}
-              icon={<TrendingUp className="h-5 w-5 rotate-180" />}
-              color="bg-launchpad-darkGray"
-            />
-          </div>
-
-          {/* Search & Filters */}
-          <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
-            <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search jobs..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Filter className="h-4 w-4" />
-                Filters
-              </Button>
-              <Button variant="outline" size="sm">
-                All Jobs
-              </Button>
-              <Button variant="outline" size="sm">
-                This Week
-              </Button>
-            </div>
-          </div>
-        </MotionDiv>
-
-        {/* Main Content */}
-        <Tabs defaultValue="board" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="board" className="gap-2">
-              <Briefcase className="h-4 w-4" />
-              Board View
-            </TabsTrigger>
-            <TabsTrigger value="list" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              List View
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="board" className="space-y-4">
-            {/* Kanban Board */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {statusColumns.map((column) => (
-                <MotionDiv
-                  key={column.id}
-                  ref={(el) => {
-                    columnRefs.current[column.id] = el;
-                  }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex flex-col"
-                  onMouseEnter={() => setActiveColumn(column.id)}
-                  onMouseLeave={() => setActiveColumn(null)}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            {statusColumns.map((column) => (
+              <MotionDiv
+                key={column.id}
+                ref={(el) => {
+                  columnRefs.current[column.id] = el;
+                }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col relative z-0"
+                onMouseEnter={() => setActiveColumn(column.id)}
+                onMouseLeave={() => setActiveColumn(null)}
+                data-column-id={column.id}
+              >
+                <Card
+                  className={`h-full border-t-4`}
+                  style={{ borderTopColor: column.color }}
                 >
-                  <Card
-                    className={`h-full border-t-4`}
-                    style={{ borderTopColor: column.color }}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="rounded-md p-1.5"
-                            style={{ backgroundColor: column.color }}
-                          >
-                            <div className="text-white">{column.icon}</div>
-                          </div>
-                          <CardTitle className="text-base font-semibold">
-                            {column.title}
-                          </CardTitle>
-                        </div>
-                        <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">
-                          {
-                            getApplicationsByStatus(column.id as JobStatus)
-                              .length
-                          }
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="overflow-y-auto max-h-[60vh] pt-0 px-3 pb-3 space-y-3 scroll-smooth">
-                      <AnimatePresence mode="popLayout">
-                        {getApplicationsByStatus(column.id as JobStatus).map(
-                          (application) => (
-                            <DraggableJobCard
-                              key={application.applicationId}
-                              application={application}
-                              onDragStart={handleDragStart}
-                              onStatusChange={handleStatusChange}
-                              isColumnActive={activeColumn === column.id}
-                              isDragging={
-                                draggingJob === application.applicationId
-                              }
-                            />
-                          ),
-                        )}
-                        {getApplicationsByStatus(column.id as JobStatus)
-                          .length === 0 && (
-                          <div className="h-24 border-2 border-dashed rounded-md flex items-center justify-center">
-                            <p className="text-sm text-gray-400">
-                              Drop jobs here
-                            </p>
-                          </div>
-                        )}
-                      </AnimatePresence>
-                    </CardContent>
-                  </Card>
-                </MotionDiv>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="list">
-            <Card>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {filteredApplications.map((application) => (
-                    <MotionDiv
-                      key={application.applicationId}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                      className="p-4 border rounded-lg flex items-center gap-4"
-                    >
-                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                        <LaunchpadImage
-                          src={application.job.logo || "/placeholder-logo.png"}
-                          alt={application.job.company}
-                          width={32}
-                          height={32}
-                          className="object-contain"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium">{application.job.title}</h3>
-                        <p className="text-sm text-gray-500">
-                          {application.job.company} • {application.job.location}
-                        </p>
-                      </div>
-                      <div>
-                        <Badge variant="outline" className="mr-2">
-                          {application.job.jobType}
-                        </Badge>
-                        <Badge
-                          className={
-                            application.status === "applied"
-                              ? "bg-launchpad-blue text-white"
-                              : application.status === "interested"
-                                ? "bg-launchpad-lightBlue text-launchpad-blue"
-                                : "bg-launchpad-darkGray text-white"
-                          }
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="rounded-md p-1.5"
+                          style={{ backgroundColor: column.color }}
                         >
-                          {application.status === "applied"
-                            ? "Applied"
-                            : application.status === "interested"
-                              ? "Interested"
-                              : "Rejected"}
-                        </Badge>
+                          <div className="text-white">{column.icon}</div>
+                        </div>
+                        <CardTitle className="text-base font-semibold">
+                          {column.title}
+                        </CardTitle>
                       </div>
-                      <Button size="sm" variant="outline">
-                        View
-                      </Button>
-                    </MotionDiv>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                      <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">
+                        {getApplicationsByStatus(column.id as JobStatus).length}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="overflow-y-auto max-h-[60vh] pt-0 px-3 pb-3 space-y-3 scroll-smooth">
+                    <AnimatePresence mode="popLayout">
+                      {getApplicationsByStatus(column.id as JobStatus).map(
+                        (application) => (
+                          <DraggableJobCard
+                            key={application.applicationId}
+                            application={application}
+                            onDragStart={handleDragStart}
+                            onStatusChange={handleStatusChange}
+                            isColumnActive={activeColumn === column.id}
+                            isDragging={draggingJob === application.applicationId}
+                          />
+                        ),
+                      )}
+                      {getApplicationsByStatus(column.id as JobStatus).length === 0 && (
+                        <div className="h-24 border-2 border-dashed rounded-md flex items-center justify-center">
+                          <p className="text-sm text-gray-400">Drop jobs here</p>
+                        </div>
+                      )}
+                    </AnimatePresence>
+                  </CardContent>
+                </Card>
+              </MotionDiv>
+            ))}
+          </div>
+        </div>
 
-        {/* Upcoming Events & Recommendations */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-launchpad-blue" />
-                  <span>Upcoming Events</span>
-                </CardTitle>
-                <Button variant="ghost" size="sm">
-                  View All
-                </Button>
-              </div>
+        {/* Two Column Layout: Recent Activity and Upcoming Interviews */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Recent Activity */}
+          <Card className="border border-gray-200 shadow-sm">
+            <CardHeader className="pb-2 border-b bg-gray-50">
+              <CardTitle className="text-lg font-medium">Recent Activity</CardTitle>
+              <CardDescription>Your latest updates and actions</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <EventCard
-                  title="Tech Co Interview"
-                  date="April 5, 2025"
-                  time="10:00 AM"
-                  type="interview"
-                  company="Tech Co"
-                />
-
-                <EventCard
-                  title="Software Inc Technical Test"
-                  date="April 8, 2025"
-                  time="2:00 PM"
-                  type="assessment"
-                  company="Software Inc"
-                />
-              </div>
+            <CardContent className="p-4">
+              <ul className="space-y-4">
+                {recentActivity.map((activity) => (
+                  <li key={activity.id} className="flex items-start gap-4">
+                    <div className="mt-1">
+                      <ActivityIcon type={activity.type} />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{activity.title}</p>
+                        <p className="text-xs text-gray-500">{formatRelativeTime(activity.timestamp)}</p>
+                      </div>
+                      <p className="text-sm text-gray-500">{activity.description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </CardContent>
+            <CardFooter className="border-t bg-gray-50">
+              <Button variant="outline" size="sm" className="w-full">
+                View All Activity
+              </Button>
+            </CardFooter>
           </Card>
 
-          <Card>
-            <CardHeader>
+          {/* Upcoming Interviews */}
+          <Card className="border border-gray-200 shadow-sm">
+            <CardHeader className="pb-2 border-b bg-gray-50">
               <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center gap-2">
-                  <Briefcase className="h-5 w-5 text-launchpad-green" />
-                  <span>Recommendations</span>
+                <CardTitle className="text-lg font-medium flex items-center gap-2">
+                  <Users className="h-5 w-5" style={{ color: extendedPalette.primaryGreen }} />
+                  Upcoming Interviews
                 </CardTitle>
-                <Button variant="ghost" size="sm">
-                  View All
-                </Button>
+                <Link href="/applicant/calendar">
+                  <Button variant="ghost" size="sm">View Calendar</Button>
+                </Link>
               </div>
+              <CardDescription>Your scheduled interviews</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <RecommendedJobCard
-                  id={7}
-                  title="Senior Frontend Developer"
-                  company="Enterprise Solutions"
-                  logo="/placeholder-logo.png"
-                  match="95%"
-                  location="Remote"
-                />
-
-                <RecommendedJobCard
-                  id={8}
-                  title="React Developer"
-                  company="App Factory"
-                  logo="/placeholder-logo.png"
-                  match="82%"
-                  location="Philadelphia, PA"
-                />
-
-                <div className="pt-2">
-                  <Button variant="outline" className="w-full">
-                    View More
-                  </Button>
+            <CardContent className="p-4">
+              {upcomingInterviews.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <h3 className="text-sm font-medium text-gray-600 mb-1">No interviews scheduled</h3>
+                  <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                    You don&apos;t have any upcoming interviews. Keep applying to jobs to get interviews!
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  {upcomingInterviews.map((interview) => (
+                    <div key={interview.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={interview.logo} alt={interview.company} />
+                          <AvatarFallback>{interview.company.substring(0, 2)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-medium">{interview.position}</h3>
+                          <p className="text-sm text-gray-500">{interview.company}</p>
+                        </div>
+                        <Badge className="ml-auto">
+                          {interview.type} Interview
+                        </Badge>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600 mt-3">
+                        <div className="flex items-center mr-4">
+                          <Calendar className="h-4 w-4 mr-1 text-gray-500" />
+                          {interview.date}
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-1 text-gray-500" />
+                          {interview.time}
+                        </div>
+                        <div className="ml-auto">
+                          <Button size="sm" style={{ backgroundColor: extendedPalette.primaryGreen }}>Prepare</Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -576,7 +684,161 @@ export default function ApplicantDashboard() {
   );
 }
 
-// Draggable Job Card Component with simplified animation
+function StatCard({ 
+  title, 
+  value, 
+  icon, 
+  isLoading, 
+  subtitle,
+  suffix
+}: { 
+  title: string; 
+  value: number; 
+  icon: React.ReactNode; 
+  isLoading: boolean;
+  subtitle?: string;
+  suffix?: string;
+}) {
+  return (
+    <Card className="border border-gray-200 shadow-sm">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500">{title}</p>
+            {isLoading ? (
+              <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+            ) : (
+              <>
+                <p className="text-2xl font-bold mt-1">{value}{suffix}</p>
+                {subtitle && (
+                  <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+                )}
+              </>
+            )}
+          </div>
+          <div className="rounded-full p-2 bg-gray-100">
+            {icon}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function DashboardSection({ 
+  title, 
+  description, 
+  icon, 
+  href, 
+  stats, 
+  color 
+}: { 
+  title: string; 
+  description: string; 
+  icon: React.ReactNode; 
+  href: string; 
+  stats: { label: string; value: string }[];
+  color: string;
+}) {
+  return (
+    <Card className="overflow-hidden border border-gray-200 shadow-sm">
+      <div className="h-1 w-full" style={{ backgroundColor: color }}></div>
+      <CardHeader className="pb-2 border-b">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-medium flex items-center gap-2">
+            {icon}
+            {title}
+          </CardTitle>
+        </div>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="p-4">
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          {stats.map((stat, i) => (
+            <div key={i} className="text-center">
+              <p className="text-xs text-gray-500">{stat.label}</p>
+              <p className="text-lg font-bold" style={{ color }}>{stat.value}</p>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+      <CardFooter className="pt-0 border-t bg-gray-50">
+        <Link href={href} className="w-full">
+          <Button variant="outline" className="w-full justify-between">
+            View Details
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      </CardFooter>
+    </Card>
+  )
+}
+
+function ActivityIcon({ type }: { type: string }) {
+  let icon;
+  let color;
+  
+  switch (type) {
+    case 'application':
+      icon = <Briefcase className="h-5 w-5" />;
+      color = extendedPalette.primaryBlue;
+      break;
+    case 'status_change':
+      icon = <ChevronRight className="h-5 w-5" />;
+      color = extendedPalette.primaryGreen;
+      break;
+    case 'interview':
+      icon = <Users className="h-5 w-5" />;
+      color = extendedPalette.teal;
+      break;
+    case 'offer':
+      icon = <FileSpreadsheet className="h-5 w-5" />;
+      color = extendedPalette.primaryOrange;
+      break;
+    case 'saved':
+      icon = <Star className="h-5 w-5" />;
+      color = extendedPalette.primaryBlue;
+      break;
+    default:
+      icon = <FileSpreadsheet className="h-5 w-5" />;
+      color = extendedPalette.primaryBlue;
+  }
+  
+  return (
+    <div className="rounded-full p-2" style={{ backgroundColor: `${color}20` }}>
+      <div style={{ color }}>{icon}</div>
+    </div>
+  );
+}
+
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return 'just now';
+  }
+  
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes}m ago`;
+  }
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return `${diffInHours}h ago`;
+  }
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) {
+    return `${diffInDays}d ago`;
+  }
+  
+  return date.toLocaleDateString();
+}
+
+// Draggable Job Card Component
 interface DraggableJobCardProps {
   application: JobApplication;
   onDragStart: (id: number) => void;
@@ -589,21 +851,20 @@ function DraggableJobCard({
   application,
   onDragStart,
   onStatusChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isColumnActive,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isDragging,
 }: DraggableJobCardProps) {
-  const statuses: JobStatus[] = ["interested", "applied", "rejected"];
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isDraggingLocal, setIsDraggingLocal] = useState(false);
 
   // Get relative date from ISO string
   const getRelativeDate = (dateString: string) => {
     if (!dateString) return "";
-
     const date = new Date(dateString);
     const now = new Date();
-    const diffDays = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
-    );
-
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
@@ -621,38 +882,55 @@ function DraggableJobCard({
 
   return (
     <MotionDiv
+      ref={cardRef}
       drag
       dragSnapToOrigin
-      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      dragElastic={0.2}
-      onDragStart={() => onDragStart(application.applicationId)}
-      onDragEnd={(event, info) => {
-        // Calculate which column we're closest to based on drag direction
-        if (Math.abs(info.offset.x) > 100) {
-          const direction = info.offset.x > 0 ? 1 : -1;
-          const currentIndex = statuses.indexOf(application.status);
-          const newIndex = currentIndex + direction;
-
-          // Ensure the index is within bounds
-          if (newIndex >= 0 && newIndex < statuses.length) {
-            onStatusChange(application.applicationId, statuses[newIndex]);
+      dragElastic={0.1}
+      dragMomentum={false}
+      onDragStart={() => {
+        setIsDraggingLocal(true);
+        onDragStart(application.applicationId);
+      }}
+      onDragEnd={(event, 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        info
+      ) => {
+        setIsDraggingLocal(false);
+        const targetElement = document.elementFromPoint(
+          (event as MouseEvent).clientX,
+          (event as MouseEvent).clientY
+        );
+        if (targetElement) {
+          const columnElement = targetElement.closest('[data-column-id]');
+          if (columnElement) {
+            const newStatus = columnElement.getAttribute('data-column-id') as JobStatus;
+            if (newStatus && newStatus !== application.status) {
+              onStatusChange(application.applicationId, newStatus);
+            }
           }
         }
       }}
       whileDrag={{
-        scale: 1.03,
+        scale: 1.02,
         boxShadow: "0 8px 20px -5px rgba(0, 0, 0, 0.1)",
-        zIndex: 20,
+        zIndex: 9999,
+        position: "fixed",
+        width: cardRef.current?.offsetWidth,
       }}
       initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ 
+        opacity: 1, 
+        y: 0,
+        position: isDraggingLocal ? "fixed" : "relative",
+        zIndex: isDraggingLocal ? 9999 : "auto"
+      }}
       exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
       transition={{
         type: "spring",
         damping: 25,
         stiffness: 300,
       }}
-      className={`cursor-grab active:cursor-grabbing ${isColumnActive ? "z-10" : ""} ${isDragging ? "opacity-50" : ""}`}
+      className={`cursor-grab active:cursor-grabbing ${isDraggingLocal ? "fixed z-[9999]" : "relative"}`}
     >
       <Card className="border shadow-sm hover:shadow-md transition-all duration-200">
         <CardContent className="p-3">
@@ -668,12 +946,8 @@ function DraggableJobCard({
                 />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">
-                  {application.job.title}
-                </h3>
-                <p className="text-xs text-gray-500">
-                  {application.job.company}
-                </p>
+                <h3 className="font-semibold text-sm">{application.job.title}</h3>
+                <p className="text-xs text-gray-500">{application.job.company}</p>
               </div>
             </div>
             {application.priority && (
@@ -706,136 +980,6 @@ function DraggableJobCard({
           </div>
         </CardContent>
       </Card>
-    </MotionDiv>
-  );
-}
-
-// Stats Card Component
-function StatsCard({
-  title,
-  value,
-  icon,
-  color,
-}: {
-  title: string;
-  value: number;
-  icon: React.ReactNode;
-  color: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-sm font-medium text-gray-500">{title}</p>
-            <h3 className="text-2xl font-bold mt-1">{value}</h3>
-          </div>
-          <div className={`${color} p-3 rounded-lg text-white`}>{icon}</div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Event Card Component
-function EventCard({
-  title,
-  date,
-  time,
-  type,
-  company,
-}: {
-  title: string;
-  date: string;
-  time: string;
-  type: "interview" | "assessment" | "meeting";
-  company: string;
-}) {
-  return (
-    <MotionDiv
-      className="flex justify-between items-center p-4 bg-muted/30 border border-border/30 rounded-lg shadow-sm"
-      whileHover={{ scale: 1.01, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-    >
-      <div className="flex items-center gap-3">
-        <div
-          className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center",
-            type === "interview"
-              ? "bg-blue-500/10 text-blue-500"
-              : type === "assessment"
-                ? "bg-green-500/10 text-green-500"
-                : "bg-orange-500/10 text-orange-500",
-          )}
-        >
-          {type === "interview" ? (
-            <Users className="h-5 w-5" />
-          ) : type === "assessment" ? (
-            <TrendingUp className="h-5 w-5" />
-          ) : (
-            <Calendar className="h-5 w-5" />
-          )}
-        </div>
-        <div>
-          <h3 className="font-medium text-foreground/90">{title}</h3>
-          <p className="text-xs text-muted-foreground/80">
-            {company} • {date} • {time}
-          </p>
-        </div>
-      </div>
-      <Button size="sm" variant="outline" className="border-border/30">
-        {type === "interview"
-          ? "Prepare"
-          : type === "assessment"
-            ? "Start"
-            : "Join"}
-      </Button>
-    </MotionDiv>
-  );
-}
-
-// Recommended Job Card Component
-function RecommendedJobCard({
-  id,
-  title,
-  company,
-  logo,
-  match,
-  location,
-}: {
-  id: number;
-  title: string;
-  company: string;
-  logo: string;
-  match: string;
-  location: string;
-}) {
-  return (
-    <MotionDiv
-      className="p-4 bg-muted/30 border border-border/30 rounded-lg shadow-sm flex items-center gap-3"
-      whileHover={{ scale: 1.01, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-    >
-      <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden">
-        <LaunchpadImage
-          src={logo}
-          alt={company}
-          width={24}
-          height={24}
-          className="object-contain"
-        />
-      </div>
-      <div className="flex-1" data-job-id={id}>
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="font-medium text-sm text-foreground/90">{title}</h3>
-            <p className="text-xs text-muted-foreground/80">
-              {company} • {location}
-            </p>
-          </div>
-          <Badge className="bg-green-500/10 text-green-500">{match}</Badge>
-        </div>
-      </div>
     </MotionDiv>
   );
 }

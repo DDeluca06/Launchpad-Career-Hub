@@ -16,7 +16,6 @@ import {
   Calendar,
   LogOut,
   Settings,
-  GraduationCap,
   HelpCircle,
 } from "lucide-react";
 
@@ -159,48 +158,27 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
     },
   ];
 
-  const adminSectionItems: NavItem[] = isAdmin
-    ? [
-        {
-          title: "Analytics",
-          href: `${baseUrl}/analytics`,
-          icon: <BarChart2 />,
-          color: extendedPalette.teal,
-        },
-        {
-          title: "Applicants",
-          href: `${baseUrl}/applicants`,
-          icon: <Users />,
-          badge: 8,
-          color: extendedPalette.primaryOrange,
-        },
-        {
-          title: "Partners",
-          href: `${baseUrl}/partners`,
-          icon: <MessageSquare />,
-          color: extendedPalette.brown,
-        },
-      ]
-    : [];
-
-  const studentSectionItems: NavItem[] = isAdmin
-    ? []
-    : [
-        {
-          title: "Learning",
-          href: `${baseUrl}/learning`,
-          icon: <GraduationCap />,
-          badge: 2,
-          color: extendedPalette.primaryOrange,
-        },
-        {
-          title: "Events",
-          href: `${baseUrl}/events`,
-          icon: <Calendar />,
-          badge: 1,
-          color: extendedPalette.teal,
-        },
-      ];
+  const adminSectionItems: NavItem[] = isAdmin ? [
+    {
+      title: "Analytics",
+      href: `${baseUrl}/analytics`,
+      icon: <BarChart2 />,
+      color: extendedPalette.teal
+    },
+    {
+      title: "Applicants",
+      href: `${baseUrl}/applicants`,
+      icon: <Users />,
+      badge: 8,
+      color: extendedPalette.primaryOrange
+    },
+    {
+      title: "Partners",
+      href: `${baseUrl}/partners`,
+      icon: <MessageSquare />,
+      color: extendedPalette.brown
+    },
+  ] : [];
 
   const utilityItems: NavItem[] = [
     {
@@ -229,20 +207,8 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
             pathname={pathname}
           />
         )}
-
-        {!isAdmin && studentSectionItems.length > 0 && (
-          <NavSection
-            title="Resources"
-            items={studentSectionItems}
-            pathname={pathname}
-          />
-        )}
-
-        <NavSection
-          title="Utilities"
-          items={utilityItems}
-          pathname={pathname}
-        />
+        
+        <NavSection title="Utilities" items={utilityItems} pathname={pathname} />
       </div>
 
       <div className="mt-auto px-4 pt-4 pb-4 border-t border-gray-200 dark:border-gray-700">

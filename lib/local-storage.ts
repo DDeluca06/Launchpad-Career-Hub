@@ -36,6 +36,7 @@ export interface Job {
   partner_id: number;
   created_at: string;
   tags: string[];
+  companyLogo?: string;
 }
 
 export interface Application {
