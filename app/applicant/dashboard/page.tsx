@@ -8,9 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
 import { Badge } from "@/components/ui/basic/badge"
 import { jobService, Job } from "@/lib/local-storage"
-import { Briefcase, Calendar, ChevronRight, FileSpreadsheet, MapPin, Plus, UserCircle, Users, Building, CheckCircle, Clock, Star, Filter, Search, TrendingUp, Flag } from "lucide-react"
+import { Briefcase, Calendar, ChevronRight, FileSpreadsheet, MapPin, Plus, UserCircle, Users, Building, Clock, Star, Filter, Search, TrendingUp, Flag } from "lucide-react"
 import { extendedPalette } from "@/lib/colors"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs"
 import { cn } from "@/lib/utils"
 import dynamic from "next/dynamic"
 import { Input } from "@/components/ui/form/input"
@@ -140,6 +139,8 @@ export default function ApplicantDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
   const [draggingJob, setDraggingJob] = useState<number | null>(null);
+  
+  // Job statistics for analytics and future dashboard enhancements
   const [jobStats, setJobStats] = useState({
     total: 0,
     applied: 0,
@@ -369,13 +370,14 @@ export default function ApplicantDashboard() {
         {/* Stats Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <StatCard 
-            title="Applications"
-            value={stats.totalApplications}
+            title="Total Applications"
+            value={jobStats.total}
             icon={<Briefcase className="h-5 w-5" style={{ color: extendedPalette.primaryBlue }} />}
             isLoading={isLoading}
+            subtitle={`${jobStats.applied} applied • ${jobStats.interested} interested`}
           />
           <StatCard 
-            title="Interviews"
+            title="Active Interviews"
             value={stats.activeInterviews}
             icon={<Users className="h-5 w-5" style={{ color: extendedPalette.primaryGreen }} />}
             isLoading={isLoading}
@@ -387,10 +389,11 @@ export default function ApplicantDashboard() {
             isLoading={isLoading}
           />
           <StatCard 
-            title="Assessments"
-            value={stats.completedAssessments}
-            icon={<CheckCircle className="h-5 w-5" style={{ color: extendedPalette.primaryOrange }} />}
+            title="Response Rate"
+            value={jobStats.total > 0 ? Math.round((jobStats.applied / jobStats.total) * 100) : 0}
+            icon={<TrendingUp className="h-5 w-5" style={{ color: extendedPalette.primaryOrange }} />}
             isLoading={isLoading}
+            suffix="%"
           />
         </div>
           
@@ -480,9 +483,6 @@ export default function ApplicantDashboard() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <Badge style={{ backgroundColor: `${extendedPalette.lightBlue}`, color: extendedPalette.primaryBlue }}>
-                        {job.matchPercentage}% Match
-                      </Badge>
                       <Link href={`/applicant/jobs/${job.id}`}>
                         <Button size="sm" variant="outline">View Job</Button>
                       </Link>
@@ -684,7 +684,21 @@ export default function ApplicantDashboard() {
   );
 }
 
-function StatCard({ title, value, icon, isLoading }: { title: string; value: number; icon: React.ReactNode; isLoading: boolean }) {
+function StatCard({ 
+  title, 
+  value, 
+  icon, 
+  isLoading, 
+  subtitle,
+  suffix
+}: { 
+  title: string; 
+  value: number; 
+  icon: React.ReactNode; 
+  isLoading: boolean;
+  subtitle?: string;
+  suffix?: string;
+}) {
   return (
     <Card className="border border-gray-200 shadow-sm">
       <CardContent className="p-6">
@@ -694,7 +708,12 @@ function StatCard({ title, value, icon, isLoading }: { title: string; value: num
             {isLoading ? (
               <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
             ) : (
-              <p className="text-2xl font-bold mt-1">{value}</p>
+              <>
+                <p className="text-2xl font-bold mt-1">{value}{suffix}</p>
+                {subtitle && (
+                  <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+                )}
+              </>
             )}
           </div>
           <div className="rounded-full p-2 bg-gray-100">
@@ -832,10 +851,11 @@ function DraggableJobCard({
   application,
   onDragStart,
   onStatusChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isColumnActive,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isDragging,
 }: DraggableJobCardProps) {
-  const statuses: JobStatus[] = ["interested", "applied", "interview", "offer", "rejected"];
   const cardRef = useRef<HTMLDivElement>(null);
   const [isDraggingLocal, setIsDraggingLocal] = useState(false);
 
@@ -871,7 +891,10 @@ function DraggableJobCard({
         setIsDraggingLocal(true);
         onDragStart(application.applicationId);
       }}
-      onDragEnd={(event, info) => {
+      onDragEnd={(event, 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        info
+      ) => {
         setIsDraggingLocal(false);
         const targetElement = document.elementFromPoint(
           (event as MouseEvent).clientX,
