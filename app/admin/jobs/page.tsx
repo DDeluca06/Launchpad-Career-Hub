@@ -1,19 +1,32 @@
-'use client'
+"use client";
 
-import { Suspense } from "react"
-import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card"
-import { Button } from "@/components/ui/basic/button"
-import { Input } from "@/components/ui/form/input"
-import { Search, Plus, Filter, Edit, Trash2, FileSpreadsheet } from "lucide-react"
-import { jobService } from "@/lib/local-storage"
-import type { Job } from "@/lib/local-storage"
-import { Badge } from "@/components/ui/basic/badge"
-import { CompanyLogo } from "@/components/ui/basic/company-logo"
-import { cn } from "@/lib/utils"
-import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal"
-import { JobFilters } from "@/components/job-filters"
+import { Suspense } from "react";
+import { useState, useEffect } from "react";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/basic/card";
+import { Button } from "@/components/ui/basic/button";
+import { Input } from "@/components/ui/form/input";
+import {
+  Search,
+  Plus,
+  Filter,
+  Edit,
+  Trash2,
+  FileSpreadsheet,
+} from "lucide-react";
+import { jobService } from "@/lib/local-storage";
+import type { Job } from "@/lib/local-storage";
+import { Badge } from "@/components/ui/basic/badge";
+import { CompanyLogo } from "@/components/ui/basic/company-logo";
+import { cn } from "@/lib/utils";
+import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
+import { JobFilters } from "@/components/job-filters";
 
 // Define JobFiltersType with proper types to resolve errors
 interface JobFiltersType {
@@ -25,7 +38,14 @@ interface JobFiltersType {
   keywords: string;
 }
 
-// Loading components
+/**
+ * Renders an animated skeleton placeholder for the job list.
+ *
+ * Displays six placeholder cards with a pulsing animation to simulate the loading state
+ * of job cards while data is being fetched.
+ *
+ * @returns A JSX element containing six animated loading cards.
+ */
 function JobListSkeleton() {
   return (
     <div className="space-y-3">
@@ -43,9 +63,14 @@ function JobListSkeleton() {
         </Card>
       ))}
     </div>
-  )
+  );
 }
 
+/**
+ * Renders a loading skeleton for the job details view.
+ *
+ * This component displays animated placeholders mimicking the layout of job details, including a header, image, and text blocks, while the actual data is being loaded.
+ */
 function JobDetailsSkeleton() {
   return (
     <div className="animate-pulse p-6 space-y-4">
@@ -63,7 +88,7 @@ function JobDetailsSkeleton() {
         <div className="h-4 bg-gray-200 rounded w-3/4" />
       </div>
     </div>
-  )
+  );
 }
 
 // Props interfaces
@@ -84,11 +109,32 @@ interface JobDetailsProps {
   onDelete: () => void;
 }
 
-// Job list component with loading state
-function JobList({ jobs, selectedJob, onSelectJob, applicationsCount, isLoading, searchQuery }: JobListProps) {
+/**
+ * Renders a list of job cards with filtering and loading support.
+ *
+ * When in a loading state, the component displays a skeleton placeholder. After data is loaded, it applies a case-insensitive
+ * search filter across job title, company, description, and location. Each job is presented as a clickable card styled by
+ * its type, with a visual highlight for the currently selected job. Clicking a card invokes the provided selection callback.
+ *
+ * @param jobs - Array of job objects to display.
+ * @param selectedJob - The job currently selected, used to visually highlight its card.
+ * @param onSelectJob - Callback invoked when a job card is clicked.
+ * @param applicationsCount - Mapping of job IDs to their applicant counts.
+ * @param isLoading - Indicator for whether job data is being loaded.
+ * @param searchQuery - String used to filter job listings.
+ * @returns JSX element representing either the loading skeleton or the filtered list of job cards.
+ */
+function JobList({
+  jobs,
+  selectedJob,
+  onSelectJob,
+  applicationsCount,
+  isLoading,
+  searchQuery,
+}: JobListProps) {
   if (isLoading) return <JobListSkeleton />;
 
-  const filteredJobs = jobs.filter(job => {
+  const filteredJobs = jobs.filter((job) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -102,18 +148,18 @@ function JobList({ jobs, selectedJob, onSelectJob, applicationsCount, isLoading,
   return (
     <div className="space-y-3">
       {filteredJobs.map((job) => (
-        <Card 
-          key={`job-${job.job_id || Math.random()}`} 
+        <Card
+          key={`job-${job.job_id || Math.random()}`}
           className={cn(
             "cursor-pointer hover:shadow transition-shadow",
-            selectedJob?.job_id === job.job_id 
-              ? "ring-2 ring-blue-400 border-l-4" 
+            selectedJob?.job_id === job.job_id
+              ? "ring-2 ring-blue-400 border-l-4"
               : "border-l-4",
-            job.job_type === "internship" 
-              ? "border-blue-400" 
-              : job.job_type === "part_time" 
-                ? "border-green-400" 
-                : "border-orange-400"
+            job.job_type === "internship"
+              ? "border-blue-400"
+              : job.job_type === "part_time"
+                ? "border-green-400"
+                : "border-orange-400",
           )}
           onClick={() => onSelectJob(job)}
         >
@@ -121,18 +167,26 @@ function JobList({ jobs, selectedJob, onSelectJob, applicationsCount, isLoading,
             <div className="flex gap-3">
               <CompanyLogo company={job.company} size="sm" />
               <div className="flex-1">
-                <h3 className="font-medium text-gray-900 line-clamp-1">{job.title}</h3>
-                <p className="text-sm text-gray-500 line-clamp-1">{job.company}</p>
+                <h3 className="font-medium text-foreground line-clamp-1">
+                  {job.title}
+                </h3>
+                <p className="text-sm text-muted-foreground line-clamp-1">
+                  {job.company}
+                </p>
                 <div className="flex justify-between items-center mt-1">
-                  <span className="text-xs text-gray-400">{job.location}</span>
-                  <Badge className={cn(
-                    "text-xs",
-                    job.job_type === "internship" 
-                      ? "bg-blue-50 text-blue-700" 
-                      : job.job_type === "part_time" 
-                        ? "bg-green-50 text-green-700" 
-                        : "bg-orange-50 text-orange-700"
-                  )}>
+                  <span className="text-xs text-muted-foreground">
+                    {job.location}
+                  </span>
+                  <Badge
+                    className={cn(
+                      "text-xs",
+                      job.job_type === "internship"
+                        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                        : job.job_type === "part_time"
+                          ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                          : "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400",
+                    )}
+                  >
                     {applicationsCount[job.job_id] || 0} applicants
                   </Badge>
                 </div>
@@ -142,7 +196,7 @@ function JobList({ jobs, selectedJob, onSelectJob, applicationsCount, isLoading,
         </Card>
       ))}
       {filteredJobs.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-muted-foreground">
           No jobs found matching your criteria
         </div>
       )}
@@ -150,9 +204,30 @@ function JobList({ jobs, selectedJob, onSelectJob, applicationsCount, isLoading,
   );
 }
 
-function JobDetails({ job, applicationsCount, isLoading, onEdit, onDelete }: JobDetailsProps) {
+/**
+ * Renders detailed information about a selected job listing.
+ *
+ * Displays a loading skeleton during data fetches and shows an informational prompt when no job is selected.
+ * For a provided job, it presents job details—including title, company information, location, job type,
+ * description, requirements, and the number of applications—along with buttons to edit or delete the job.
+ *
+ * @param job - The current job to display. If absent, a prompt to select a job is rendered.
+ * @param applicationsCount - An object mapping job IDs to their corresponding application counts.
+ * @param isLoading - Indicates whether the job details are currently loading.
+ * @param onEdit - Callback function triggered when the edit action is selected.
+ * @param onDelete - Callback function triggered when the delete action is selected.
+ *
+ * @returns A React element representing the job details view.
+ */
+function JobDetails({
+  job,
+  applicationsCount,
+  isLoading,
+  onEdit,
+  onDelete,
+}: JobDetailsProps) {
   if (isLoading) return <JobDetailsSkeleton />;
-  
+
   if (!job) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -175,16 +250,16 @@ function JobDetails({ job, applicationsCount, isLoading, onEdit, onDelete }: Job
       <div className="flex justify-between items-start mb-6">
         <h2 className="text-2xl font-bold">{job.title}</h2>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             className="gap-1"
             onClick={onEdit}
           >
             <Edit className="h-4 w-4" /> Edit
           </Button>
-          <Button 
-            variant="danger" 
+          <Button
+            variant="danger"
             size="sm"
             className="gap-1 bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
             onClick={onDelete}
@@ -193,44 +268,46 @@ function JobDetails({ job, applicationsCount, isLoading, onEdit, onDelete }: Job
           </Button>
         </div>
       </div>
-      
+
       <div className="flex items-center gap-4 mb-6">
         <CompanyLogo company={job.company} size="md" />
         <div>
-          <h3 className="font-medium text-lg">{job.company}</h3>
-          <p className="text-gray-500">{job.location}</p>
+          <h3 className="font-medium text-lg text-foreground">{job.company}</h3>
+          <p className="text-muted-foreground">{job.location}</p>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Job Type</p>
-          <p className="font-medium">{job.job_type}</p>
+        <div className="bg-muted p-3 rounded">
+          <p className="text-xs text-muted-foreground">Job Type</p>
+          <p className="font-medium text-foreground">{job.job_type}</p>
         </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Experience</p>
-          <p className="font-medium">Not specified</p>
+        <div className="bg-muted p-3 rounded">
+          <p className="text-xs text-muted-foreground">Experience</p>
+          <p className="font-medium text-foreground">Not specified</p>
         </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Salary Range</p>
-          <p className="font-medium">Not specified</p>
+        <div className="bg-muted p-3 rounded">
+          <p className="text-xs text-muted-foreground">Salary Range</p>
+          <p className="font-medium text-foreground">Not specified</p>
         </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Applications</p>
-          <p className="font-medium">{applicationsCount[job.job_id] || 0}</p>
-        </div>
-      </div>
-      
-      <div className="mb-6">
-        <h3 className="font-medium mb-2">Job Description</h3>
-        <div className="text-gray-700 whitespace-pre-line">
-          {job.description || 'No description provided'}
+        <div className="bg-muted p-3 rounded">
+          <p className="text-xs text-muted-foreground">Applications</p>
+          <p className="font-medium text-foreground">
+            {applicationsCount[job.job_id] || 0}
+          </p>
         </div>
       </div>
-      
+
       <div className="mb-6">
-        <h3 className="font-medium mb-2">Requirements</h3>
-        <div className="text-gray-700">
+        <h3 className="font-medium mb-2 text-foreground">Job Description</h3>
+        <div className="text-muted-foreground whitespace-pre-line">
+          {job.description || "No description provided"}
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <h3 className="font-medium mb-2 text-foreground">Requirements</h3>
+        <div className="text-muted-foreground">
           {Array.isArray(job.tags) ? (
             <ul className="list-disc pl-4 space-y-1">
               {job.tags.map((tag: string, index: number) => (
@@ -246,6 +323,15 @@ function JobDetails({ job, applicationsCount, isLoading, onEdit, onDelete }: Job
   );
 }
 
+/**
+ * Renders the admin job listings interface.
+ *
+ * This React component manages the UI and state for displaying job listings and their details, along with functionalities
+ * for searching, filtering, editing, deleting, and importing jobs. It loads dummy data to simulate backend responses and
+ * uses modals to handle user interactions for applying filters, confirming deletions, editing job details, and importing CSV files.
+ *
+ * @returns The JSX element representing the admin job listings page.
+ */
 export default function AdminJobListings() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -258,9 +344,11 @@ export default function AdminJobListings() {
     remoteOnly: false,
     salary: [0, 200],
     experienceLevel: "any",
-    keywords: ""
+    keywords: "",
   });
-  const [applicationsCount, setApplicationsCount] = useState<Record<string, number>>({});
+  const [applicationsCount, setApplicationsCount] = useState<
+    Record<string, number>
+  >({});
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -269,7 +357,7 @@ export default function AdminJobListings() {
     const loadJobs = async () => {
       try {
         setIsLoading(true);
-        
+
         // DUMMY DATA - In a real app, this would come from a backend API
         // Philadelphia-specific tech internships for high school students
         const dummyJobs: Job[] = [
@@ -277,94 +365,101 @@ export default function AdminJobListings() {
             job_id: 1,
             job_type: "internship",
             title: "Web Development Intern",
-            description: "Join our team to learn modern web development skills including HTML, CSS, JavaScript, and React. Perfect for high school students interested in coding.",
+            description:
+              "Join our team to learn modern web development skills including HTML, CSS, JavaScript, and React. Perfect for high school students interested in coding.",
             company: "Philly Tech Forward",
             website: "https://phillytechforward.org",
             location: "Philadelphia, PA (Center City)",
             partner_id: 1,
             created_at: new Date().toISOString(),
-            tags: ["HTML", "CSS", "JavaScript", "React", "High School"]
+            tags: ["HTML", "CSS", "JavaScript", "React", "High School"],
           },
           {
             job_id: 2,
             job_type: "part_time",
             title: "Junior UX Designer",
-            description: "Work with our UX team to design user interfaces for educational apps. We'll teach you design principles and tools like Figma.",
+            description:
+              "Work with our UX team to design user interfaces for educational apps. We'll teach you design principles and tools like Figma.",
             company: "EduTech Solutions",
             website: "https://edutechsolutions.org",
             location: "Philadelphia, PA (University City)",
             partner_id: 2,
             created_at: new Date().toISOString(),
-            tags: ["UI/UX", "Figma", "Design", "Educational Apps"]
+            tags: ["UI/UX", "Figma", "Design", "Educational Apps"],
           },
           {
             job_id: 3,
             job_type: "internship",
             title: "Data Science Explorer",
-            description: "Learn the basics of data analysis and visualization. Great opportunity for math-inclined students to explore tech careers.",
+            description:
+              "Learn the basics of data analysis and visualization. Great opportunity for math-inclined students to explore tech careers.",
             company: "Data Insights Philly",
             website: "https://datainsightsphilly.org",
             location: "Remote (Philadelphia based)",
             partner_id: 3,
             created_at: new Date().toISOString(),
-            tags: ["Data Analysis", "Python", "Math", "Remote"]
+            tags: ["Data Analysis", "Python", "Math", "Remote"],
           },
           {
             job_id: 4,
             job_type: "internship",
             title: "IT Support Assistant",
-            description: "Get hands-on experience with hardware, networking, and troubleshooting in our tech lab.",
+            description:
+              "Get hands-on experience with hardware, networking, and troubleshooting in our tech lab.",
             company: "PhillyTech Nonprofit",
             website: "https://phillytechnonprofit.org",
             location: "Philadelphia, PA (North Philly)",
             partner_id: 4,
             created_at: new Date().toISOString(),
-            tags: ["Hardware", "Networking", "Technical Support"]
+            tags: ["Hardware", "Networking", "Technical Support"],
           },
           {
             job_id: 5,
             job_type: "part_time",
             title: "Digital Marketing Assistant",
-            description: "Learn social media marketing, content creation, and basic analytics for tech-focused campaigns.",
+            description:
+              "Learn social media marketing, content creation, and basic analytics for tech-focused campaigns.",
             company: "Tech Outreach Philly",
             website: "https://techoutreachphilly.org",
             location: "Hybrid (Philadelphia)",
-            partner_id: 5, 
+            partner_id: 5,
             created_at: new Date().toISOString(),
-            tags: ["Social Media", "Content Creation", "Analytics"]
-          }
+            tags: ["Social Media", "Content Creation", "Analytics"],
+          },
         ];
-        
+
         // Count applications per job (dummy data)
         const dummyApplicationCounts: Record<string, number> = {
           "1": 8,
           "2": 5,
           "3": 10,
           "4": 3,
-          "5": 6
+          "5": 6,
         };
-        
+
         setJobs(dummyJobs);
         setApplicationsCount(dummyApplicationCounts);
-        
+
         // Set initial selected job if none selected
         if (dummyJobs.length > 0 && !selectedJob) {
           setSelectedJob(dummyJobs[0]);
         }
       } catch (error) {
-        console.error('Error loading jobs:', error);
+        console.error("Error loading jobs:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     loadJobs();
   }, [selectedJob]);
 
   const handleDeleteJob = () => {
     if (selectedJob) {
       jobService.delete(selectedJob.job_id);
-      setJobs(prevJobs => prevJobs.filter(job => job.job_id !== selectedJob.job_id));
+      setJobs((prevJobs) =>
+        prevJobs.filter((job) => job.job_id !== selectedJob.job_id),
+      );
       setSelectedJob(null);
       setIsDeleteModalOpen(false);
     }
@@ -374,10 +469,14 @@ export default function AdminJobListings() {
     <DashboardLayout isAdmin>
       <div className="container py-6 px-4 mx-auto">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Philly Tech Internships</h1>
-          <p className="text-gray-500 mt-1">Connect high school students with local tech opportunities</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Philly Tech Internships
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Connect high school students with local tech opportunities
+          </p>
         </div>
-        
+
         {/* Quick Import Panel */}
         <Card className="mb-6">
           <CardContent className="p-4">
@@ -385,30 +484,33 @@ export default function AdminJobListings() {
               <div>
                 <h3 className="font-medium text-base mb-1">Quick Job Import</h3>
                 <p className="text-sm text-gray-500">
-                  Scrape job listings from external sites or upload in bulk from CSV files
+                  Scrape job listings from external sites or upload in bulk from
+                  CSV files
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="text-sm gap-1"
                   onClick={() => setIsImportModalOpen(true)}
                 >
-                  <FileSpreadsheet className="h-4 w-4" /> 
+                  <FileSpreadsheet className="h-4 w-4" />
                   Upload CSV
                 </Button>
-                <Button 
+                <Button
                   className="text-sm gap-1 bg-launchpad-blue hover:bg-launchpad-teal text-white"
-                  onClick={() => window.location.href = '/admin/dashboard?tab=import'}
+                  onClick={() =>
+                    (window.location.href = "/admin/dashboard?tab=import")
+                  }
                 >
-                  <Search className="h-4 w-4" /> 
+                  <Search className="h-4 w-4" />
                   Web Scraping
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Search and Actions */}
         <div className="flex flex-wrap gap-3 mb-6">
           <div className="relative flex-1 min-w-[260px]">
@@ -421,9 +523,9 @@ export default function AdminJobListings() {
             />
           </div>
           <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              className="gap-1" 
+            <Button
+              variant="outline"
+              className="gap-1"
               onClick={() => setFilterModalOpen(true)}
             >
               <Filter className="h-4 w-4" />
@@ -435,7 +537,7 @@ export default function AdminJobListings() {
             </Button>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Job Listings Column */}
           <Card className="lg:col-span-1 max-h-[calc(100vh-220px)] overflow-hidden flex flex-col">
@@ -456,7 +558,7 @@ export default function AdminJobListings() {
               </Suspense>
             </CardContent>
           </Card>
-          
+
           {/* Job Details Column */}
           <Card className="lg:col-span-2 max-h-[calc(100vh-220px)] overflow-auto">
             <Suspense fallback={<JobDetailsSkeleton />}>
@@ -471,7 +573,7 @@ export default function AdminJobListings() {
           </Card>
         </div>
       </div>
-      
+
       {/* Filter Modal */}
       <MultiPurposeModal
         open={filterModalOpen}
@@ -486,14 +588,16 @@ export default function AdminJobListings() {
           // Apply filters logic here
         }}
         secondaryActionText="Reset"
-        onSecondaryAction={() => setActiveFilters({
-          jobTypes: [],
-          locations: [],
-          remoteOnly: false,
-          salary: [0, 200],
-          experienceLevel: "any",
-          keywords: ""
-        })}
+        onSecondaryAction={() =>
+          setActiveFilters({
+            jobTypes: [],
+            locations: [],
+            remoteOnly: false,
+            salary: [0, 200],
+            experienceLevel: "any",
+            keywords: "",
+          })
+        }
       >
         <JobFilters
           onApply={(filters) => {
@@ -503,12 +607,13 @@ export default function AdminJobListings() {
           initialFilters={activeFilters}
         />
       </MultiPurposeModal>
-      
+
+      {/* Delete Confirmation Modal */}
       <MultiPurposeModal
         open={isDeleteModalOpen}
         onOpenChange={setIsDeleteModalOpen}
-        title="Delete Job"
-        description="Are you sure you want to delete this job posting? This action cannot be undone."
+        title="Delete Job Listing"
+        description="Are you sure you want to delete this job listing? This action cannot be undone."
         size="sm"
         showFooter={true}
         primaryActionText="Delete"
@@ -516,14 +621,11 @@ export default function AdminJobListings() {
         secondaryActionText="Cancel"
         onSecondaryAction={() => setIsDeleteModalOpen(false)}
       >
-        {selectedJob && (
-          <div className="py-2">
-            <p className="mb-2"><strong>Title:</strong> {selectedJob.title}</p>
-            <p><strong>Company:</strong> {selectedJob.company}</p>
-          </div>
-        )}
+        <div className="text-muted-foreground">
+          This will permanently remove the job listing and all associated data.
+        </div>
       </MultiPurposeModal>
-      
+
       <MultiPurposeModal
         open={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
@@ -537,10 +639,12 @@ export default function AdminJobListings() {
         onSecondaryAction={() => setIsEditModalOpen(false)}
       >
         <div className="py-4">
-          <p className="text-center text-gray-500">Job edit form would go here</p>
+          <p className="text-center text-gray-500">
+            Job edit form would go here
+          </p>
         </div>
       </MultiPurposeModal>
-      
+
       <MultiPurposeModal
         open={isImportModalOpen}
         onOpenChange={setIsImportModalOpen}
@@ -569,17 +673,24 @@ export default function AdminJobListings() {
               </Button>
             </div>
           </div>
-          
+
           <div className="bg-launchpad-blue/5 p-4 rounded-md">
-            <h4 className="font-medium mb-2 text-sm">CSV Format Requirements</h4>
+            <h4 className="font-medium mb-2 text-sm">
+              CSV Format Requirements
+            </h4>
             <ul className="text-xs text-gray-600 space-y-1 list-disc pl-4">
-              <li>First row must contain headers: Title, Company, Location, Type, Description</li>
+              <li>
+                First row must contain headers: Title, Company, Location, Type,
+                Description
+              </li>
               <li>All jobs must have at least Title, Company and Location</li>
-              <li>Valid job types: full_time, part_time, contract, internship</li>
+              <li>
+                Valid job types: full_time, part_time, contract, internship
+              </li>
               <li>Maximum 100 jobs per import</li>
             </ul>
           </div>
-          
+
           <div className="text-center">
             <Button variant="link" size="sm" className="text-xs">
               Download Template
@@ -588,5 +699,5 @@ export default function AdminJobListings() {
         </div>
       </MultiPurposeModal>
     </DashboardLayout>
-  )
+  );
 }

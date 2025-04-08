@@ -995,4 +995,5 @@ export default function JobsPage() {
       </Dialog>
     </DashboardLayout>
   );
+  );
 }

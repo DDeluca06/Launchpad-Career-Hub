@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -427,7 +427,7 @@ export default function ApplicantDashboard() {
         </div>
       </div>
     </DashboardLayout>
-  )
+  );
 }
 
 function StatCard({ title, value, icon, isLoading }: { title: string; value: number; icon: React.ReactNode; isLoading: boolean }) {

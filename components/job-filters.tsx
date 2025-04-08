@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Label } from "@/components/ui/basic/label"
-import { Input } from "@/components/ui/form/input"
-import { Button } from "@/components/ui/basic/button"
-import { Search, Briefcase, MapPin } from "lucide-react"
+import { useState } from "react";
+import { Label } from "@/components/ui/basic/label";
+import { Input } from "@/components/ui/form/input";
+import { Button } from "@/components/ui/basic/button";
+import { Search, Briefcase, MapPin } from "lucide-react";
 
 interface JobFilter {
   jobTypes: string[];
@@ -26,67 +26,79 @@ const DEFAULT_FILTERS: JobFilter = {
   remoteOnly: false,
   salary: [0, 200],
   experienceLevel: "any",
-  keywords: ""
-}
+  keywords: "",
+};
 
 const JOB_TYPES = [
   { id: "full-time", label: "Full Time" },
   { id: "part-time", label: "Part Time" },
   { id: "contract", label: "Contract" },
   { id: "internship", label: "Internship" },
-]
+];
 
 const LOCATIONS = [
   { id: "remote", label: "Remote" },
   { id: "onsite", label: "On-site" },
   { id: "hybrid", label: "Hybrid" },
-]
+];
 
+/**
+ * Renders UI controls for filtering job listings.
+ *
+ * This component presents interactive options to select job types, choose locations, toggle a remote-only filter, and enter keywords. It manages its own filter state initialized with the provided initial filters and notifies the parent component of state changes via the onApply callback when filters are applied or reset.
+ *
+ * @param onApply - Callback function invoked with the current filters when the user applies or resets the filters.
+ * @param initialFilters - The initial filter configuration for the component.
+ */
 export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
-  const [filters, setFilters] = useState<JobFilter>(initialFilters)
+  const [filters, setFilters] = useState<JobFilter>(initialFilters);
 
   const handleApply = () => {
-    onApply(filters)
-  }
+    onApply(filters);
+  };
 
   const handleReset = () => {
-    setFilters(DEFAULT_FILTERS)
-    onApply(DEFAULT_FILTERS)
-  }
+    setFilters(DEFAULT_FILTERS);
+    onApply(DEFAULT_FILTERS);
+  };
 
   const toggleJobType = (typeId: string) => {
     const newTypes = filters.jobTypes.includes(typeId)
-      ? filters.jobTypes.filter(type => type !== typeId)
+      ? filters.jobTypes.filter((type) => type !== typeId)
       : [...filters.jobTypes, typeId];
-    setFilters(prev => ({ ...prev, jobTypes: newTypes }))
-  }
+    setFilters((prev) => ({ ...prev, jobTypes: newTypes }));
+  };
 
   const toggleLocation = (locationId: string) => {
     const newLocations = filters.locations.includes(locationId)
-      ? filters.locations.filter(loc => loc !== locationId)
+      ? filters.locations.filter((loc) => loc !== locationId)
       : [...filters.locations, locationId];
-    setFilters(prev => ({ ...prev, locations: newLocations }))
-  }
+    setFilters((prev) => ({ ...prev, locations: newLocations }));
+  };
 
   const toggleRemoteOnly = () => {
-    setFilters(prev => ({ ...prev, remoteOnly: !prev.remoteOnly }))
-  }
+    setFilters((prev) => ({ ...prev, remoteOnly: !prev.remoteOnly }));
+  };
 
   return (
     <div className="space-y-6 py-2">
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Briefcase className="h-5 w-5 text-gray-600" />
-          <Label className="text-base font-medium text-gray-800">Job Type</Label>
+          <Label className="text-base font-medium text-gray-800">
+            Job Type
+          </Label>
         </div>
         <div className="flex flex-wrap gap-2">
           {JOB_TYPES.map((jobType) => (
             <Button
               key={jobType.id}
-              variant={filters.jobTypes.includes(jobType.id) ? "default" : "outline"}
+              variant={
+                filters.jobTypes.includes(jobType.id) ? "default" : "outline"
+              }
               size="sm"
               onClick={() => toggleJobType(jobType.id)}
-              className={`rounded-full ${filters.jobTypes.includes(jobType.id) ? 'bg-blue-500 text-white hover:bg-blue-600' : 'hover:bg-gray-100'}`}
+              className={`rounded-full ${filters.jobTypes.includes(jobType.id) ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
             >
               {jobType.label}
             </Button>
@@ -97,16 +109,20 @@ export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <MapPin className="h-5 w-5 text-gray-600" />
-          <Label className="text-base font-medium text-gray-800">Location</Label>
+          <Label className="text-base font-medium text-gray-800">
+            Location
+          </Label>
         </div>
         <div className="flex flex-wrap gap-2">
           {LOCATIONS.map((location) => (
             <Button
               key={location.id}
-              variant={filters.locations.includes(location.id) ? "default" : "outline"}
+              variant={
+                filters.locations.includes(location.id) ? "default" : "outline"
+              }
               size="sm"
               onClick={() => toggleLocation(location.id)}
-              className={`rounded-full ${filters.locations.includes(location.id) ? 'bg-blue-500 text-white hover:bg-blue-600' : 'hover:bg-gray-100'}`}
+              className={`rounded-full ${filters.locations.includes(location.id) ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
             >
               {location.label}
             </Button>
@@ -117,7 +133,7 @@ export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
             variant={filters.remoteOnly ? "default" : "outline"}
             size="sm"
             onClick={toggleRemoteOnly}
-            className={`rounded-full ${filters.remoteOnly ? 'bg-blue-500 text-white hover:bg-blue-600' : 'hover:bg-gray-100'}`}
+            className={`rounded-full ${filters.remoteOnly ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
           >
             Remote Only
           </Button>
@@ -127,13 +143,17 @@ export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Search className="h-5 w-5 text-gray-600" />
-          <Label className="text-base font-medium text-gray-800">Keywords</Label>
+          <Label className="text-base font-medium text-gray-800">
+            Keywords
+          </Label>
         </div>
         <div className="relative">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
             value={filters.keywords}
-            onChange={(e) => setFilters(prev => ({ ...prev, keywords: e.target.value }))}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, keywords: e.target.value }))
+            }
             className="pl-10 border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             placeholder="Skills, job titles, companies..."
           />
@@ -156,5 +176,5 @@ export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
         </Button>
       </div>
     </div>
-  )
+  );
 }
