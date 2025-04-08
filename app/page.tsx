@@ -7,7 +7,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col">
       <header className="border-b">
         <div className="container mx-auto py-4 px-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Job Finder Portal</h1>
+          <h1 className="text-2xl font-bold">Launchpad Job Portal</h1>
           <div className="flex gap-4">
             <Link href="/login">
               <Button variant="outline">Login</Button>
@@ -21,9 +21,9 @@ export default function Home() {
       <main className="flex-1 container mx-auto py-8 px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           <div>
-            <h2 className="text-4xl font-bold mb-4">Find Your Dream Job</h2>
+            <h2 className="text-4xl font-bold mb-4">Launch Your Career</h2>
             <p className="text-lg text-muted-foreground mb-6">
-              Connect with top employers and track your applications in one place.
+              Discover job opportunities, connect with employers, and take the next step in your career journey.
             </p>
             <div className="flex gap-4">
               <Link href="/admin/dashboard">
@@ -39,8 +39,8 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>For Applicants</CardTitle>
-                <CardDescription>Manage your job search</CardDescription>
+                <CardTitle>For Job Seekers</CardTitle>
+                <CardDescription>Explore and apply for jobs</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="list-disc pl-5 space-y-2">
@@ -58,8 +58,8 @@ export default function Home() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>For Admins</CardTitle>
-                <CardDescription>Manage the hiring process</CardDescription>
+                <CardTitle>For Employers</CardTitle>
+                <CardDescription>Post jobs and manage applicants</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="list-disc pl-5 space-y-2">
