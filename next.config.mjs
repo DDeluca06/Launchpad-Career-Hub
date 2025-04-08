@@ -24,6 +24,11 @@ const nextConfig = {
         hostname: 'w8d9q6vsv9.ufs.sh',
         pathname: '/f/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'i0.wp.com',
+        pathname: '/launchpadphilly.org/**',
+      },
     ],
   },
   experimental: {

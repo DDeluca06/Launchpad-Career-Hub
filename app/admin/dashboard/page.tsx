@@ -401,11 +401,11 @@ export default function AdminDashboard() {
                       <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center">
                         <LaunchpadImage
                           src={`/company-logos/${job.company.toLowerCase().replace(/\s+/g, '-')}.png`}
+                          fallbackSrc="/placeholder-logo.png"
                           alt={job.company}
                           width={32}
                           height={32}
                           className="object-contain"
-                          fallbackSrc="/placeholder-logo.png"
                         />
                       </div>
                       <div className="flex-1">
@@ -455,7 +455,7 @@ export default function AdminDashboard() {
                   {recentApplicants.map((user) => (
                     <div key={user.user_id} className="flex items-center gap-3 pb-3 border-b last:border-0 border-gray-100">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src="/placeholder-user.jpg" alt={user.username} />
+                        <AvatarImage src="https://i0.wp.com/launchpadphilly.org/wp-content/uploads/2022/07/03-more-transp-launchpad-logo-less-padding-copy-4.png?fit=500%2C443&ssl=1" alt={user.username} />
                         <AvatarFallback>{user.username.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
@@ -504,7 +504,7 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   <div className="flex items-start gap-3 pb-4 border-b border-gray-100">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src="/placeholder-user.jpg" alt="Jordan Lee" />
+                      <AvatarImage src="https://i0.wp.com/launchpadphilly.org/wp-content/uploads/2022/07/03-more-transp-launchpad-logo-less-padding-copy-4.png?fit=500%2C443&ssl=1" alt="Jordan Lee" />
                       <AvatarFallback>JL</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -517,7 +517,7 @@ export default function AdminDashboard() {
                   
                   <div className="flex items-start gap-3 pb-4 border-b border-gray-100">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src="/placeholder-user.jpg" alt="Alex Johnson" />
+                      <AvatarImage src="https://i0.wp.com/launchpadphilly.org/wp-content/uploads/2022/07/03-more-transp-launchpad-logo-less-padding-copy-4.png?fit=500%2C443&ssl=1" alt="Alex Johnson" />
                       <AvatarFallback>AJ</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -530,7 +530,7 @@ export default function AdminDashboard() {
                   
                   <div className="flex items-start gap-3">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src="/placeholder-user.jpg" alt="Sam Williams" />
+                      <AvatarImage src="https://i0.wp.com/launchpadphilly.org/wp-content/uploads/2022/07/03-more-transp-launchpad-logo-less-padding-copy-4.png?fit=500%2C443&ssl=1" alt="Sam Williams" />
                       <AvatarFallback>SW</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">

@@ -8,7 +8,7 @@
 // Main Launchpad Logos
 export const LAUNCHPAD_LOGOS = {
   mainColor: {
-    url: "https://w8d9q6vsv9.ufs.sh/f/rIWyF4chqJyDC4ibTR6cuPh6NOxj7QEf2tRDoIe0ybdCUpS9",
+    url: "https://.ufs.sh/f/rIWyF4chqJyDC4ibTR6cuPh6NOxj7QEf2tRDoIe0ybdCUpS9",
     alt: "Launchpad Main Color Logo",
     key: "rIWyF4chqJyDC4ibTR6cuPh6NOxj7QEf2tRDoIe0ybdCUpS9",
   },
@@ -56,6 +56,13 @@ export const COMBINED_LOGOS = {
     key: "rIWyF4chqJyDxQrF8iPyJkBLoQqtZM4jKDSNvFYxml0Ci2A3",
   },
 };
+
+// Updated the default placeholder images to use the new main image URL.
+const MAIN_IMAGE_URL = "https://i0.wp.com/launchpadphilly.org/wp-content/uploads/2022/07/03-more-transp-launchpad-logo-less-padding-copy-4.png?fit=500%2C443&ssl=1";
+
+export const placeholderLogo = MAIN_IMAGE_URL;
+export const placeholderUser = MAIN_IMAGE_URL;
+export const placeholderImage = MAIN_IMAGE_URL;
 
 // Complete collection of all available images
 type UploadthingImage = {

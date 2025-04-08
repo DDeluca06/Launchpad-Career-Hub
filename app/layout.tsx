@@ -20,6 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        <header className="flex items-center justify-center py-4">
+          {/* Logo removed from here */}
+        </header>
         <Providers>
           {children}
         </Providers>

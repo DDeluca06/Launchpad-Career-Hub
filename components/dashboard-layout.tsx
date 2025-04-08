@@ -42,12 +42,12 @@ export function DashboardLayout({ children, isAdmin = false }: DashboardLayoutPr
               </SheetContent>
             </Sheet>
             <div className="flex items-center">
-              <LaunchpadImage 
-                imageId="default-logo" // Change to an existing logo ID
-                alt="Launchpad Logo" 
-                width={130} 
-                height={52} 
-                className="h-8 w-auto hidden md:block" 
+              <img
+                src="https://149667878.v2.pressablecdn.com/wp-content/uploads/2022/07/01-main-color-launchpad-logo.png"
+                alt="Launchpad Logo"
+                width={130}
+                height={52}
+                className="h-8 w-auto hidden md:block"
               />
             </div>
             <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 hidden md:block"></div>
