@@ -16,7 +16,6 @@ import {
   Calendar,
   LogOut,
   Settings,
-  GraduationCap,
   HelpCircle,
 } from "lucide-react";
 

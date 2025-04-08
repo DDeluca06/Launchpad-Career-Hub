@@ -6,13 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/basic/button";
 import { Input } from "@/components/ui/form/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/overlay/dialog";
-import { Search, RefreshCw, Briefcase, Globe, BookmarkPlus, Bookmark, MapPin, FilterX, Loader2, Clock, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { Search, RefreshCw, Briefcase, Globe, BookmarkPlus, Bookmark, MapPin, FilterX, Clock, FileText, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/basic/badge";
 import { Label } from "@/components/ui/basic/label";
 import { Textarea } from "@/components/ui/form/textarea";
 import { Checkbox } from "@/components/ui/form/checkbox";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
+import Image from "next/image";
 
 // Types
 interface Job {
@@ -36,7 +37,7 @@ interface Job {
 
 interface JobFilter {
   type: keyof FilterOptions;
-  value: any;
+  value: string | boolean;
 }
 
 interface FilterOptions {
@@ -270,9 +271,9 @@ function JobDetailsSkeleton() {
 
 export default function JobsPage() {
   // State
-  const [jobs, setJobs] = useState<Job[]>(mockJobs);
+  const [jobs] = useState<Job[]>(mockJobs);
   const [filteredJobs, setFilteredJobs] = useState<Job[]>(mockJobs);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [_loading] = useState<boolean>(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(mockJobs[0] || null);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     jobType: [],
@@ -286,7 +287,7 @@ export default function JobsPage() {
   const [applyModalOpen, setApplyModalOpen] = useState<boolean>(false);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"jobs" | "applications">("jobs");
-  const [applications, setApplications] = useState<Application[]>(mockApplications);
+  const [applications] = useState<Application[]>(mockApplications);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [applicationData, setApplicationData] = useState({
     firstName: "",
@@ -433,10 +434,12 @@ export default function JobsPage() {
         
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
-            <img 
+            <Image 
               src={job.companyLogoUrl} 
               alt={`${job.company} logo`} 
               className="w-full h-full object-contain"
+              width={64}
+              height={64}
             />
           </div>
           <div>
@@ -587,11 +590,13 @@ export default function JobsPage() {
           </div>
           
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
-              <img 
+            <div className="w-12 h-12 rounded border flex items-center justify-center overflow-hidden">
+              <Image 
                 src={application.companyLogoUrl} 
                 alt={`${application.company} logo`} 
                 className="w-full h-full object-contain"
+                width={48}
+                height={48}
               />
             </div>
             <div>
@@ -667,10 +672,12 @@ export default function JobsPage() {
                   <CardContent className="p-3">
                     <div className="flex gap-3">
                       <div className="w-12 h-12 rounded border flex items-center justify-center overflow-hidden">
-                        <img 
+                        <Image 
                           src={application.companyLogoUrl} 
                           alt={`${application.company} logo`} 
                           className="w-full h-full object-contain"
+                          width={48}
+                          height={48}
                         />
                       </div>
                       <div className="flex-1">
@@ -688,7 +695,7 @@ export default function JobsPage() {
               
               {applications.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  You haven't submitted any applications yet
+                  You haven&apos;t submitted any applications yet
                 </div>
               )}
             </div>
@@ -835,7 +842,7 @@ export default function JobsPage() {
                 
                 <CardContent className="flex-1 overflow-auto p-3">
                   <Suspense fallback={<JobListSkeleton />}>
-                    {loading ? (
+                    {_loading ? (
                       <JobListSkeleton />
                     ) : filteredJobs.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
@@ -855,10 +862,12 @@ export default function JobsPage() {
                             <CardContent className="p-3">
                               <div className="flex gap-3">
                                 <div className="w-12 h-12 rounded border flex items-center justify-center overflow-hidden">
-                                  <img 
+                                  <Image 
                                     src={job.companyLogoUrl} 
                                     alt={`${job.company} logo`} 
                                     className="w-full h-full object-contain"
+                                    width={48}
+                                    height={48}
                                   />
                                 </div>
                                 <div className="flex-1">
@@ -890,7 +899,7 @@ export default function JobsPage() {
               {/* Job Details Column */}
               <Card className="lg:col-span-2 max-h-[calc(100vh-320px)] overflow-auto">
                 <Suspense fallback={<JobDetailsSkeleton />}>
-                  {loading ? <JobDetailsSkeleton /> : <JobDetails job={selectedJob} />}
+                  {_loading ? <JobDetailsSkeleton /> : <JobDetails job={selectedJob} />}
                 </Suspense>
               </Card>
             </div>
@@ -994,6 +1003,5 @@ export default function JobsPage() {
         </DialogContent>
       </Dialog>
     </DashboardLayout>
-  );
   );
 }

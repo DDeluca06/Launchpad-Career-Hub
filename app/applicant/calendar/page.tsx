@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/basic/button"
 import { Badge } from "@/components/ui/basic/badge"
 import { cn } from "@/lib/utils"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Users, Briefcase, Building, Bell } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Users, Briefcase, Building, Bell, Building2, FileText } from "lucide-react"
 import { EVENT_TYPES, SAMPLE_EVENTS, generateCalendarDays, formatTime, CalendarEvent } from "./constants"
 import { Skeleton } from "@/components/ui/feedback/skeleton"
 import { extendedPalette } from "@/lib/colors"
@@ -103,12 +103,6 @@ export default function ApplicantCalendarPage() {
     .filter(event => new Date(event.date) >= new Date())
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 3)
-
-  // Get recent events (past 3 events)
-  const recentEvents = [...events]
-    .filter(event => new Date(event.date) < new Date())
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 3)
     
   // Events by type
   const interviewEvents = events.filter(e => e.type === EVENT_TYPES.INTERVIEW)
@@ -186,11 +180,21 @@ export default function ApplicantCalendarPage() {
                 </span>
               </div>
             )}
-            {event.description && (
-              <p className="text-sm text-gray-600 mt-1">
-                {event.description}
-              </p>
+            {event.type === EVENT_TYPES.INTERVIEW && (
+              <div className="flex items-center mb-2">
+                <Building2 className="h-4 w-4 mr-1 text-primary" />
+                <span className="text-sm">{event.company}</span>
+              </div>
             )}
+            {event.type === EVENT_TYPES.APPLICATION && (
+              <div className="flex items-center mb-2">
+                <FileText className="h-4 w-4 mr-1 text-primary" />
+                <span className="text-sm">Application due for {event.company}</span>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {event.description || "Don&apos;t forget about this important event!"}
+            </p>
           </div>
         </CardContent>
         <CardFooter className="pt-2">
@@ -499,7 +503,7 @@ export default function ApplicantCalendarPage() {
                       <CalendarIcon className="h-12 w-12 text-gray-300 mb-4" />
                       <h3 className="text-lg font-medium">No events scheduled</h3>
                       <p className="text-sm text-gray-500 mt-1">
-                        You don't have any upcoming events.
+                        You don&apos;t have any upcoming events.
                       </p>
                       <Button className="mt-4">
                         <Plus className="h-4 w-4 mr-1" /> Add New Event
