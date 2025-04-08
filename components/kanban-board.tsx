@@ -23,6 +23,14 @@ interface KanbanBoardProps {
   onJobUpdate: (jobId: string, updates: Partial<KanbanJob>) => void;
 }
 
+/**
+ * Renders a Kanban board to display job applications organized by their status.
+ *
+ * The component groups the provided jobs into columns based on their status (e.g. applied, interview-scheduled, interview-completed, offer-received, and rejected) and displays each job as a card with its details. When a job is updated (for example, when rejected), the provided update callback is invoked.
+ *
+ * @param jobs - An array of job objects to be displayed in the board.
+ * @param onJobUpdate - A callback function that is called with the job id and the updates to apply.
+ */
 export function KanbanBoard({ jobs, onJobUpdate }: KanbanBoardProps) {
   const [columns, setColumns] = useState<Record<string, KanbanJob[]> & { [key: string]: KanbanJob[] }>({
     'applied': [],

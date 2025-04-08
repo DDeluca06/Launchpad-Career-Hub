@@ -20,6 +20,14 @@ type CalendarDay = {
   events: typeof EXAMPLE_EVENTS;
 }
 
+/**
+ * Renders the Calendar page for the admin dashboard.
+ *
+ * This component displays a monthly calendar grid populated with events, supports
+ * navigation across months, and highlights events for the selected day. It simulates
+ * event loading, assigns events to their respective calendar days, and provides a sidebar
+ * that showcases upcoming and recent events, along with quick actions for event management.
+ */
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([])

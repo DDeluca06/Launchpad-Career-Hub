@@ -7,6 +7,18 @@ interface StatsData {
   offersSent: number
 }
 
+/**
+ * Custom React hook that simulates fetching and managing job application statistics.
+ *
+ * This hook initializes statistics with default values and simulates an API call by
+ * setting dummy data after an 800ms delay. It returns the current statistics along with
+ * loading and error states to support UI feedback during data fetching.
+ *
+ * @returns An object containing:
+ * - stats: current job application statistics,
+ * - loading: a boolean indicating whether the data is being loaded,
+ * - error: an Error instance if data fetching fails, or null otherwise.
+ */
 export function useStats() {
   const [stats, setStats] = useState<StatsData>({
     totalJobs: 0,

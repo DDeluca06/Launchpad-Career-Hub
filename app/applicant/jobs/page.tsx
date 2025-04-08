@@ -132,6 +132,16 @@ const jobs: Job[] = [
   },
 ]
 
+/**
+ * Renders the job listing dashboard for applicants.
+ *
+ * This component displays available job listings, allowing users to search by keywords, apply multiple filters,
+ * view detailed job information, and submit job applications. It also supports lazy loading of jobs through a
+ * "Load More Jobs" feature that incrementally displays additional listings.
+ *
+ * @example
+ * <ApplicantJobListings />
+ */
 export default function ApplicantJobListings() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterModalOpen, setFilterModalOpen] = useState(false);

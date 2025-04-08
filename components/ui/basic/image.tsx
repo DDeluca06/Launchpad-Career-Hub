@@ -20,6 +20,19 @@ interface LaunchpadImageProps {
   height?: number;
 }
 
+/**
+ * Renders an image using the NextImage component.
+ *
+ * If a valid image source is provided via the `src` property, the image is rendered with the specified
+ * alternative text, styling classes, width, and height. If the `src` property is falsy, the function logs
+ * a warning and returns null.
+ *
+ * @param src - The URL of the image to display.
+ * @param alt - The alternate text for the image, used for accessibility.
+ * @param className - Optional CSS class names for styling the image.
+ * @param width - Optional width for the image.
+ * @param height - Optional height for the image.
+ */
 export function Image({ src, alt, className, width, height }: ImageProps) {
   // Use a fallback image if the source is invalid
   if (!src) {
@@ -38,6 +51,22 @@ export function Image({ src, alt, className, width, height }: ImageProps) {
   );
 }
 
+/**
+ * Renders an image from a global collection using an identifier, with fallbacks for missing or invalid images.
+ *
+ * The component retrieves an image object from a predefined collection using the provided identifier.
+ * If the image is not found or its source is invalid, it logs a warning and renders a fallback UI.
+ * For valid images, it determines whether the source is external—if so, it renders with optimization disabled
+ * and a contained object fit; otherwise, it renders the internal image normally with default dimensions if not provided.
+ *
+ * @param imageId - Identifier used to locate the image in the global collection.
+ * @param alt - Alternative text for the image; if not provided, the image's default alt text is used.
+ * @param className - Optional CSS classes applied to the rendered image or fallback container.
+ * @param width - The width of the image; defaults to 100 if unspecified.
+ * @param height - The height of the image; defaults to 100 if unspecified.
+ *
+ * @returns A NextImage component for valid images or a fallback div for missing or invalid images.
+ */
 export function LaunchpadImage({ imageId, alt, className, width, height }: LaunchpadImageProps) {
   const image = ALL_IMAGES[imageId];
   

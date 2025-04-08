@@ -14,6 +14,16 @@ interface Activity {
   user?: User
 }
 
+/**
+ * Custom React hook that manages the state of user activities.
+ *
+ * This hook simulates an API call by populating the activities state with dummy data after a one-second delay.
+ * It updates the loading state to indicate when data fetching is complete and sets an error state if any issues occur.
+ *
+ * @returns An object containing the current activities, the loading status, and any encountered error.
+ *
+ * @remark Replace the dummy data with an actual API call once the backend is available.
+ */
 export function useActivity() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)

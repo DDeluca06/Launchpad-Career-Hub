@@ -9,6 +9,16 @@ import { extendedPalette } from "@/lib/colors"
 import { useRouter } from "next/navigation"
 import { UserCircle, Lock, AlertCircle } from "lucide-react"
 
+/**
+ * Renders a login form for user authentication.
+ *
+ * This component provides a user interface for logging in as either an admin or a student. It manages local state for input values,
+ * error messages, and loading status. When the form is submitted, it validates that both username and password are provided, simulates an API call,
+ * and navigates to the appropriate dashboard if the entered credentials match the hardcoded demo values. Invalid credentials trigger an error message.
+ *
+ * @example
+ * <LoginForm />
+ */
 export function LoginForm() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [username, setUsername] = useState("")

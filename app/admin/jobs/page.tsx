@@ -25,7 +25,14 @@ interface JobFiltersType {
   keywords: string;
 }
 
-// Loading components
+/**
+ * Renders a loading skeleton for job listings.
+ *
+ * This component displays a series of animated placeholder cards that simulate the layout of actual job items,
+ * providing visual feedback during data loading.
+ *
+ * @returns A JSX element representing the job list loading skeleton.
+ */
 function JobListSkeleton() {
   return (
     <div className="space-y-3">
@@ -46,6 +53,14 @@ function JobListSkeleton() {
   )
 }
 
+/**
+ * Renders a skeleton placeholder for the job details view.
+ *
+ * This component displays animated gray blocks that mimic the layout of the job details content,
+ * providing visual feedback while data is being loaded.
+ *
+ * @returns A JSX element representing the job details loading state.
+ */
 function JobDetailsSkeleton() {
   return (
     <div className="animate-pulse p-6 space-y-4">
@@ -84,7 +99,21 @@ interface JobDetailsProps {
   onDelete: () => void;
 }
 
-// Job list component with loading state
+/**
+ * Renders a list of job cards with filtering and loading state.
+ *
+ * When the component is loading, a skeleton placeholder is displayed. Otherwise, it filters
+ * the provided jobs based on the search query and renders each job as a clickable card.
+ *
+ * @param jobs - Array of job objects to display.
+ * @param selectedJob - The job currently selected; used to highlight the active card.
+ * @param onSelectJob - Callback triggered when a job card is clicked.
+ * @param applicationsCount - Map of job IDs to their respective applicant counts.
+ * @param isLoading - Indicates whether the job list is in a loading state.
+ * @param searchQuery - Text used to filter jobs by title, company, description, or location.
+ *
+ * @returns A JSX element representing the job list.
+ */
 function JobList({ jobs, selectedJob, onSelectJob, applicationsCount, isLoading, searchQuery }: JobListProps) {
   if (isLoading) return <JobListSkeleton />;
 
@@ -150,6 +179,20 @@ function JobList({ jobs, selectedJob, onSelectJob, applicationsCount, isLoading,
   );
 }
 
+/**
+ * Displays detailed information for a selected job within the admin interface.
+ *
+ * When the data is loading, a skeleton placeholder is shown. If no job is selected, a prompt is rendered with an option to add a new job.
+ * When a job is provided, its title, company information, job type, application count, description, and requirements are displayed,
+ * along with buttons to trigger editing or deletion.
+ *
+ * @param job - The job data to display. If absent, a prompt for job selection is rendered.
+ * @param applicationsCount - A mapping of job IDs to their application counts.
+ * @param isLoading - Indicates whether the job details are currently being loaded.
+ * @param onEdit - Callback invoked to edit the displayed job.
+ * @param onDelete - Callback invoked to delete the displayed job.
+ * @returns A JSX element representing the job details view.
+ */
 function JobDetails({ job, applicationsCount, isLoading, onEdit, onDelete }: JobDetailsProps) {
   if (isLoading) return <JobDetailsSkeleton />;
   
@@ -246,6 +289,13 @@ function JobDetails({ job, applicationsCount, isLoading, onEdit, onDelete }: Job
   );
 }
 
+/**
+ * Renders the admin job listings dashboard interface.
+ *
+ * This component loads dummy job data and application counts, sets an initial selected job, and manages various UI states including search, filtering, editing, deletion, and CSV import via modals. It provides a structured layout featuring a quick import panel, search and filter actions, a job listings column, and a detailed job information section.
+ *
+ * @returns A React element representing the admin job listings interface.
+ */
 export default function AdminJobListings() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);

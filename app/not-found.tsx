@@ -2,6 +2,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/basic/button";
 import Image from "next/image";
 
+/**
+ * Renders a 404 Not Found page.
+ *
+ * This component displays a centered layout with a logo image, a large "404" heading, a brief message, and a button that navigates back to the home page.
+ *
+ * @returns A React element representing the 404 error page.
+ */
 export default function NotFound() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-center">

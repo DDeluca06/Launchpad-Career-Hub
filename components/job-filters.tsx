@@ -42,6 +42,14 @@ const LOCATIONS = [
   { id: "hybrid", label: "Hybrid" },
 ]
 
+/**
+ * Renders a panel with controls to filter job listings by job type, location, remote status, and keywords.
+ *
+ * This component maintains its own filter state initialized with the provided filters. Users can toggle job types and locations, enable or disable the remote-only filter, and enter keywords for filtering. Clicking "Apply Filters" invokes the callback with the current filter state, while "Reset Filters" reverts the filters to their default values.
+ *
+ * @param onApply - Callback invoked with the current filter state when filters are applied.
+ * @param initialFilters - The initial filter settings for the job listings.
+ */
 export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
   const [filters, setFilters] = useState<JobFilter>(initialFilters)
 

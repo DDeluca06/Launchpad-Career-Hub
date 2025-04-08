@@ -118,6 +118,19 @@ const CHART_COLORS = [
 // Helper function to calculate chart domains
 const calculateDomain = (dataMax: number) => Math.ceil(dataMax * 1.2);
 
+/**
+ * Renders an overview card displaying a metric with a title, value, and icon, along with an optional trend indicator.
+ *
+ * When in a loading state, a skeleton placeholder is shown instead of the actual value and trend data.
+ *
+ * @param title - The label shown above the metric value.
+ * @param value - The metric value to display, as a number or string.
+ * @param icon - A React node representing the icon to display.
+ * @param trend - Optional trend information containing a value (as a string) and an indicator of whether the trend is positive. Displayed only when not in a loading state.
+ * @param isLoading - Determines whether to display loading placeholders instead of the actual data.
+ *
+ * @returns The rendered overview card component.
+ */
 function OverviewCard({ title, value, icon, trend, isLoading }: { 
   title: string; 
   value: number | string; 
@@ -156,6 +169,16 @@ function OverviewCard({ title, value, icon, trend, isLoading }: {
   )
 }
 
+/**
+ * Renders the analytics dashboard for administrators.
+ *
+ * This component retrieves and processes data from local storage services to compute key metrics such as total applicants, available jobs, total applications, acceptance rate, and placement rate. It presents these metrics alongside various chart visualizations—including area, pie, and bar charts—organized under tabs for an overview, applications, and placements. The dashboard also includes interactive filtering and date range selection, enabling users to refine the analytics view.
+ *
+ * @remarks
+ * Data fetching is simulated with delays and local storage services, and integration points are in place to replace these with actual API calls.
+ *
+ * @returns The JSX element rendering the complete admin analytics dashboard.
+ */
 export default function AdminAnalytics() {
   const [isLoading, setIsLoading] = useState(true)
   const [filterModalOpen, setFilterModalOpen] = useState(false)

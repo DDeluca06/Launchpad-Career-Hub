@@ -13,6 +13,13 @@ import { Check, Save, RefreshCw, Moon, Sun, Shield, UserCircle, Search } from "l
 import { extendedPalette } from "@/lib/colors"
 import { userService, User } from "@/lib/local-storage"
 
+/**
+ * Renders the settings page for managing admin preferences and user access.
+ *
+ * This component displays a dashboard interface that allows admin users to customize appearance settings, such as theme mode, and manage user access by searching for users and toggling their admin privileges. It loads user data on mount and provides visual feedback upon saving changes.
+ *
+ * @returns A React JSX element representing the settings page.
+ */
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("userAccess")
   const [savedIndicator, setSavedIndicator] = useState(false)

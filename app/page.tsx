@@ -4,6 +4,16 @@ import Link from "next/link"
 import { Button } from "@/components/ui/basic/button"
 import { LoginForm } from "@/components/ui/basic/login-form"
 
+/**
+ * Renders the main home page component.
+ *
+ * This component displays a centered login form against a fixed, full-screen background with a subtle grid pattern.
+ * It also includes a development-only section that provides navigation links to the Admin and Student Dashboards,
+ * as well as a footer with copyright information. Global fade-in animations are defined for visual enhancement.
+ *
+ * @remarks
+ * The development navigation block is intended for testing purposes and will be removed in production.
+ */
 export default function Home() {
   return (
     <div className="fixed inset-0 flex flex-col bg-slate-50">

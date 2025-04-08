@@ -121,9 +121,21 @@ export const EXAMPLE_EVENTS = [
 ];
 
 /**
- * Generates an array of days for the calendar
- * @param date The reference date to generate calendar for (usually current month)
- * @returns Array of calendar days with their properties
+ * Generates a complete calendar grid of day objects for the month of the given date.
+ *
+ * The returned array always contains 42 cells (representing 6 full weeks), including:
+ * - Days from the previous month to complete the first week,
+ * - Days from the current month, and
+ * - Days from the next month to fill the remaining cells.
+ *
+ * Each day object includes:
+ * - date: the Date instance for that day,
+ * - dayOfMonth: the numeric day of the month,
+ * - isCurrentMonth: whether the day belongs to the reference month, and
+ * - isToday: whether the day matches the current system date.
+ *
+ * @param date - The reference date used to generate the calendar month.
+ * @returns An array of day objects forming a 6-week calendar grid.
  */
 export function generateCalendarDays(date: Date) {
   const year = date.getFullYear();
