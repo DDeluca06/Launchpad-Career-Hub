@@ -33,14 +33,15 @@ interface User {
   name: string;
 }
 
-interface Activity {
-  id: string;
-  type: "application" | "status_change" | "interview" | "offer";
-  title: string;
-  description: string;
-  timestamp: string;
-  user?: User;
-}
+// TODO: Add Activity interface
+// interface Activity {
+//   id: string;
+//   type: "application" | "status_change" | "interview" | "offer";
+//   title: string;
+//   description: string;
+//   timestamp: string;
+//   user?: User;
+// }
 
 /**
  * Renders a skeleton loading state for a statistic card.
