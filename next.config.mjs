@@ -18,18 +18,6 @@ const nextConfig = {
   images: {
     // Enable Next.js image optimization for production
     unoptimized: false,
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'w8d9q6vsv9.ufs.sh',
-        pathname: '/f/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'i0.wp.com',
-        pathname: '/launchpadphilly.org/**',
-      },
-    ],
   },
   experimental: {
     // Keep performance-enhancing features

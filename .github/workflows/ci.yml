@@ -22,7 +22,7 @@ jobs:
       - name: Run TypeScript check
         run: pnpm run type-check # Run TypeScript check (ensure this script is in package.json)
       - name: Build Next.js app
-        run: pnpm run build # Build the Next.js application
+        run: pnpm run build # Build the Next.js applicatin
 
         # # i do not want this deploying to my server without my express consent
 
