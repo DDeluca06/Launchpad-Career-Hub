@@ -1,19 +1,15 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription
-} from "@/components/ui/overlay/dialog"
-import { Button } from "@/components/ui/basic/button"
-import { 
-  Briefcase, 
-  MapPin, 
-  BadgeDollarSign
-} from "lucide-react"
+import * as React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/overlay/dialog";
+import { Button } from "@/components/ui/basic/button";
+import { Briefcase, MapPin, BadgeDollarSign } from "lucide-react";
 
 interface Job {
   id: string;
@@ -35,7 +31,12 @@ interface JobDialogProps {
   onApply: () => void;
 }
 
-export function JobDialog({ open, onOpenChange, job, onApply }: JobDialogProps) {
+export function JobDialog({
+  open,
+  onOpenChange,
+  job,
+  onApply,
+}: JobDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl">

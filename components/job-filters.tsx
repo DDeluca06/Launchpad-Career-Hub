@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Label } from "@/components/ui/basic/label"
-import { Input } from "@/components/ui/form/input"
-import { Button } from "@/components/ui/basic/button"
-import { Search, Briefcase, MapPin, BadgeDollarSign, GraduationCap } from "lucide-react"
+import { useState } from "react";
+import { Label } from "@/components/ui/basic/label";
+import { Input } from "@/components/ui/form/input";
+import { Button } from "@/components/ui/basic/button";
+import { Search, Briefcase, MapPin } from "lucide-react";
 
 interface JobFilter {
   jobTypes: string[];
@@ -24,147 +24,157 @@ const DEFAULT_FILTERS: JobFilter = {
   jobTypes: [],
   locations: [],
   remoteOnly: false,
-  salary: [0, 1000000],
-  experienceLevel: "",
-  keywords: ""
-}
+  salary: [0, 200],
+  experienceLevel: "any",
+  keywords: "",
+};
 
 const JOB_TYPES = [
   { id: "full-time", label: "Full Time" },
   { id: "part-time", label: "Part Time" },
   { id: "contract", label: "Contract" },
   { id: "internship", label: "Internship" },
-]
+];
 
 const LOCATIONS = [
   { id: "remote", label: "Remote" },
   { id: "onsite", label: "On-site" },
   { id: "hybrid", label: "Hybrid" },
-]
+];
 
-const EXPERIENCE_LEVELS = [
-  { id: "", label: "All Levels" },
-  { id: "entry", label: "Entry Level" },
-  { id: "mid", label: "Mid Level" },
-  { id: "senior", label: "Senior Level" },
-  { id: "director", label: "Director Level" },
-]
-
+/**
+ * Renders UI controls for filtering job listings.
+ *
+ * This component presents interactive options to select job types, choose locations, toggle a remote-only filter, and enter keywords. It manages its own filter state initialized with the provided initial filters and notifies the parent component of state changes via the onApply callback when filters are applied or reset.
+ *
+ * @param onApply - Callback function invoked with the current filters when the user applies or resets the filters.
+ * @param initialFilters - The initial filter configuration for the component.
+ */
 export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
-  const [filters, setFilters] = useState<JobFilter>(initialFilters)
+  const [filters, setFilters] = useState<JobFilter>(initialFilters);
 
   const handleApply = () => {
-    onApply(filters)
-  }
+    onApply(filters);
+  };
+
+  const handleReset = () => {
+    setFilters(DEFAULT_FILTERS);
+    onApply(DEFAULT_FILTERS);
+  };
+
+  const toggleJobType = (typeId: string) => {
+    const newTypes = filters.jobTypes.includes(typeId)
+      ? filters.jobTypes.filter((type) => type !== typeId)
+      : [...filters.jobTypes, typeId];
+    setFilters((prev) => ({ ...prev, jobTypes: newTypes }));
+  };
+
+  const toggleLocation = (locationId: string) => {
+    const newLocations = filters.locations.includes(locationId)
+      ? filters.locations.filter((loc) => loc !== locationId)
+      : [...filters.locations, locationId];
+    setFilters((prev) => ({ ...prev, locations: newLocations }));
+  };
+
+  const toggleRemoteOnly = () => {
+    setFilters((prev) => ({ ...prev, remoteOnly: !prev.remoteOnly }));
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
+    <div className="space-y-6 py-2">
+      <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <Briefcase className="h-4 w-4 text-gray-500" />
-          <Label htmlFor="job-type" className="text-sm font-medium text-gray-700">Job Type</Label>
+          <Briefcase className="h-5 w-5 text-gray-600" />
+          <Label className="text-base font-medium text-gray-800">
+            Job Type
+          </Label>
         </div>
-        <select
-          multiple
-          value={filters.jobTypes}
-          onChange={(e) => {
-            const options = Array.from(e.target.selectedOptions, option => option.value)
-            setFilters(prev => ({ ...prev, jobTypes: options }))
-          }}
-          className="w-full border-gray-200 focus:border-launchpad-blue"
-        >
+        <div className="flex flex-wrap gap-2">
           {JOB_TYPES.map((jobType) => (
-            <option key={jobType.id} value={jobType.id}>{jobType.label}</option>
+            <Button
+              key={jobType.id}
+              variant={
+                filters.jobTypes.includes(jobType.id) ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => toggleJobType(jobType.id)}
+              className={`rounded-full ${filters.jobTypes.includes(jobType.id) ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
+            >
+              {jobType.label}
+            </Button>
           ))}
-        </select>
+        </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-gray-500" />
-          <Label htmlFor="location" className="text-sm font-medium text-gray-700">Location</Label>
+          <MapPin className="h-5 w-5 text-gray-600" />
+          <Label className="text-base font-medium text-gray-800">
+            Location
+          </Label>
         </div>
-        <select
-          multiple
-          value={filters.locations}
-          onChange={(e) => {
-            const options = Array.from(e.target.selectedOptions, option => option.value)
-            setFilters(prev => ({ ...prev, locations: options }))
-          }}
-          className="w-full border-gray-200 focus:border-launchpad-blue"
-        >
+        <div className="flex flex-wrap gap-2">
           {LOCATIONS.map((location) => (
-            <option key={location.id} value={location.id}>{location.label}</option>
+            <Button
+              key={location.id}
+              variant={
+                filters.locations.includes(location.id) ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => toggleLocation(location.id)}
+              className={`rounded-full ${filters.locations.includes(location.id) ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
+            >
+              {location.label}
+            </Button>
           ))}
-        </select>
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <Button
+            variant={filters.remoteOnly ? "default" : "outline"}
+            size="sm"
+            onClick={toggleRemoteOnly}
+            className={`rounded-full ${filters.remoteOnly ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
+          >
+            Remote Only
+          </Button>
+        </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <GraduationCap className="h-4 w-4 text-gray-500" />
-          <Label htmlFor="experience-level" className="text-sm font-medium text-gray-700">Experience Level</Label>
+          <Search className="h-5 w-5 text-gray-600" />
+          <Label className="text-base font-medium text-gray-800">
+            Keywords
+          </Label>
         </div>
-        <select
-          value={filters.experienceLevel}
-          onChange={(e) => setFilters(prev => ({ ...prev, experienceLevel: e.target.value }))}
-          className="w-full border-gray-200 focus:border-launchpad-blue"
-        >
-          {EXPERIENCE_LEVELS.map((level) => (
-            <option key={level.id} value={level.id}>{level.label}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <BadgeDollarSign className="h-4 w-4 text-gray-500" />
-          <Label htmlFor="salary-range" className="text-sm font-medium text-gray-700">Salary Range</Label>
-        </div>
-        <div className="flex gap-2">
+        <div className="relative">
+          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
-            type="number"
-            value={filters.salary[0]}
-            onChange={(e) => setFilters(prev => ({ ...prev, salary: [Number(e.target.value), prev.salary[1]] }))}
-            className="w-1/2 border-gray-200 focus:border-launchpad-blue"
-            placeholder="Min"
-          />
-          <Input
-            type="number"
-            value={filters.salary[1]}
-            onChange={(e) => setFilters(prev => ({ ...prev, salary: [prev.salary[0], Number(e.target.value)] }))}
-            className="w-1/2 border-gray-200 focus:border-launchpad-blue"
-            placeholder="Max"
+            value={filters.keywords}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, keywords: e.target.value }))
+            }
+            className="pl-10 border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            placeholder="Skills, job titles, companies..."
           />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Search className="h-4 w-4 text-gray-500" />
-          <Label htmlFor="keywords" className="text-sm font-medium text-gray-700">Keywords</Label>
-        </div>
-        <Input
-          value={filters.keywords}
-          onChange={(e) => setFilters(prev => ({ ...prev, keywords: e.target.value }))}
-          className="w-full border-gray-200 focus:border-launchpad-blue"
-          placeholder="Enter keywords..."
-        />
-      </div>
-
-      <div className="flex justify-end space-x-2">
+      <div className="flex justify-between space-x-4 pt-4 border-t mt-4">
         <Button
           variant="outline"
-          onClick={() => setFilters(DEFAULT_FILTERS)}
+          onClick={handleReset}
+          className="border-gray-300 text-gray-700 hover:bg-gray-50"
         >
-          Reset
+          Reset Filters
         </Button>
         <Button
           onClick={handleApply}
-          className="bg-launchpad-blue hover:bg-launchpad-teal"
+          className="bg-blue-500 hover:bg-blue-600 text-white"
         >
           Apply Filters
         </Button>
       </div>
     </div>
-  )
+  );
 }
