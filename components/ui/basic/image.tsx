@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import React from 'react';
-import NextImage from 'next/image';
-import { ALL_IMAGES } from '@/lib/images';
+import React from "react";
+import NextImage from "next/image";
+import { ALL_IMAGES } from "@/lib/images";
 
 interface ImageProps {
   src: string;
@@ -36,10 +36,10 @@ interface LaunchpadImageProps {
 export function Image({ src, alt, className, width, height }: ImageProps) {
   // Use a fallback image if the source is invalid
   if (!src) {
-    console.warn('Image source is missing');
+    console.warn("Image source is missing");
     return null;
   }
-  
+
   return (
     <NextImage
       src={src}
@@ -69,35 +69,47 @@ export function Image({ src, alt, className, width, height }: ImageProps) {
  *
  * @remark External image URLs are rendered with unoptimized mode to mitigate domain-related issues.
  */
-export function LaunchpadImage({ imageId, alt, className, width, height }: LaunchpadImageProps) {
+export function LaunchpadImage({
+  imageId,
+  alt,
+  className,
+  width,
+  height,
+}: LaunchpadImageProps) {
   const image = ALL_IMAGES[imageId];
-  
+
   if (!image) {
     console.warn(`Image not found: ${imageId}`);
     // Fallback to a default image that's stored locally
     return (
-      <div className={`${className || ''} bg-gray-200 flex items-center justify-center`} style={{ width, height }}>
+      <div
+        className={`${className || ""} bg-gray-200 flex items-center justify-center`}
+        style={{ width, height }}
+      >
         <span className="text-xs text-gray-500">Image not found</span>
       </div>
     );
   }
-  
-  if (typeof image.src !== 'string') {
+
+  if (typeof image.src !== "string") {
     console.warn(`Invalid image source for: ${imageId}`);
     return (
-      <div className={`${className || ''} bg-gray-200 flex items-center justify-center`} style={{ width, height }}>
+      <div
+        className={`${className || ""} bg-gray-200 flex items-center justify-center`}
+        style={{ width, height }}
+      >
         <span className="text-xs text-gray-500">Invalid image</span>
       </div>
     );
   }
 
   // If using an external URL, use a regular img tag instead of NextImage to avoid domain issues
-  const isExternalUrl = 
-    image.src.startsWith('http') && 
-    !image.src.includes('localhost') && 
-    !image.src.includes('.ufs.sh') && // Only allow .ufs.sh URLs to go through NextImage
-    !image.src.includes('vercel.app');
-    
+  const isExternalUrl =
+    image.src.startsWith("http") &&
+    !image.src.includes("localhost") &&
+    !image.src.includes(".ufs.sh") && // Only allow .ufs.sh URLs to go through NextImage
+    !image.src.includes("vercel.app");
+
   if (isExternalUrl) {
     return (
       <NextImage
@@ -106,8 +118,8 @@ export function LaunchpadImage({ imageId, alt, className, width, height }: Launc
         className={className}
         width={width || 100}
         height={height || 100}
-        unoptimized={true}  // Skip optimization for external URLs
-        style={{ objectFit: 'contain' }}
+        unoptimized={true} // Skip optimization for external URLs
+        style={{ objectFit: "contain" }}
       />
     );
   }
@@ -126,7 +138,7 @@ export function LaunchpadImage({ imageId, alt, className, width, height }: Launc
 
 /**
  * Usage Examples:
- * 
+ *
  * <LaunchpadImage imageId="launchpad-main-color" width={200} height={80} />
  * <LaunchpadImage imageId="mainColor" width="100%" height="auto" className="my-4" />
  * <LaunchpadImage imageId="building21" width={150} height={75} alt="Building 21 Organization" />

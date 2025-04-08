@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 /**
  * Renders a pulsing skeleton placeholder for loading states.
@@ -18,5 +18,5 @@ export function Skeleton({
       className={cn("animate-pulse rounded-md bg-gray-200", className)}
       {...props}
     />
-  )
-} 
+  );
+}

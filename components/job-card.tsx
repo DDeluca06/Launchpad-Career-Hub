@@ -1,11 +1,22 @@
-"use client"
+"use client";
 
-import { Badge } from "@/components/ui/basic/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/basic/card"
-import { MapPin, DollarSign, Calendar } from "lucide-react"
-import { Button } from "@/components/ui/basic/button"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/basic/avatar"
-import { formatDistanceToNow } from "date-fns"
+import { Badge } from "@/components/ui/basic/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/basic/card";
+import { MapPin, DollarSign, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/basic/button";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/basic/avatar";
+import { formatDistanceToNow } from "date-fns";
 
 interface Job {
   id: string;
@@ -36,7 +47,7 @@ interface JobCardProps {
 
 export function JobCard({ job, onSelect }: JobCardProps) {
   return (
-    <Card 
+    <Card
       className="hover:shadow-md transition-shadow duration-200 dark:border-gray-700 dark:bg-gray-800"
       onClick={() => onSelect(job)}
     >
@@ -50,8 +61,8 @@ export function JobCard({ job, onSelect }: JobCardProps) {
               {job.company}
             </CardDescription>
           </div>
-          <Badge 
-            variant={job.status === 'applied' ? 'default' : 'outline'} 
+          <Badge
+            variant={job.status === "applied" ? "default" : "outline"}
             className="ml-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
           >
             {job.status}
@@ -70,7 +81,10 @@ export function JobCard({ job, onSelect }: JobCardProps) {
           </div>
           <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
             <Calendar className="h-4 w-4 mr-2" />
-            Applied {formatDistanceToNow(new Date(job.appliedDate), { addSuffix: true })}
+            Applied{" "}
+            {formatDistanceToNow(new Date(job.appliedDate), {
+              addSuffix: true,
+            })}
           </div>
         </div>
       </CardContent>
@@ -81,13 +95,17 @@ export function JobCard({ job, onSelect }: JobCardProps) {
             <AvatarFallback>{job.company.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{job.recruiter}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Recruiter</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {job.recruiter}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Recruiter
+            </p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
           onClick={(e) => {
             e.stopPropagation();

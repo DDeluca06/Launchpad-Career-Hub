@@ -42,7 +42,7 @@ export function LaunchpadImage({
       />
     );
   }
-  
+
   // Case 2: Using direct src
   if (src) {
     return (
@@ -62,7 +62,7 @@ export function LaunchpadImage({
       />
     );
   }
-  
+
   // Fallback case: No valid source, show fallback
   return (
     <Image

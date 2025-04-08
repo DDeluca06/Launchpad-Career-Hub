@@ -1,11 +1,22 @@
 "use client";
 
 import React from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/basic/card"
-import { Button } from "@/components/ui/basic/button"
-import { Badge } from "@/components/ui/basic/badge"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/basic/avatar"
-import { MapPin, DollarSign } from "lucide-react"
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/basic/card";
+import { Button } from "@/components/ui/basic/button";
+import { Badge } from "@/components/ui/basic/badge";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/basic/avatar";
+import { MapPin, DollarSign } from "lucide-react";
 
 interface KanbanJob {
   id: string;
@@ -40,18 +51,18 @@ interface KanbanBoardProps {
  */
 export function KanbanBoard({ jobs, onJobUpdate }: KanbanBoardProps) {
   const columns = {
-    interested: jobs.filter(job => job.status === 'interested'),
-    applied: jobs.filter(job => job.status === 'applied'),
-    interview: jobs.filter(job => job.status === 'interview'),
-    offer: jobs.filter(job => job.status === 'offer'),
-    rejected: jobs.filter(job => job.status === 'rejected')
-  }
+    interested: jobs.filter((job) => job.status === "interested"),
+    applied: jobs.filter((job) => job.status === "applied"),
+    interview: jobs.filter((job) => job.status === "interview"),
+    offer: jobs.filter((job) => job.status === "offer"),
+    rejected: jobs.filter((job) => job.status === "rejected"),
+  };
 
   return (
     <div className="flex gap-4 overflow-x-auto p-4">
       {Object.entries(columns).map(([status, jobs]) => (
-        <div 
-          key={status} 
+        <div
+          key={status}
           className="flex flex-col w-80 min-w-[20rem] bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm"
         >
           <div className="p-4 border-b dark:border-gray-700">
@@ -59,13 +70,13 @@ export function KanbanBoard({ jobs, onJobUpdate }: KanbanBoardProps) {
               {status}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {jobs.length} {jobs.length === 1 ? 'job' : 'jobs'}
+              {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
             </p>
           </div>
           <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-            {jobs.map(job => (
-              <Card 
-                key={job.id} 
+            {jobs.map((job) => (
+              <Card
+                key={job.id}
                 className="hover:shadow-md transition-shadow duration-200 dark:border-gray-700 dark:bg-gray-800"
               >
                 <CardHeader className="p-4">
@@ -78,8 +89,8 @@ export function KanbanBoard({ jobs, onJobUpdate }: KanbanBoardProps) {
                         {job.company}
                       </CardDescription>
                     </div>
-                    <Badge 
-                      variant={status === 'applied' ? 'default' : 'outline'} 
+                    <Badge
+                      variant={status === "applied" ? "default" : "outline"}
                       className="ml-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
                     >
                       {status}
@@ -105,15 +116,19 @@ export function KanbanBoard({ jobs, onJobUpdate }: KanbanBoardProps) {
                       <AvatarFallback>{job.company.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{job.recruiter}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Recruiter</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {job.recruiter}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Recruiter
+                      </p>
                     </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-                    onClick={() => onJobUpdate(job.id, { status: 'viewed' })}
+                    onClick={() => onJobUpdate(job.id, { status: "viewed" })}
                   >
                     View Details
                   </Button>
@@ -124,5 +139,5 @@ export function KanbanBoard({ jobs, onJobUpdate }: KanbanBoardProps) {
         </div>
       ))}
     </div>
-  )
+  );
 }

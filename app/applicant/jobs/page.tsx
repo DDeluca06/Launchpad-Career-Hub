@@ -1,15 +1,22 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent } from "@/components/ui/basic/card"
-import { Button } from "@/components/ui/basic/button"
-import { Input } from "@/components/ui/form/input"
-import { Badge } from "@/components/ui/basic/badge"
-import { Search, Filter, MapPin, Clock, DollarSign, CheckCircle2 } from "lucide-react"
-import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal"
-import { cn } from "@/lib/utils"
-import { JobFilters } from "@/components/job-filters"
+import { useState } from "react";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { Card, CardContent } from "@/components/ui/basic/card";
+import { Button } from "@/components/ui/basic/button";
+import { Input } from "@/components/ui/form/input";
+import { Badge } from "@/components/ui/basic/badge";
+import {
+  Search,
+  Filter,
+  MapPin,
+  Clock,
+  DollarSign,
+  CheckCircle2,
+} from "lucide-react";
+import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
+import { cn } from "@/lib/utils";
+import { JobFilters } from "@/components/job-filters";
 
 interface Job {
   id: string;
@@ -33,103 +40,109 @@ interface JobFilters {
 }
 
 const jobs: Job[] = [
-  { 
-    id: "1", 
-    title: "Frontend Developer", 
-    company: "Tech Co", 
-    location: "Remote", 
+  {
+    id: "1",
+    title: "Frontend Developer",
+    company: "Tech Co",
+    location: "Remote",
     type: "Full-time",
-    description: "We are looking for a skilled Frontend Developer to join our team. You will be responsible for building user interfaces and implementing designs.",
+    description:
+      "We are looking for a skilled Frontend Developer to join our team. You will be responsible for building user interfaces and implementing designs.",
     requirements: [
       "3+ years of experience with React",
       "Strong knowledge of HTML, CSS, and JavaScript",
       "Experience with responsive design",
-      "Familiarity with modern frontend tools"
+      "Familiarity with modern frontend tools",
     ],
     postedDate: "2 days ago",
-    salary: "$80k - $120k"
+    salary: "$80k - $120k",
   },
-  { 
-    id: "2", 
-    title: "Backend Engineer", 
-    company: "Software Inc", 
-    location: "New York", 
+  {
+    id: "2",
+    title: "Backend Engineer",
+    company: "Software Inc",
+    location: "New York",
     type: "Full-time",
-    description: "Join our engineering team to build scalable backend systems for our growing platform.",
+    description:
+      "Join our engineering team to build scalable backend systems for our growing platform.",
     requirements: [
       "Experience with Node.js or Python",
       "Knowledge of database systems",
       "Experience with API design",
-      "Understanding of cloud infrastructure"
+      "Understanding of cloud infrastructure",
     ],
     postedDate: "1 week ago",
-    salary: "$90k - $130k"
+    salary: "$90k - $130k",
   },
-  { 
-    id: "3", 
-    title: "Full Stack Developer", 
-    company: "Web Solutions", 
-    location: "San Francisco", 
+  {
+    id: "3",
+    title: "Full Stack Developer",
+    company: "Web Solutions",
+    location: "San Francisco",
     type: "Contract",
-    description: "Looking for a versatile developer who can work on both frontend and backend technologies.",
+    description:
+      "Looking for a versatile developer who can work on both frontend and backend technologies.",
     requirements: [
       "Experience with modern JavaScript frameworks",
       "Knowledge of backend technologies",
       "Database experience",
-      "Good communication skills"
+      "Good communication skills",
     ],
     postedDate: "3 days ago",
-    salary: "$100k - $140k"
+    salary: "$100k - $140k",
   },
-  { 
-    id: "4", 
-    title: "UI/UX Designer", 
-    company: "Design Studio", 
-    location: "Remote", 
+  {
+    id: "4",
+    title: "UI/UX Designer",
+    company: "Design Studio",
+    location: "Remote",
     type: "Part-time",
-    description: "Join our creative team to design beautiful and functional user interfaces.",
+    description:
+      "Join our creative team to design beautiful and functional user interfaces.",
     requirements: [
       "Portfolio of design work",
       "Experience with Figma or similar tools",
       "Understanding of user-centered design",
-      "Ability to collaborate with developers"
+      "Ability to collaborate with developers",
     ],
     postedDate: "5 days ago",
-    salary: "$70k - $90k"
+    salary: "$70k - $90k",
   },
-  { 
-    id: "5", 
-    title: "DevOps Engineer", 
-    company: "Cloud Systems", 
-    location: "Seattle", 
+  {
+    id: "5",
+    title: "DevOps Engineer",
+    company: "Cloud Systems",
+    location: "Seattle",
     type: "Full-time",
-    description: "Help us build and maintain our cloud infrastructure and deployment pipelines.",
+    description:
+      "Help us build and maintain our cloud infrastructure and deployment pipelines.",
     requirements: [
       "Experience with AWS or Azure",
       "Knowledge of CI/CD practices",
       "Containerization experience",
-      "Infrastructure as code"
+      "Infrastructure as code",
     ],
     postedDate: "2 weeks ago",
-    salary: "$95k - $135k"
+    salary: "$95k - $135k",
   },
-  { 
-    id: "6", 
-    title: "Product Manager", 
-    company: "Product Co", 
-    location: "Boston", 
+  {
+    id: "6",
+    title: "Product Manager",
+    company: "Product Co",
+    location: "Boston",
     type: "Full-time",
-    description: "Lead product strategy and development for our growing suite of applications.",
+    description:
+      "Lead product strategy and development for our growing suite of applications.",
     requirements: [
       "3+ years in product management",
       "Experience with agile methodologies",
       "Strong analytical skills",
-      "Excellent communication"
+      "Excellent communication",
     ],
     postedDate: "1 month ago",
-    salary: "$110k - $150k"
+    salary: "$110k - $150k",
   },
-]
+];
 
 /**
  * Renders an interactive job listings interface for applicants.
@@ -154,7 +167,7 @@ export default function ApplicantJobListings() {
     remoteOnly: false,
     salary: [0, 200] as [number, number],
     experienceLevel: "any",
-    keywords: ""
+    keywords: "",
   });
   const [applicationModalOpen, setApplicationModalOpen] = useState(false);
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
@@ -167,7 +180,7 @@ export default function ApplicantJobListings() {
   // Handle applying filters
   const handleApplyFilters = (filters: JobFilters) => {
     // For development only
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       // console.log('Applying filters:', filters);
     }
     setActiveFilters(filters);
@@ -183,7 +196,7 @@ export default function ApplicantJobListings() {
   const handleJobSelect = (job: Job) => {
     setSelectedJob(job);
   };
-  
+
   // Function to open application modal
   const openApplicationModal = () => {
     setApplicationModalOpen(true);
@@ -193,7 +206,7 @@ export default function ApplicantJobListings() {
   // Function to handle application submission
   const handleApplicationSubmit = () => {
     // For development only
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       // console.log("Application submitted:", { name, email, phone, coverLetter });
     }
     // Here you would typically send the data to your backend
@@ -202,56 +215,63 @@ export default function ApplicantJobListings() {
   };
 
   // Filter jobs by search query and active filters
-  const filteredJobs = jobs.filter(job => {
+  const filteredJobs = jobs.filter((job) => {
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      const matchesQuery = 
+      const matchesQuery =
         job.title.toLowerCase().includes(query) ||
         job.company.toLowerCase().includes(query) ||
         job.location?.toLowerCase().includes(query) ||
         job.type?.toLowerCase().includes(query) ||
         job.description?.toLowerCase().includes(query);
-      
+
       if (!matchesQuery) return false;
     }
-    
+
     // Filter by job type
     if (activeFilters.jobTypes.length > 0) {
-      const jobType = job.type?.toLowerCase().replace('-', '_');
-      if (!jobType || !activeFilters.jobTypes.some(type => jobType.includes(type))) {
+      const jobType = job.type?.toLowerCase().replace("-", "_");
+      if (
+        !jobType ||
+        !activeFilters.jobTypes.some((type) => jobType.includes(type))
+      ) {
         return false;
       }
     }
-    
+
     // Filter by location
     if (activeFilters.locations.length > 0) {
       const jobLocation = job.location?.toLowerCase();
-      
+
       // Handle remote only filter
-      if (activeFilters.remoteOnly && !jobLocation?.includes('remote')) {
+      if (activeFilters.remoteOnly && !jobLocation?.includes("remote")) {
         return false;
       }
-      
+
       // If locations are selected and not remote only, check if job location matches any selected locations
-      if (!activeFilters.remoteOnly && !activeFilters.locations.some(location => 
-          jobLocation?.includes(location.replace('_', ' ')))) {
+      if (
+        !activeFilters.remoteOnly &&
+        !activeFilters.locations.some((location) =>
+          jobLocation?.includes(location.replace("_", " ")),
+        )
+      ) {
         return false;
       }
     } else if (activeFilters.remoteOnly) {
       // If only remote is selected
       const jobLocation = job.location?.toLowerCase();
-      if (!jobLocation?.includes('remote')) {
+      if (!jobLocation?.includes("remote")) {
         return false;
       }
     }
-    
+
     return true;
   });
 
   // Handle loading more jobs
   const handleLoadMore = () => {
-    setVisibleJobCount(prev => prev + 3); // Increase the number of visible jobs
+    setVisibleJobCount((prev) => prev + 3); // Increase the number of visible jobs
   };
 
   return (
@@ -259,17 +279,21 @@ export default function ApplicantJobListings() {
       <div className="container py-6 px-4 mx-auto">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-foreground/90">Job Listings</h1>
-            <p className="text-muted-foreground/80 mt-1">Browse and apply for available positions</p>
+            <h1 className="text-2xl font-bold text-foreground/90">
+              Job Listings
+            </h1>
+            <p className="text-muted-foreground/80 mt-1">
+              Browse and apply for available positions
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="flex items-center gap-1 shadow-sm hover:shadow-md transition-shadow"
               onClick={openFilterModal}
             >
-              <Filter className="h-4 w-4" /> 
+              <Filter className="h-4 w-4" />
               Filter Jobs
             </Button>
           </div>
@@ -290,25 +314,31 @@ export default function ApplicantJobListings() {
 
             <div className="space-y-4">
               {filteredJobs.slice(0, visibleJobCount).map((job) => (
-                <Card 
-                  key={job.id} 
+                <Card
+                  key={job.id}
                   className={cn(
                     "cursor-pointer transition-all hover:shadow-md",
-                    selectedJob?.id === job.id ? "border-primary shadow-md" : "border-border/50"
+                    selectedJob?.id === job.id
+                      ? "border-primary shadow-md"
+                      : "border-border/50",
                   )}
                   onClick={() => handleJobSelect(job)}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="text-lg font-semibold text-foreground/90">{job.title}</h3>
-                        <p className="text-muted-foreground/80 mt-1">{job.company}</p>
+                        <h3 className="text-lg font-semibold text-foreground/90">
+                          {job.title}
+                        </h3>
+                        <p className="text-muted-foreground/80 mt-1">
+                          {job.company}
+                        </p>
                       </div>
                       <Badge variant="outline" className="text-xs shadow-sm">
                         {job.type}
                       </Badge>
                     </div>
-                    
+
                     <div className="mt-4 flex flex-wrap gap-2">
                       <div className="flex items-center text-sm text-muted-foreground/80">
                         <MapPin className="h-4 w-4 mr-1" />
@@ -330,8 +360,8 @@ export default function ApplicantJobListings() {
 
             {visibleJobCount < filteredJobs.length && (
               <div className="flex justify-center mt-6">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={handleLoadMore}
                   className="shadow-sm hover:shadow-md transition-shadow"
                 >
@@ -348,8 +378,12 @@ export default function ApplicantJobListings() {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h2 className="text-xl font-bold text-foreground/90">{selectedJob.title}</h2>
-                      <p className="text-muted-foreground/80 mt-1">{selectedJob.company}</p>
+                      <h2 className="text-xl font-bold text-foreground/90">
+                        {selectedJob.title}
+                      </h2>
+                      <p className="text-muted-foreground/80 mt-1">
+                        {selectedJob.company}
+                      </p>
                     </div>
                     <Badge variant="outline" className="text-xs shadow-sm">
                       {selectedJob.type}
@@ -358,15 +392,24 @@ export default function ApplicantJobListings() {
 
                   <div className="mt-6 space-y-4">
                     <div>
-                      <h3 className="text-sm font-medium text-foreground/90">Description</h3>
-                      <p className="text-muted-foreground/80 mt-2">{selectedJob.description}</p>
+                      <h3 className="text-sm font-medium text-foreground/90">
+                        Description
+                      </h3>
+                      <p className="text-muted-foreground/80 mt-2">
+                        {selectedJob.description}
+                      </p>
                     </div>
 
                     <div>
-                      <h3 className="text-sm font-medium text-foreground/90">Requirements</h3>
+                      <h3 className="text-sm font-medium text-foreground/90">
+                        Requirements
+                      </h3>
                       <ul className="mt-2 space-y-2">
                         {selectedJob.requirements.map((req, index) => (
-                          <li key={index} className="flex items-start text-muted-foreground/80">
+                          <li
+                            key={index}
+                            className="flex items-start text-muted-foreground/80"
+                          >
                             <CheckCircle2 className="h-4 w-4 mt-1 mr-2 text-primary" />
                             {req}
                           </li>
@@ -375,7 +418,7 @@ export default function ApplicantJobListings() {
                     </div>
 
                     <div className="pt-4">
-                      <Button 
+                      <Button
                         className="w-full shadow-sm hover:shadow-md transition-shadow"
                         onClick={openApplicationModal}
                       >
@@ -388,14 +431,16 @@ export default function ApplicantJobListings() {
             ) : (
               <Card className="sticky top-6 border-border/50 shadow-lg">
                 <CardContent className="p-6">
-                  <p className="text-muted-foreground/80 text-center">Select a job to view details</p>
+                  <p className="text-muted-foreground/80 text-center">
+                    Select a job to view details
+                  </p>
                 </CardContent>
               </Card>
             )}
           </div>
         </div>
       </div>
-      
+
       {/* Filter Modal */}
       <MultiPurposeModal
         open={filterModalOpen}
@@ -421,10 +466,16 @@ export default function ApplicantJobListings() {
       <MultiPurposeModal
         open={applicationModalOpen}
         onOpenChange={setApplicationModalOpen}
-        title={applicationSubmitted ? "Application Submitted!" : "Apply for " + selectedJob?.title}
-        description={applicationSubmitted 
-          ? "Thank you for your interest in this position." 
-          : "Complete the form below to apply for this position"}
+        title={
+          applicationSubmitted
+            ? "Application Submitted!"
+            : "Apply for " + selectedJob?.title
+        }
+        description={
+          applicationSubmitted
+            ? "Thank you for your interest in this position."
+            : "Complete the form below to apply for this position"
+        }
         size="lg"
         showFooter={false}
       >
@@ -433,14 +484,17 @@ export default function ApplicantJobListings() {
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">Application Successfully Submitted!</h3>
+            <h3 className="text-xl font-medium text-gray-900 mb-2">
+              Application Successfully Submitted!
+            </h3>
             <p className="text-gray-600 mb-6">
-              Your application for {selectedJob?.title} at {selectedJob?.company} has been received.
-              We&apos;ll notify you when there&apos;s an update.
+              Your application for {selectedJob?.title} at{" "}
+              {selectedJob?.company} has been received. We&apos;ll notify you
+              when there&apos;s an update.
             </p>
             <div className="flex gap-3 justify-center">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setApplicationModalOpen(false)}
               >
                 Close
@@ -458,38 +512,72 @@ export default function ApplicantJobListings() {
           </div>
         ) : (
           <div>
-            <h3 className="text-lg font-medium mb-3 text-gray-900">Application Form</h3>
-            <p className="text-gray-700">Please fill out the form below to apply for this position.</p>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              handleApplicationSubmit();
-            }}>
+            <h3 className="text-lg font-medium mb-3 text-gray-900">
+              Application Form
+            </h3>
+            <p className="text-gray-700">
+              Please fill out the form below to apply for this position.
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleApplicationSubmit();
+              }}
+            >
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
-                  <Input type="text" className="block w-full border-gray-200 focus:border-launchpad-blue" value={name} onChange={(e) => setName(e.target.value)} />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Name
+                  </label>
+                  <Input
+                    type="text"
+                    className="block w-full border-gray-200 focus:border-launchpad-blue"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <Input type="email" className="block w-full border-gray-200 focus:border-launchpad-blue" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <Input
+                    type="email"
+                    className="block w-full border-gray-200 focus:border-launchpad-blue"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                  <Input type="tel" className="block w-full border-gray-200 focus:border-launchpad-blue" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number
+                  </label>
+                  <Input
+                    type="tel"
+                    className="block w-full border-gray-200 focus:border-launchpad-blue"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Cover Letter</label>
-                  <textarea className="block w-full border-gray-200 focus:border-launchpad-blue" rows={5} value={coverLetter} onChange={(e) => setCoverLetter(e.target.value)}></textarea>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cover Letter
+                  </label>
+                  <textarea
+                    className="block w-full border-gray-200 focus:border-launchpad-blue"
+                    rows={5}
+                    value={coverLetter}
+                    onChange={(e) => setCoverLetter(e.target.value)}
+                  ></textarea>
                 </div>
               </div>
               <div className="flex gap-3 justify-end mt-6">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setApplicationModalOpen(false)}
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   className="bg-launchpad-blue hover:bg-launchpad-teal"
                   type="submit"
                 >
@@ -501,5 +589,5 @@ export default function ApplicantJobListings() {
         )}
       </MultiPurposeModal>
     </DashboardLayout>
-  )
+  );
 }

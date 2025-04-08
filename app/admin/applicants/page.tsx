@@ -1,20 +1,47 @@
-'use client'
+"use client";
 
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card"
-import { Button } from "@/components/ui/basic/button"
-import { Input } from "@/components/ui/form/input"
-import { applicationService, userService } from "@/lib/local-storage"
-import { useEffect, useState } from "react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
-import { Badge } from "@/components/ui/basic/badge"
-import { Search, Filter, Download, Users, Mail, User, Clock, FileText, Upload, UserPlus, FileSpreadsheet } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs"
-import { extendedPalette } from "@/lib/colors"
-import { Skeleton } from "@/components/ui/feedback/skeleton"
-import { cn } from "@/lib/utils"
-import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal"
-import { Label } from "@/components/ui/basic/label"
+import { DashboardLayout } from "@/components/dashboard-layout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/basic/card";
+import { Button } from "@/components/ui/basic/button";
+import { Input } from "@/components/ui/form/input";
+import { applicationService, userService } from "@/lib/local-storage";
+import { useEffect, useState } from "react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/basic/avatar";
+import { Badge } from "@/components/ui/basic/badge";
+import {
+  Search,
+  Filter,
+  Download,
+  Users,
+  Mail,
+  User,
+  Clock,
+  FileText,
+  Upload,
+  UserPlus,
+  FileSpreadsheet,
+} from "lucide-react";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/navigation/tabs";
+import { extendedPalette } from "@/lib/colors";
+import { Skeleton } from "@/components/ui/feedback/skeleton";
+import { cn } from "@/lib/utils";
+import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
+import { Label } from "@/components/ui/basic/label";
 
 // Define User interface to match actual structure
 interface User {
@@ -47,11 +74,11 @@ interface ApplicantWithDetails {
 }
 
 interface StatCardProps {
-  title: string
-  value: number | string
-  icon: React.ReactNode
-  isLoading: boolean
-  className?: string
+  title: string;
+  value: number | string;
+  icon: React.ReactNode;
+  isLoading: boolean;
+  className?: string;
 }
 
 /**
@@ -78,13 +105,11 @@ function StatCard({ title, value, icon, isLoading, className }: StatCardProps) {
               <p className="text-2xl font-bold mt-1">{value}</p>
             )}
           </div>
-          <div className="rounded-full p-3 bg-gray-50">
-            {icon}
-          </div>
+          <div className="rounded-full p-3 bg-gray-50">{icon}</div>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 /**
@@ -99,186 +124,219 @@ function StatCard({ title, value, icon, isLoading, className }: StatCardProps) {
  * @returns The applicant management page rendered as JSX.
  */
 export default function ApplicantsPage() {
-  const [applicants, setApplicants] = useState<ApplicantWithDetails[]>([])
-  const [filteredApplicants, setFilteredApplicants] = useState<ApplicantWithDetails[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState('all')
+  const [applicants, setApplicants] = useState<ApplicantWithDetails[]>([]);
+  const [filteredApplicants, setFilteredApplicants] = useState<
+    ApplicantWithDetails[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
     interview: 0,
-    placed: 0
-  })
-  const [createUserModalOpen, setCreateUserModalOpen] = useState(false)
-  const [bulkUploadModalOpen, setBulkUploadModalOpen] = useState(false)
+    placed: 0,
+  });
+  const [createUserModalOpen, setCreateUserModalOpen] = useState(false);
+  const [bulkUploadModalOpen, setBulkUploadModalOpen] = useState(false);
   const [newUser, setNewUser] = useState({
-    username: '',
-    name: '',
-    email: '',
-    password: '',
-    role: 'applicant',
+    username: "",
+    name: "",
+    email: "",
+    password: "",
+    role: "applicant",
     isAdmin: false,
-    program: ''
-  })
-  const [csvFile, setCsvFile] = useState<File | null>(null)
+    program: "",
+  });
+  const [csvFile, setCsvFile] = useState<File | null>(null);
 
   // Define loadApplicants as a component function
   const loadApplicants = async () => {
     try {
-      const users = await userService.getAll() as unknown as User[];
-      const applications = await applicationService.getAll() as unknown as Application[];
+      const users = (await userService.getAll()) as unknown as User[];
+      const applications =
+        (await applicationService.getAll()) as unknown as Application[];
 
       // Create mock statuses for demo purposes
-      const statuses = ['active', 'interview', 'placed', 'inactive'];
-      
+      const statuses = ["active", "interview", "placed", "inactive"];
+
       // For demo purposes, assume user structure and create mock data
       const applicantDetails = users
-        .filter(user => user.role === 'applicant')
-        .map(user => {
-          const userApplications = applications.filter(app => app.user_id === user.user_id);
+        .filter((user) => user.role === "applicant")
+        .map((user) => {
+          const userApplications = applications.filter(
+            (app) => app.user_id === user.user_id,
+          );
           // Randomly assign a status for demo purposes
-          const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-          
+          const randomStatus =
+            statuses[Math.floor(Math.random() * statuses.length)];
+
           return {
             id: user.user_id,
-            name: user.username || 'Student', // Fallback if name not available
+            name: user.username || "Student", // Fallback if name not available
             email: user.email || `${user.username}@example.com`, // Fallback if email not available
             role: user.role,
             applications: userApplications.length,
             status: randomStatus,
-            createdAt: user.created_at || new Date().toISOString()
+            createdAt: user.created_at || new Date().toISOString(),
           } as ApplicantWithDetails;
         });
 
       // Calculate stats
       const statsData = {
         total: applicantDetails.length,
-        active: applicantDetails.filter(a => a.status === 'active').length,
-        interview: applicantDetails.filter(a => a.status === 'interview').length,
-        placed: applicantDetails.filter(a => a.status === 'placed').length
-      }
+        active: applicantDetails.filter((a) => a.status === "active").length,
+        interview: applicantDetails.filter((a) => a.status === "interview")
+          .length,
+        placed: applicantDetails.filter((a) => a.status === "placed").length,
+      };
 
-      setApplicants(applicantDetails)
-      setFilteredApplicants(applicantDetails)
-      setStats(statsData)
+      setApplicants(applicantDetails);
+      setFilteredApplicants(applicantDetails);
+      setStats(statsData);
     } catch (error) {
-      console.error('Error loading applicants:', error)
+      console.error("Error loading applicants:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    loadApplicants()
-  }, [])
+    loadApplicants();
+  }, []);
 
   // Filter applicants based on search query and active tab
   useEffect(() => {
-    let result = [...applicants]
-    
+    let result = [...applicants];
+
     // Apply search filter
     if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      result = result.filter(applicant => 
-        applicant.name.toLowerCase().includes(query) ||
-        applicant.email.toLowerCase().includes(query)
-      )
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (applicant) =>
+          applicant.name.toLowerCase().includes(query) ||
+          applicant.email.toLowerCase().includes(query),
+      );
     }
-    
+
     // Apply tab filter
-    if (activeTab !== 'all') {
-      result = result.filter(applicant => applicant.status === activeTab)
+    if (activeTab !== "all") {
+      result = result.filter((applicant) => applicant.status === activeTab);
     }
-    
-    setFilteredApplicants(result)
-  }, [searchQuery, activeTab, applicants])
+
+    setFilteredApplicants(result);
+  }, [searchQuery, activeTab, applicants]);
 
   function getStatusBadge(status: string) {
     switch (status) {
-      case 'active':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Active</Badge>
-      case 'interview':
-        return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">In Interview</Badge>
-      case 'placed':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Placed</Badge>
-      case 'inactive':
-        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Inactive</Badge>
+      case "active":
+        return (
+          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+            Active
+          </Badge>
+        );
+      case "interview":
+        return (
+          <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">
+            In Interview
+          </Badge>
+        );
+      case "placed":
+        return (
+          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+            Placed
+          </Badge>
+        );
+      case "inactive":
+        return (
+          <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
+            Inactive
+          </Badge>
+        );
       default:
-        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">{status}</Badge>
+        return (
+          <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
+            {status}
+          </Badge>
+        );
     }
   }
 
   // Update the handler
   const handleCreateUser = async () => {
-    if (!newUser.username || !newUser.email || !newUser.password) return
-    
+    if (!newUser.username || !newUser.email || !newUser.password) return;
+
     try {
       // In a real app, this would call your API
-      const userId = Date.now() // Mock ID generation
+      const userId = Date.now(); // Mock ID generation
       const newUserData = {
         ...newUser,
         user_id: userId,
         created_at: new Date().toISOString(),
-        status: 'active' // Add required status property
-      }
-      
-      await userService.create(newUserData)
-      setCreateUserModalOpen(false)
+        status: "active", // Add required status property
+      };
+
+      await userService.create(newUserData);
+      setCreateUserModalOpen(false);
       setNewUser({
-        username: '',
-        name: '',
-        email: '',
-        password: '',
-        role: 'applicant',
+        username: "",
+        name: "",
+        email: "",
+        password: "",
+        role: "applicant",
         isAdmin: false,
-        program: ''
-      })
-      
+        program: "",
+      });
+
       // Reload applicants
-      await loadApplicants()
+      await loadApplicants();
     } catch (error) {
-      console.error('Error creating user:', error)
+      console.error("Error creating user:", error);
     }
-  }
+  };
 
   // Handle CSV file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setCsvFile(e.target.files[0])
+      setCsvFile(e.target.files[0]);
     }
-  }
+  };
 
   const handleBulkUpload = async () => {
-    if (!csvFile) return
-    
+    if (!csvFile) return;
+
     try {
       // Mock implementation - in a real app this would process the CSV
       // and create multiple users
-      console.error('Processing CSV file:', csvFile.name)
-      
+      console.error("Processing CSV file:", csvFile.name);
+
       // Reset the file input and close modal
-      setCsvFile(null)
-      setBulkUploadModalOpen(false)
-      
+      setCsvFile(null);
+      setBulkUploadModalOpen(false);
+
       // Reload applicants
-      await loadApplicants()
+      await loadApplicants();
     } catch (error) {
-      console.error('Error processing CSV file:', error)
+      console.error("Error processing CSV file:", error);
     }
-  }
+  };
 
   return (
     <DashboardLayout isAdmin>
       <div className="container py-6 px-4 mx-auto">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: extendedPalette.primaryBlue }}>
+            <h1
+              className="text-2xl font-bold"
+              style={{ color: extendedPalette.primaryBlue }}
+            >
               Applicant Management
             </h1>
-            <p className="text-gray-500 mt-1">View and manage student applicants in Philadelphia tech programs</p>
+            <p className="text-gray-500 mt-1">
+              View and manage student applicants in Philadelphia tech programs
+            </p>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Button
               variant="default"
@@ -296,7 +354,11 @@ export default function ApplicantsPage() {
             >
               <FileSpreadsheet className="h-4 w-4" /> Bulk Upload
             </Button>
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
+            >
               <Download className="h-4 w-4" /> Export
             </Button>
           </div>
@@ -307,25 +369,45 @@ export default function ApplicantsPage() {
           <StatCard
             title="Total Applicants"
             value={stats.total}
-            icon={<Users className="h-5 w-5" style={{ color: extendedPalette.primaryBlue }} />}
+            icon={
+              <Users
+                className="h-5 w-5"
+                style={{ color: extendedPalette.primaryBlue }}
+              />
+            }
             isLoading={loading}
           />
           <StatCard
             title="Active Applicants"
             value={stats.active}
-            icon={<User className="h-5 w-5" style={{ color: extendedPalette.primaryGreen }} />}
+            icon={
+              <User
+                className="h-5 w-5"
+                style={{ color: extendedPalette.primaryGreen }}
+              />
+            }
             isLoading={loading}
           />
           <StatCard
             title="In Interview Process"
             value={stats.interview}
-            icon={<Clock className="h-5 w-5" style={{ color: extendedPalette.teal }} />}
+            icon={
+              <Clock
+                className="h-5 w-5"
+                style={{ color: extendedPalette.teal }}
+              />
+            }
             isLoading={loading}
           />
           <StatCard
             title="Successfully Placed"
             value={stats.placed}
-            icon={<FileText className="h-5 w-5" style={{ color: extendedPalette.primaryOrange }} />}
+            icon={
+              <FileText
+                className="h-5 w-5"
+                style={{ color: extendedPalette.primaryOrange }}
+              />
+            }
             isLoading={loading}
           />
         </div>
@@ -361,7 +443,7 @@ export default function ApplicantsPage() {
             <TabsTrigger value="interview">In Interview</TabsTrigger>
             <TabsTrigger value="placed">Placed</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value={activeTab}>
             <Card>
               <CardHeader>
@@ -369,7 +451,11 @@ export default function ApplicantsPage() {
                   <div>
                     <CardTitle className="text-lg">Applicant List</CardTitle>
                     <CardDescription>
-                      {filteredApplicants.length} {filteredApplicants.length === 1 ? 'applicant' : 'applicants'} found
+                      {filteredApplicants.length}{" "}
+                      {filteredApplicants.length === 1
+                        ? "applicant"
+                        : "applicants"}{" "}
+                      found
                     </CardDescription>
                   </div>
                 </div>
@@ -378,37 +464,59 @@ export default function ApplicantsPage() {
                 <div className="space-y-4">
                   {loading ? (
                     <div className="animate-pulse space-y-4">
-                      {[1, 2, 3, 4, 5].map(i => (
+                      {[1, 2, 3, 4, 5].map((i) => (
                         <div key={i} className="h-20 bg-gray-100 rounded-lg" />
                       ))}
                     </div>
                   ) : filteredApplicants.length > 0 ? (
-                    filteredApplicants.map(applicant => (
-                      <Card key={applicant.id} className="overflow-hidden hover:shadow-md transition-all cursor-pointer">
+                    filteredApplicants.map((applicant) => (
+                      <Card
+                        key={applicant.id}
+                        className="overflow-hidden hover:shadow-md transition-all cursor-pointer"
+                      >
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             <Avatar className="h-12 w-12">
-                              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${applicant.name}`} alt={applicant.name} />
-                              <AvatarFallback>{applicant.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                              <AvatarImage
+                                src={`https://api.dicebear.com/7.x/initials/svg?seed=${applicant.name}`}
+                                alt={applicant.name}
+                              />
+                              <AvatarFallback>
+                                {applicant.name.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
                             </Avatar>
-                            
+
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <h3 className="font-semibold">{applicant.name}</h3>
+                                <h3 className="font-semibold">
+                                  {applicant.name}
+                                </h3>
                                 {getStatusBadge(applicant.status)}
                               </div>
-                              <p className="text-sm text-gray-500">{applicant.email}</p>
+                              <p className="text-sm text-gray-500">
+                                {applicant.email}
+                              </p>
                               <div className="flex items-center gap-3 mt-1">
                                 <span className="text-xs text-gray-500">
-                                  {applicant.applications} {applicant.applications === 1 ? 'application' : 'applications'}
+                                  {applicant.applications}{" "}
+                                  {applicant.applications === 1
+                                    ? "application"
+                                    : "applications"}
                                 </span>
                                 <span className="text-xs text-gray-500">
-                                  Joined {new Date(applicant.createdAt).toLocaleDateString()}
+                                  Joined{" "}
+                                  {new Date(
+                                    applicant.createdAt,
+                                  ).toLocaleDateString()}
                                 </span>
                               </div>
                             </div>
-                            
-                            <Button variant="outline" size="sm" className="shrink-0">
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="shrink-0"
+                            >
                               View Profile
                             </Button>
                           </div>
@@ -418,9 +526,12 @@ export default function ApplicantsPage() {
                   ) : (
                     <div className="text-center py-12">
                       <Users className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                      <h3 className="text-lg font-medium mb-2">No Applicants Found</h3>
+                      <h3 className="text-lg font-medium mb-2">
+                        No Applicants Found
+                      </h3>
                       <p className="text-gray-500 max-w-md mx-auto">
-                        No applicants match your current search criteria. Try adjusting your filters or search terms.
+                        No applicants match your current search criteria. Try
+                        adjusting your filters or search terms.
                       </p>
                     </div>
                   )}
@@ -442,7 +553,9 @@ export default function ApplicantsPage() {
               <Input
                 id="username"
                 value={newUser.username}
-                onChange={(e) => setNewUser({...newUser, username: e.target.value})}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, username: e.target.value })
+                }
                 placeholder="Username"
                 className="w-full"
               />
@@ -452,7 +565,9 @@ export default function ApplicantsPage() {
               <Input
                 id="fullname"
                 value={newUser.name}
-                onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, name: e.target.value })
+                }
                 placeholder="Full Name"
                 className="w-full"
               />
@@ -462,7 +577,9 @@ export default function ApplicantsPage() {
               <Input
                 id="email"
                 value={newUser.email}
-                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, email: e.target.value })
+                }
                 placeholder="Email"
                 className="w-full"
                 type="email"
@@ -473,7 +590,9 @@ export default function ApplicantsPage() {
               <Input
                 id="password"
                 value={newUser.password}
-                onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, password: e.target.value })
+                }
                 placeholder="Password"
                 className="w-full"
                 type="password"
@@ -484,15 +603,17 @@ export default function ApplicantsPage() {
               <Input
                 id="program"
                 value={newUser.program}
-                onChange={(e) => setNewUser({...newUser, program: e.target.value})}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, program: e.target.value })
+                }
                 placeholder="Program (optional)"
                 className="w-full"
               />
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setCreateUserModalOpen(false)}
             >
               Cancel
@@ -509,7 +630,8 @@ export default function ApplicantsPage() {
         >
           <div className="mb-4">
             <p className="text-sm text-gray-600 mb-2">
-              Upload a CSV file with user data. The file should include columns for username, name, email, password, and program.
+              Upload a CSV file with user data. The file should include columns
+              for username, name, email, password, and program.
             </p>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
               <input
@@ -519,36 +641,30 @@ export default function ApplicantsPage() {
                 className="hidden"
                 id="csv-upload"
               />
-              <label 
-                htmlFor="csv-upload" 
-                className="cursor-pointer block"
-              >
+              <label htmlFor="csv-upload" className="cursor-pointer block">
                 <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                 <span className="text-sm font-medium">
-                  {csvFile ? csvFile.name : 'Click to upload CSV file'}
+                  {csvFile ? csvFile.name : "Click to upload CSV file"}
                 </span>
               </label>
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
-                setCsvFile(null)
-                setBulkUploadModalOpen(false)
+                setCsvFile(null);
+                setBulkUploadModalOpen(false);
               }}
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleBulkUpload}
-              disabled={!csvFile}
-            >
+            <Button onClick={handleBulkUpload} disabled={!csvFile}>
               Upload and Process
             </Button>
           </div>
         </MultiPurposeModal>
       </div>
     </DashboardLayout>
-  )
+  );
 }

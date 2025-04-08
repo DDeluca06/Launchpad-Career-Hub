@@ -1,31 +1,56 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { Button } from "@/components/ui/basic/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic/card"
-import dynamic from 'next/dynamic'
-import { Input } from "@/components/ui/form/input"
-import { Search, Filter, Calendar, Briefcase, PlusCircle, TrendingUp, Flag, Users } from "lucide-react"
-import { extendedPalette } from "@/lib/colors"
-import { Badge } from "@/components/ui/basic/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs"
-import { cn } from "@/lib/utils"
-import { LaunchpadImage } from "@/components/launchpad-image"
+import { useState, useRef, useEffect } from "react";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { Button } from "@/components/ui/basic/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/basic/card";
+import dynamic from "next/dynamic";
+import { Input } from "@/components/ui/form/input";
+import {
+  Search,
+  Filter,
+  Calendar,
+  Briefcase,
+  PlusCircle,
+  TrendingUp,
+  Flag,
+  Users,
+} from "lucide-react";
+import { extendedPalette } from "@/lib/colors";
+import { Badge } from "@/components/ui/basic/badge";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/navigation/tabs";
+import { cn } from "@/lib/utils";
+import { LaunchpadImage } from "@/components/launchpad-image";
 
 // Correctly type the dynamic imports
-const MotionDiv = dynamic(() => 
-  import('framer-motion').then(mod => mod.motion.div), 
-  { ssr: false }
+const MotionDiv = dynamic(
+  () => import("framer-motion").then((mod) => mod.motion.div),
+  { ssr: false },
 );
 
-const AnimatePresence = dynamic(() => 
-  import('framer-motion').then(mod => mod.AnimatePresence), 
-  { ssr: false }
+const AnimatePresence = dynamic(
+  () => import("framer-motion").then((mod) => mod.AnimatePresence),
+  { ssr: false },
 );
 
 // Define job status types based on schema
-type JobStatus = "interested" | "applied" | "interview" | "rejected" | "offer" | "accepted";
+type JobStatus =
+  | "interested"
+  | "applied"
+  | "interview"
+  | "rejected"
+  | "offer"
+  | "accepted";
 
 // Define job interface that combines backend schema with UI needs
 interface JobApplication {
@@ -50,7 +75,7 @@ interface JobApplication {
 
 // Sample data - this would come from the database soon
 const initialApplications: JobApplication[] = [
-  { 
+  {
     applicationId: 1,
     jobId: 1,
     userId: 2,
@@ -63,11 +88,11 @@ const initialApplications: JobApplication[] = [
       company: "Tech Co",
       location: "Remote",
       jobType: "Full-time",
-      logo: "/placeholder-logo.png"
+      logo: "/placeholder-logo.png",
     },
-    priority: "high"
+    priority: "high",
   },
-  { 
+  {
     applicationId: 2,
     jobId: 2,
     userId: 2,
@@ -80,11 +105,11 @@ const initialApplications: JobApplication[] = [
       company: "Software Inc",
       location: "Philadelphia, PA",
       jobType: "Full-time",
-      logo: "/placeholder-logo.png"
+      logo: "/placeholder-logo.png",
     },
-    priority: "medium"
+    priority: "medium",
   },
-  { 
+  {
     applicationId: 3,
     jobId: 3,
     userId: 2,
@@ -97,10 +122,10 @@ const initialApplications: JobApplication[] = [
       company: "Web Solutions",
       location: "Remote",
       jobType: "Contract",
-      logo: "/placeholder-logo.png"
-    }
+      logo: "/placeholder-logo.png",
+    },
   },
-  { 
+  {
     applicationId: 4,
     jobId: 4,
     userId: 2,
@@ -113,10 +138,10 @@ const initialApplications: JobApplication[] = [
       company: "Design Studio",
       location: "New York, NY",
       jobType: "Part-time",
-      logo: "/placeholder-logo.png"
-    }
+      logo: "/placeholder-logo.png",
+    },
   },
-  { 
+  {
     applicationId: 5,
     jobId: 5,
     userId: 2,
@@ -129,10 +154,10 @@ const initialApplications: JobApplication[] = [
       company: "Cloud Systems",
       location: "Boston, MA",
       jobType: "Full-time",
-      logo: "/placeholder-logo.png"
-    }
+      logo: "/placeholder-logo.png",
+    },
   },
-  { 
+  {
     applicationId: 6,
     jobId: 6,
     userId: 2,
@@ -145,10 +170,10 @@ const initialApplications: JobApplication[] = [
       company: "Product Co",
       location: "Philadelphia, PA",
       jobType: "Full-time",
-      logo: "/placeholder-logo.png"
-    }
+      logo: "/placeholder-logo.png",
+    },
   },
-]
+];
 
 // Define status columns for the kanban board
 const statusColumns = [
@@ -156,32 +181,36 @@ const statusColumns = [
     id: "interested",
     title: "Interested",
     icon: <Flag className="h-4 w-4" />,
-    color: extendedPalette.lightBlue
+    color: extendedPalette.lightBlue,
   },
   {
     id: "applied",
     title: "Applied",
     icon: <Briefcase className="h-4 w-4" />,
-    color: extendedPalette.primaryBlue
+    color: extendedPalette.primaryBlue,
   },
   {
     id: "rejected",
     title: "Rejected",
     icon: <TrendingUp className="h-4 w-4 rotate-180" />,
-    color: extendedPalette.darkGray
-  }
+    color: extendedPalette.darkGray,
+  },
 ];
 
 export default function ApplicantDashboard() {
-  const [applications, setApplications] = useState<JobApplication[]>(initialApplications);
+  const [applications, setApplications] =
+    useState<JobApplication[]>(initialApplications);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
   const [draggingJob, setDraggingJob] = useState<number | null>(null);
   const [jobStats, setJobStats] = useState({
     total: initialApplications.length,
-    applied: initialApplications.filter(app => app.status === "applied").length,
-    interested: initialApplications.filter(app => app.status === "interested").length,
-    rejected: initialApplications.filter(app => app.status === "rejected").length,
+    applied: initialApplications.filter((app) => app.status === "applied")
+      .length,
+    interested: initialApplications.filter((app) => app.status === "interested")
+      .length,
+    rejected: initialApplications.filter((app) => app.status === "rejected")
+      .length,
   });
 
   // Refs for columns to handle drop zones
@@ -191,16 +220,17 @@ export default function ApplicantDashboard() {
   useEffect(() => {
     setJobStats({
       total: applications.length,
-      applied: applications.filter(app => app.status === "applied").length,
-      interested: applications.filter(app => app.status === "interested").length,
-      rejected: applications.filter(app => app.status === "rejected").length,
+      applied: applications.filter((app) => app.status === "applied").length,
+      interested: applications.filter((app) => app.status === "interested")
+        .length,
+      rejected: applications.filter((app) => app.status === "rejected").length,
     });
   }, [applications]);
 
   // Filter applications by search query
-  const filteredApplications = applications.filter(app => {
+  const filteredApplications = applications.filter((app) => {
     if (!searchQuery) return true;
-    
+
     const query = searchQuery.toLowerCase();
     return (
       app.job.title.toLowerCase().includes(query) ||
@@ -212,7 +242,7 @@ export default function ApplicantDashboard() {
 
   // Get applications by status
   const getApplicationsByStatus = (status: JobStatus) => {
-    return filteredApplications.filter(app => app.status === status);
+    return filteredApplications.filter((app) => app.status === status);
   };
 
   // Start dragging a job
@@ -222,16 +252,16 @@ export default function ApplicantDashboard() {
 
   // Update job status on drop
   const handleStatusChange = (applicationId: number, newStatus: JobStatus) => {
-    setApplications(prev => 
-      prev.map(app => 
-        app.applicationId === applicationId 
-          ? { 
-              ...app, 
-              status: newStatus, 
-              statusUpdatedAt: new Date().toISOString() 
-            } 
-          : app
-      )
+    setApplications((prev) =>
+      prev.map((app) =>
+        app.applicationId === applicationId
+          ? {
+              ...app,
+              status: newStatus,
+              statusUpdatedAt: new Date().toISOString(),
+            }
+          : app,
+      ),
     );
   };
 
@@ -239,7 +269,7 @@ export default function ApplicantDashboard() {
     <DashboardLayout>
       <div className="container p-6 mx-auto">
         {/* Dashboard Header */}
-        <MotionDiv 
+        <MotionDiv
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
@@ -247,8 +277,12 @@ export default function ApplicantDashboard() {
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Job Dashboard</h1>
-              <p className="text-gray-500 dark:text-gray-400">Track and manage your job applications</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                My Job Dashboard
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400">
+                Track and manage your job applications
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <Button variant="outline" className="gap-2">
@@ -264,38 +298,38 @@ export default function ApplicantDashboard() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <StatsCard 
+            <StatsCard
               title="Total Jobs"
               value={jobStats.total}
               icon={<Briefcase className="h-5 w-5" />}
               color="bg-launchpad-blue"
             />
-            <StatsCard 
+            <StatsCard
               title="Applications Sent"
               value={jobStats.applied}
               icon={<TrendingUp className="h-5 w-5" />}
               color="bg-launchpad-green"
             />
-            <StatsCard 
+            <StatsCard
               title="Interested"
               value={jobStats.interested}
               icon={<Flag className="h-5 w-5" />}
               color="bg-launchpad-lightBlue"
             />
-            <StatsCard 
+            <StatsCard
               title="Rejected"
               value={jobStats.rejected}
               icon={<TrendingUp className="h-5 w-5 rotate-180" />}
               color="bg-launchpad-darkGray"
             />
           </div>
-          
+
           {/* Search & Filters */}
           <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
             <div className="relative flex-grow">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input 
-                placeholder="Search jobs..." 
+              <Input
+                placeholder="Search jobs..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -328,11 +362,11 @@ export default function ApplicantDashboard() {
               List View
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="board" className="space-y-4">
             {/* Kanban Board */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {statusColumns.map(column => (
+              {statusColumns.map((column) => (
                 <MotionDiv
                   key={column.id}
                   ref={(el) => {
@@ -345,35 +379,53 @@ export default function ApplicantDashboard() {
                   onMouseEnter={() => setActiveColumn(column.id)}
                   onMouseLeave={() => setActiveColumn(null)}
                 >
-                  <Card className={`h-full border-t-4`} style={{ borderTopColor: column.color }}>
+                  <Card
+                    className={`h-full border-t-4`}
+                    style={{ borderTopColor: column.color }}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <div className="rounded-md p-1.5" style={{ backgroundColor: column.color }}>
+                          <div
+                            className="rounded-md p-1.5"
+                            style={{ backgroundColor: column.color }}
+                          >
                             <div className="text-white">{column.icon}</div>
                           </div>
-                          <CardTitle className="text-base font-semibold">{column.title}</CardTitle>
+                          <CardTitle className="text-base font-semibold">
+                            {column.title}
+                          </CardTitle>
                         </div>
                         <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">
-                          {getApplicationsByStatus(column.id as JobStatus).length}
+                          {
+                            getApplicationsByStatus(column.id as JobStatus)
+                              .length
+                          }
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="overflow-y-auto max-h-[60vh] pt-0 px-3 pb-3 space-y-3 scroll-smooth">
                       <AnimatePresence mode="popLayout">
-                        {getApplicationsByStatus(column.id as JobStatus).map(application => (
-                          <DraggableJobCard 
-                            key={application.applicationId} 
-                            application={application}
-                            onDragStart={handleDragStart}
-                            onStatusChange={handleStatusChange}
-                            isColumnActive={activeColumn === column.id}
-                            isDragging={draggingJob === application.applicationId}
-                          />
-                        ))}
-                        {getApplicationsByStatus(column.id as JobStatus).length === 0 && (
+                        {getApplicationsByStatus(column.id as JobStatus).map(
+                          (application) => (
+                            <DraggableJobCard
+                              key={application.applicationId}
+                              application={application}
+                              onDragStart={handleDragStart}
+                              onStatusChange={handleStatusChange}
+                              isColumnActive={activeColumn === column.id}
+                              isDragging={
+                                draggingJob === application.applicationId
+                              }
+                            />
+                          ),
+                        )}
+                        {getApplicationsByStatus(column.id as JobStatus)
+                          .length === 0 && (
                           <div className="h-24 border-2 border-dashed rounded-md flex items-center justify-center">
-                            <p className="text-sm text-gray-400">Drop jobs here</p>
+                            <p className="text-sm text-gray-400">
+                              Drop jobs here
+                            </p>
                           </div>
                         )}
                       </AnimatePresence>
@@ -383,12 +435,12 @@ export default function ApplicantDashboard() {
               ))}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="list">
             <Card>
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  {filteredApplications.map(application => (
+                  {filteredApplications.map((application) => (
                     <MotionDiv
                       key={application.applicationId}
                       initial={{ opacity: 0, y: 10 }}
@@ -398,37 +450,43 @@ export default function ApplicantDashboard() {
                       className="p-4 border rounded-lg flex items-center gap-4"
                     >
                       <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                        <LaunchpadImage 
-                          src={application.job.logo || "/placeholder-logo.png"} 
-                          alt={application.job.company} 
-                          width={32} 
-                          height={32} 
-                          className="object-contain" 
+                        <LaunchpadImage
+                          src={application.job.logo || "/placeholder-logo.png"}
+                          alt={application.job.company}
+                          width={32}
+                          height={32}
+                          className="object-contain"
                         />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium">{application.job.title}</h3>
-                        <p className="text-sm text-gray-500">{application.job.company} • {application.job.location}</p>
+                        <p className="text-sm text-gray-500">
+                          {application.job.company} • {application.job.location}
+                        </p>
                       </div>
                       <div>
-                        <Badge 
-                          variant="outline" 
-                          className="mr-2"
-                        >
+                        <Badge variant="outline" className="mr-2">
                           {application.job.jobType}
                         </Badge>
-                        <Badge 
+                        <Badge
                           className={
-                            application.status === "applied" ? "bg-launchpad-blue text-white" :
-                            application.status === "interested" ? "bg-launchpad-lightBlue text-launchpad-blue" :
-                            "bg-launchpad-darkGray text-white"
+                            application.status === "applied"
+                              ? "bg-launchpad-blue text-white"
+                              : application.status === "interested"
+                                ? "bg-launchpad-lightBlue text-launchpad-blue"
+                                : "bg-launchpad-darkGray text-white"
                           }
                         >
-                          {application.status === "applied" ? "Applied" : 
-                            application.status === "interested" ? "Interested" : "Rejected"}
+                          {application.status === "applied"
+                            ? "Applied"
+                            : application.status === "interested"
+                              ? "Interested"
+                              : "Rejected"}
                         </Badge>
                       </div>
-                      <Button size="sm" variant="outline">View</Button>
+                      <Button size="sm" variant="outline">
+                        View
+                      </Button>
                     </MotionDiv>
                   ))}
                 </div>
@@ -446,7 +504,9 @@ export default function ApplicantDashboard() {
                   <Calendar className="h-5 w-5 text-launchpad-blue" />
                   <span>Upcoming Events</span>
                 </CardTitle>
-                <Button variant="ghost" size="sm">View All</Button>
+                <Button variant="ghost" size="sm">
+                  View All
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -458,7 +518,7 @@ export default function ApplicantDashboard() {
                   type="interview"
                   company="Tech Co"
                 />
-                
+
                 <EventCard
                   title="Software Inc Technical Test"
                   date="April 8, 2025"
@@ -477,7 +537,9 @@ export default function ApplicantDashboard() {
                   <Briefcase className="h-5 w-5 text-launchpad-green" />
                   <span>Recommendations</span>
                 </CardTitle>
-                <Button variant="ghost" size="sm">View All</Button>
+                <Button variant="ghost" size="sm">
+                  View All
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -490,7 +552,7 @@ export default function ApplicantDashboard() {
                   match="95%"
                   location="Remote"
                 />
-                
+
                 <RecommendedJobCard
                   id={8}
                   title="React Developer"
@@ -499,7 +561,7 @@ export default function ApplicantDashboard() {
                   match="82%"
                   location="Philadelphia, PA"
                 />
-                
+
                 <div className="pt-2">
                   <Button variant="outline" className="w-full">
                     View More
@@ -511,7 +573,7 @@ export default function ApplicantDashboard() {
         </div>
       </div>
     </DashboardLayout>
-  )
+  );
 }
 
 // Draggable Job Card Component with simplified animation
@@ -523,32 +585,40 @@ interface DraggableJobCardProps {
   isDragging: boolean;
 }
 
-function DraggableJobCard({ application, onDragStart, onStatusChange, isColumnActive, isDragging }: DraggableJobCardProps) {
+function DraggableJobCard({
+  application,
+  onDragStart,
+  onStatusChange,
+  isColumnActive,
+  isDragging,
+}: DraggableJobCardProps) {
   const statuses: JobStatus[] = ["interested", "applied", "rejected"];
-  
+
   // Get relative date from ISO string
   const getRelativeDate = (dateString: string) => {
-    if (!dateString) return '';
-    
+    if (!dateString) return "";
+
     const date = new Date(dateString);
     const now = new Date();
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
+    const diffDays = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
     return `${Math.floor(diffDays / 30)} months ago`;
   };
-  
+
   // Calculate applied date or due date text
   const getDateText = () => {
     if (application.appliedAt) {
       return `Applied ${getRelativeDate(application.appliedAt)}`;
     }
-    return '';
+    return "";
   };
-  
+
   return (
     <MotionDiv
       drag
@@ -562,69 +632,73 @@ function DraggableJobCard({ application, onDragStart, onStatusChange, isColumnAc
           const direction = info.offset.x > 0 ? 1 : -1;
           const currentIndex = statuses.indexOf(application.status);
           const newIndex = currentIndex + direction;
-          
+
           // Ensure the index is within bounds
           if (newIndex >= 0 && newIndex < statuses.length) {
             onStatusChange(application.applicationId, statuses[newIndex]);
           }
         }
       }}
-      whileDrag={{ 
-        scale: 1.03, 
+      whileDrag={{
+        scale: 1.03,
         boxShadow: "0 8px 20px -5px rgba(0, 0, 0, 0.1)",
-        zIndex: 20
+        zIndex: 20,
       }}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-      transition={{ 
-        type: "spring", 
-        damping: 25, 
-        stiffness: 300 
+      transition={{
+        type: "spring",
+        damping: 25,
+        stiffness: 300,
       }}
-      className={`cursor-grab active:cursor-grabbing ${isColumnActive ? 'z-10' : ''} ${isDragging ? 'opacity-50' : ''}`}
+      className={`cursor-grab active:cursor-grabbing ${isColumnActive ? "z-10" : ""} ${isDragging ? "opacity-50" : ""}`}
     >
       <Card className="border shadow-sm hover:shadow-md transition-all duration-200">
         <CardContent className="p-3">
           <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden">
-                <LaunchpadImage 
-                  src={application.job.logo || "/placeholder-logo.png"} 
-                  alt={application.job.company} 
-                  width={24} 
-                  height={24} 
-                  className="object-contain" 
+                <LaunchpadImage
+                  src={application.job.logo || "/placeholder-logo.png"}
+                  alt={application.job.company}
+                  width={24}
+                  height={24}
+                  className="object-contain"
                 />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">{application.job.title}</h3>
-                <p className="text-xs text-gray-500">{application.job.company}</p>
+                <h3 className="font-semibold text-sm">
+                  {application.job.title}
+                </h3>
+                <p className="text-xs text-gray-500">
+                  {application.job.company}
+                </p>
               </div>
             </div>
             {application.priority && (
-              <Badge 
+              <Badge
                 className={cn(
                   "text-xs font-medium",
-                  application.priority === "high" ? "bg-red-100 text-red-600" : 
-                  application.priority === "medium" ? "bg-amber-100 text-amber-600" :
-                  "bg-green-100 text-green-600"
+                  application.priority === "high"
+                    ? "bg-red-100 text-red-600"
+                    : application.priority === "medium"
+                      ? "bg-amber-100 text-amber-600"
+                      : "bg-green-100 text-green-600",
                 )}
               >
                 {application.priority}
               </Badge>
             )}
           </div>
-          
+
           <div className="flex flex-col gap-1 mt-2">
             <div className="flex justify-between items-center text-xs">
               <span className="text-gray-500">{application.job.location}</span>
               <span className="text-gray-500">{application.job.jobType}</span>
             </div>
             <div className="flex justify-between items-center text-xs mt-1">
-              <span className="text-gray-500">
-                {getDateText()}
-              </span>
+              <span className="text-gray-500">{getDateText()}</span>
               <Badge variant="outline" className="text-xs bg-gray-50">
                 ID: {application.applicationId}
               </Badge>
@@ -637,7 +711,17 @@ function DraggableJobCard({ application, onDragStart, onStatusChange, isColumnAc
 }
 
 // Stats Card Component
-function StatsCard({ title, value, icon, color }: { title: string, value: number, icon: React.ReactNode, color: string }) {
+function StatsCard({
+  title,
+  value,
+  icon,
+  color,
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+}) {
   return (
     <Card>
       <CardContent className="p-6">
@@ -646,9 +730,7 @@ function StatsCard({ title, value, icon, color }: { title: string, value: number
             <p className="text-sm font-medium text-gray-500">{title}</p>
             <h3 className="text-2xl font-bold mt-1">{value}</h3>
           </div>
-          <div className={`${color} p-3 rounded-lg text-white`}>
-            {icon}
-          </div>
+          <div className={`${color} p-3 rounded-lg text-white`}>{icon}</div>
         </div>
       </CardContent>
     </Card>
@@ -656,58 +738,80 @@ function StatsCard({ title, value, icon, color }: { title: string, value: number
 }
 
 // Event Card Component
-function EventCard({ title, date, time, type, company }: { 
-  title: string, 
-  date: string, 
-  time: string, 
-  type: "interview" | "assessment" | "meeting", 
-  company: string 
+function EventCard({
+  title,
+  date,
+  time,
+  type,
+  company,
+}: {
+  title: string;
+  date: string;
+  time: string;
+  type: "interview" | "assessment" | "meeting";
+  company: string;
 }) {
   return (
-    <MotionDiv 
+    <MotionDiv
       className="flex justify-between items-center p-4 bg-muted/30 border border-border/30 rounded-lg shadow-sm"
       whileHover={{ scale: 1.01, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
     >
       <div className="flex items-center gap-3">
-        <div className={cn(
-          "w-10 h-10 rounded-full flex items-center justify-center",
-          type === "interview" ? "bg-blue-500/10 text-blue-500" : 
-          type === "assessment" ? "bg-green-500/10 text-green-500" : 
-          "bg-orange-500/10 text-orange-500")}
+        <div
+          className={cn(
+            "w-10 h-10 rounded-full flex items-center justify-center",
+            type === "interview"
+              ? "bg-blue-500/10 text-blue-500"
+              : type === "assessment"
+                ? "bg-green-500/10 text-green-500"
+                : "bg-orange-500/10 text-orange-500",
+          )}
         >
-          {type === "interview" ? 
-            <Users className="h-5 w-5" /> :
-            type === "assessment" ? 
-            <TrendingUp className="h-5 w-5" /> :
+          {type === "interview" ? (
+            <Users className="h-5 w-5" />
+          ) : type === "assessment" ? (
+            <TrendingUp className="h-5 w-5" />
+          ) : (
             <Calendar className="h-5 w-5" />
-          }
+          )}
         </div>
         <div>
           <h3 className="font-medium text-foreground/90">{title}</h3>
-          <p className="text-xs text-muted-foreground/80">{company} • {date} • {time}</p>
+          <p className="text-xs text-muted-foreground/80">
+            {company} • {date} • {time}
+          </p>
         </div>
       </div>
       <Button size="sm" variant="outline" className="border-border/30">
-        {type === "interview" ? "Prepare" :
-          type === "assessment" ? "Start" :
-          "Join"}
+        {type === "interview"
+          ? "Prepare"
+          : type === "assessment"
+            ? "Start"
+            : "Join"}
       </Button>
     </MotionDiv>
   );
 }
 
 // Recommended Job Card Component
-function RecommendedJobCard({ id, title, company, logo, match, location }: { 
-  id: number, 
-  title: string, 
-  company: string, 
-  logo: string, 
-  match: string,
-  location: string
+function RecommendedJobCard({
+  id,
+  title,
+  company,
+  logo,
+  match,
+  location,
+}: {
+  id: number;
+  title: string;
+  company: string;
+  logo: string;
+  match: string;
+  location: string;
 }) {
   return (
-    <MotionDiv 
+    <MotionDiv
       className="p-4 bg-muted/30 border border-border/30 rounded-lg shadow-sm flex items-center gap-3"
       whileHover={{ scale: 1.01, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
@@ -725,14 +829,13 @@ function RecommendedJobCard({ id, title, company, logo, match, location }: {
         <div className="flex justify-between items-start">
           <div>
             <h3 className="font-medium text-sm text-foreground/90">{title}</h3>
-            <p className="text-xs text-muted-foreground/80">{company} • {location}</p>
+            <p className="text-xs text-muted-foreground/80">
+              {company} • {location}
+            </p>
           </div>
-          <Badge className="bg-green-500/10 text-green-500">
-            {match}
-          </Badge>
+          <Badge className="bg-green-500/10 text-green-500">{match}</Badge>
         </div>
       </div>
     </MotionDiv>
   );
 }
-

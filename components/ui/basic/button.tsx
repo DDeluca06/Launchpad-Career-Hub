@@ -1,23 +1,31 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-launchpad-blue text-white hover:bg-launchpad-teal dark:bg-launchpad-blue dark:hover:bg-launchpad-teal",
-        primary: "bg-launchpad-blue text-white hover:bg-launchpad-teal shadow-sm dark:bg-launchpad-blue dark:hover:bg-launchpad-teal",
-        secondary: "bg-launchpad-lightBlue text-launchpad-blue hover:bg-launchpad-blue hover:text-white dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700",
-        success: "bg-launchpad-green text-white hover:bg-launchpad-darkGreen dark:bg-launchpad-green dark:hover:bg-launchpad-darkGreen",
-        warning: "bg-launchpad-orange text-white hover:bg-launchpad-brown dark:bg-launchpad-orange dark:hover:bg-launchpad-brown",
-        danger: "bg-red-500 text-white hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700",
-        outline: "border border-gray-200 bg-white hover:bg-gray-50 hover:text-launchpad-blue dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200",
-        ghost: "hover:bg-gray-100 hover:text-launchpad-blue dark:hover:bg-gray-800 dark:text-gray-200 dark:hover:text-white",
+        default:
+          "bg-launchpad-blue text-white hover:bg-launchpad-teal dark:bg-launchpad-blue dark:hover:bg-launchpad-teal",
+        primary:
+          "bg-launchpad-blue text-white hover:bg-launchpad-teal shadow-sm dark:bg-launchpad-blue dark:hover:bg-launchpad-teal",
+        secondary:
+          "bg-launchpad-lightBlue text-launchpad-blue hover:bg-launchpad-blue hover:text-white dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700",
+        success:
+          "bg-launchpad-green text-white hover:bg-launchpad-darkGreen dark:bg-launchpad-green dark:hover:bg-launchpad-darkGreen",
+        warning:
+          "bg-launchpad-orange text-white hover:bg-launchpad-brown dark:bg-launchpad-orange dark:hover:bg-launchpad-brown",
+        danger:
+          "bg-red-500 text-white hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700",
+        outline:
+          "border border-gray-200 bg-white hover:bg-gray-50 hover:text-launchpad-blue dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200",
+        ghost:
+          "hover:bg-gray-100 hover:text-launchpad-blue dark:hover:bg-gray-800 dark:text-gray-200 dark:hover:text-white",
         link: "text-launchpad-blue underline-offset-4 hover:underline dark:text-blue-400",
       },
       size: {
@@ -32,21 +40,33 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
-)
+  },
+);
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
-  asChild?: boolean
-  icon?: React.ReactNode
-  isLoading?: boolean
+  asChild?: boolean;
+  icon?: React.ReactNode;
+  isLoading?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, children, icon, isLoading, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
-    
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      children,
+      icon,
+      isLoading,
+      ...props
+    },
+    ref,
+  ) => {
+    const Comp = asChild ? Slot : "button";
+
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
@@ -79,9 +99,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {icon && !isLoading && <span className="mr-1">{icon}</span>}
         {children}
       </Comp>
-    )
-  }
-)
-Button.displayName = "Button"
+    );
+  },
+);
+Button.displayName = "Button";
 
-export { Button, buttonVariants } 
+export { Button, buttonVariants };

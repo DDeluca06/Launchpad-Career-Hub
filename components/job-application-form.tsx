@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/basic/button"
+import { useState } from "react";
+import { Button } from "@/components/ui/basic/button";
 
 interface Job {
-  title: string
-  company: string
-  location: string
-  type: string
-  salary: string
+  title: string;
+  company: string;
+  location: string;
+  type: string;
+  salary: string;
 }
 
 interface JobApplicationData {
@@ -46,7 +46,14 @@ interface TextareaProps {
   className?: string;
 }
 
-const Input: React.FC<InputProps> = ({ type, label, value, onChange, required = false, className }) => (
+const Input: React.FC<InputProps> = ({
+  type,
+  label,
+  value,
+  onChange,
+  required = false,
+  className,
+}) => (
   <div className="space-y-2">
     <label className="block text-sm font-medium text-gray-700">{label}</label>
     <input
@@ -59,7 +66,13 @@ const Input: React.FC<InputProps> = ({ type, label, value, onChange, required = 
   </div>
 );
 
-const Textarea: React.FC<TextareaProps> = ({ label, value, onChange, placeholder, className }) => (
+const Textarea: React.FC<TextareaProps> = ({
+  label,
+  value,
+  onChange,
+  placeholder,
+  className,
+}) => (
   <div className="space-y-2">
     <label className="block text-sm font-medium text-gray-700">{label}</label>
     <textarea
@@ -73,16 +86,16 @@ const Textarea: React.FC<TextareaProps> = ({ label, value, onChange, placeholder
 
 export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
   const [formData, setFormData] = useState<JobApplicationData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
     resume: null,
     coverLetter: null,
-    linkedin: '',
-    github: '',
-    portfolio: '',
-    additionalInfo: ''
+    linkedin: "",
+    github: "",
+    portfolio: "",
+    additionalInfo: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -97,14 +110,18 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
           type="text"
           label="First Name"
           value={formData.firstName}
-          onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, firstName: e.target.value }))
+          }
           required
         />
         <Input
           type="text"
           label="Last Name"
           value={formData.lastName}
-          onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, lastName: e.target.value }))
+          }
           required
         />
       </div>
@@ -113,7 +130,9 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
         type="email"
         label="Email"
         value={formData.email}
-        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+        onChange={(e) =>
+          setFormData((prev) => ({ ...prev, email: e.target.value }))
+        }
         required
       />
 
@@ -121,18 +140,22 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
         type="tel"
         label="Phone Number"
         value={formData.phone}
-        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+        onChange={(e) =>
+          setFormData((prev) => ({ ...prev, phone: e.target.value }))
+        }
       />
 
       <div className="space-y-4">
-        <label className="block text-sm font-medium text-gray-700">Resume</label>
+        <label className="block text-sm font-medium text-gray-700">
+          Resume
+        </label>
         <input
           type="file"
           accept=".pdf,.doc,.docx"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {
-              setFormData(prev => ({ ...prev, resume: file }));
+              setFormData((prev) => ({ ...prev, resume: file }));
             }
           }}
           className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-launchpad-blue file:text-white hover:file:bg-launchpad-teal"
@@ -140,14 +163,16 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
       </div>
 
       <div className="space-y-4">
-        <label className="block text-sm font-medium text-gray-700">Cover Letter (Optional)</label>
+        <label className="block text-sm font-medium text-gray-700">
+          Cover Letter (Optional)
+        </label>
         <input
           type="file"
           accept=".pdf,.doc,.docx"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {
-              setFormData(prev => ({ ...prev, coverLetter: file }));
+              setFormData((prev) => ({ ...prev, coverLetter: file }));
             }
           }}
           className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-launchpad-blue file:text-white hover:file:bg-launchpad-teal"
@@ -159,13 +184,17 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
           type="url"
           label="LinkedIn Profile"
           value={formData.linkedin}
-          onChange={(e) => setFormData(prev => ({ ...prev, linkedin: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, linkedin: e.target.value }))
+          }
         />
         <Input
           type="url"
           label="GitHub Profile"
           value={formData.github}
-          onChange={(e) => setFormData(prev => ({ ...prev, github: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, github: e.target.value }))
+          }
         />
       </div>
 
@@ -173,13 +202,17 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
         type="url"
         label="Portfolio Website"
         value={formData.portfolio}
-        onChange={(e) => setFormData(prev => ({ ...prev, portfolio: e.target.value }))}
+        onChange={(e) =>
+          setFormData((prev) => ({ ...prev, portfolio: e.target.value }))
+        }
       />
 
       <Textarea
         label="Additional Information"
         value={formData.additionalInfo}
-        onChange={(e) => setFormData(prev => ({ ...prev, additionalInfo: e.target.value }))}
+        onChange={(e) =>
+          setFormData((prev) => ({ ...prev, additionalInfo: e.target.value }))
+        }
         placeholder="Tell us why you're a great fit for this role..."
       />
 

@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
   "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
@@ -14,7 +14,8 @@ const badgeVariants = cva(
         success: "bg-launchpad-green text-white",
         warning: "bg-launchpad-orange text-white",
         danger: "bg-red-500 text-white",
-        outline: "border border-launchpad-blue/30 text-launchpad-blue bg-transparent",
+        outline:
+          "border border-launchpad-blue/30 text-launchpad-blue bg-transparent",
         ghost: "bg-transparent text-launchpad-blue hover:bg-launchpad-blue/10",
       },
       size: {
@@ -32,25 +33,25 @@ const badgeVariants = cva(
         negotiation: "bg-launchpad-brown text-white",
         offerAccepted: "bg-green-600 text-white",
         rejected: "bg-launchpad-darkGray text-white",
-      }
+      },
     },
     defaultVariants: {
       variant: "default",
       size: "default",
     },
-  }
-)
+  },
+);
 
 // Define a type for the status values
-export type StatusBadgeVariant = 
-  | "interested" 
-  | "applied" 
-  | "phoneScreening" 
-  | "interviewStage" 
-  | "finalInterviewStage" 
-  | "offerExtended" 
-  | "negotiation" 
-  | "offerAccepted" 
+export type StatusBadgeVariant =
+  | "interested"
+  | "applied"
+  | "phoneScreening"
+  | "interviewStage"
+  | "finalInterviewStage"
+  | "offerExtended"
+  | "negotiation"
+  | "offerAccepted"
   | "rejected";
 
 export interface BadgeProps
@@ -60,41 +61,39 @@ export interface BadgeProps
   dot?: boolean;
 }
 
-function Badge({ 
-  className, 
-  variant, 
-  size, 
+function Badge({
+  className,
+  variant,
+  size,
   status,
   count,
   dot,
-  children, 
-  ...props 
+  children,
+  ...props
 }: BadgeProps) {
   // If status is provided, it overrides variant
   const finalVariant = status ? undefined : variant;
-  
+
   return (
-    <div 
+    <div
       className={cn(
-        badgeVariants({ variant: finalVariant, size, status, className })
-      )} 
+        badgeVariants({ variant: finalVariant, size, status, className }),
+      )}
       {...props}
     >
-      {dot && (
-        <span className="mr-1.5 h-2 w-2 rounded-full bg-current" />
-      )}
+      {dot && <span className="mr-1.5 h-2 w-2 rounded-full bg-current" />}
       {count !== undefined ? count : children}
     </div>
-  )
+  );
 }
 
 // Specialized badge for job application status
-export function StatusBadge({ 
-  status, 
+export function StatusBadge({
+  status,
   className,
   size = "default",
-  ...props 
-}: Omit<BadgeProps, 'variant' | 'status'> & { status: StatusBadgeVariant }) {
+  ...props
+}: Omit<BadgeProps, "variant" | "status"> & { status: StatusBadgeVariant }) {
   return (
     <Badge
       status={status}
@@ -102,9 +101,10 @@ export function StatusBadge({
       className={cn("capitalize", className)}
       {...props}
     >
-      {status.charAt(0).toUpperCase() + status.slice(1).replace(/([A-Z])/g, ' $1')}
+      {status.charAt(0).toUpperCase() +
+        status.slice(1).replace(/([A-Z])/g, " $1")}
     </Badge>
   );
 }
 
-export { Badge, badgeVariants }
+export { Badge, badgeVariants };
