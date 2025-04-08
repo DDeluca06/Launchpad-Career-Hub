@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
 import { Badge } from "@/components/ui/basic/badge"
-import { Card, CardContent } from "@/components/ui/basic/card"
-import { Briefcase } from "lucide-react"
-import { Image as LocalImage } from "@/components/ui/basic/image"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/basic/card"
+import { MapPin, DollarSign, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/basic/button"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/basic/avatar"
+import { formatDistanceToNow } from "date-fns"
 
 interface Job {
   id: string;
@@ -23,67 +23,80 @@ interface Job {
   salary: string;
   tags: string[];
   logo?: string;
+  status: string;
+  appliedDate: string;
+  recruiter: string;
+  companyLogo: string;
 }
 
 interface JobCardProps {
   job: Job;
-  onApply: () => void;
+  onSelect: (job: Job) => void;
 }
 
-export function JobCard({ job, onApply }: JobCardProps) {
-  const [isApplied, setIsApplied] = useState(false);
-
-  const handleApply = () => {
-    setIsApplied(true);
-    onApply();
-  };
-
+export function JobCard({ job, onSelect }: JobCardProps) {
   return (
-    <Card className="border border-gray-200 hover:border-launchpad-blue transition-colors">
-      <CardContent className="p-6">
-        <div className="flex items-center gap-4 mb-4">
-          {job.logo ? (
-            <div className="w-12 h-12 relative">
-              <LocalImage
-                src={job.logo}
-                alt={`${job.company} logo`}
-                width={48}
-                height={48}
-                className="object-contain"
-              />
-            </div>
-          ) : (
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Briefcase className="h-6 w-6 text-gray-400" />
-            </div>
-          )}
+    <Card 
+      className="hover:shadow-md transition-shadow duration-200 dark:border-gray-700 dark:bg-gray-800"
+      onClick={() => onSelect(job)}
+    >
+      <CardHeader className="p-4">
+        <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
-            <p className="text-sm text-gray-500">{job.company}</p>
+            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {job.title}
+            </CardTitle>
+            <CardDescription className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {job.company}
+            </CardDescription>
           </div>
+          <Badge 
+            variant={job.status === 'applied' ? 'default' : 'outline'} 
+            className="ml-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+          >
+            {job.status}
+          </Badge>
         </div>
-
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{job.type}</Badge>
-            <Badge variant="secondary">{job.location}</Badge>
-            <Badge variant="secondary">{job.salary}</Badge>
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <div className="space-y-2">
+          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+            <MapPin className="h-4 w-4 mr-2" />
+            {job.location}
           </div>
-
-          <p className="text-gray-600 line-clamp-3">{job.description}</p>
-
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Posted {job.postedDate}</p>
-            <Button
-              onClick={handleApply}
-              className="bg-launchpad-blue hover:bg-launchpad-teal text-white"
-              disabled={isApplied}
-            >
-              {isApplied ? 'Applied' : 'Apply Now'}
-            </Button>
+          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+            <DollarSign className="h-4 w-4 mr-2" />
+            {job.salary}
+          </div>
+          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+            <Calendar className="h-4 w-4 mr-2" />
+            Applied {formatDistanceToNow(new Date(job.appliedDate), { addSuffix: true })}
           </div>
         </div>
       </CardContent>
+      <CardFooter className="p-4 pt-0 flex justify-between items-center border-t dark:border-gray-700">
+        <div className="flex items-center space-x-2">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={job.companyLogo} alt={job.company} />
+            <AvatarFallback>{job.company.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{job.recruiter}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Recruiter</p>
+          </div>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(job);
+          }}
+        >
+          View Details
+        </Button>
+      </CardFooter>
     </Card>
   );
 }

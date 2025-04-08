@@ -12,8 +12,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/basic/avatar"
 import { Check, Save, RefreshCw, Moon, Sun, Shield, UserCircle, Search } from "lucide-react"
 import { extendedPalette } from "@/lib/colors"
 import { userService, User } from "@/lib/local-storage"
+import { useTheme } from "next-themes"
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState("userAccess")
   const [savedIndicator, setSavedIndicator] = useState(false)
   const [users, setUsers] = useState<User[]>([])
@@ -23,7 +25,7 @@ export default function SettingsPage() {
   // Simplified settings state
   const [settings, setSettings] = useState({
     appearance: {
-      colorMode: "light", // light, dark
+      colorMode: theme || "light", // light, dark
     },
   })
 
@@ -37,8 +39,12 @@ export default function SettingsPage() {
     
     loadUsers()
   }, [])
-  
+
   const handleSettingChange = (section: string, key: string, value: string | boolean | number) => {
+    if (section === "appearance" && key === "colorMode") {
+      setTheme(value as string)
+    }
+    
     setSettings(prev => ({
       ...prev,
       [section]: {
@@ -67,7 +73,7 @@ export default function SettingsPage() {
     setUsers(updatedUsers)
     
     // Update in localStorage
-    const userToUpdate = updatedUsers.find(user => user.user_id === userId);
+    const userToUpdate = updatedUsers.find((user: User) => user.user_id === userId);
     if (userToUpdate) {
       userService.update(userToUpdate);
     }
@@ -83,57 +89,46 @@ export default function SettingsPage() {
       <div className="container py-6 px-4 mx-auto pb-24">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-            <p className="text-gray-500 mt-1">Manage your admin preferences and user access</p>
+            <h1 className="text-2xl font-bold text-foreground/90">Settings</h1>
+            <p className="text-muted-foreground/80 mt-1">Manage your admin preferences and user access</p>
           </div>
-          
-          <Button 
-            onClick={handleSave}
-            className="self-start"
-            style={{ backgroundColor: savedIndicator ? "#4CAF50" : extendedPalette.primaryBlue }}
-          >
-            {savedIndicator ? (
-              <>
-                <Check className="h-4 w-4 mr-2" />
-                Saved
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes
-              </>
-            )}
-          </Button>
         </div>
         
-        <Card className="border border-gray-200">
-          <CardHeader className="border-b bg-gray-50">
-            <CardTitle className="text-lg">Admin Settings</CardTitle>
-            <CardDescription>
+        <Card className="border-border shadow-lg">
+          <CardHeader className="border-b bg-muted/30">
+            <CardTitle className="text-lg text-foreground/90">Admin Settings</CardTitle>
+            <CardDescription className="text-muted-foreground/80">
               Customize your admin experience and manage user access
             </CardDescription>
           </CardHeader>
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mx-6 mt-4 mb-0 border-b w-[400px]">
-              <TabsTrigger value="appearance" className="flex gap-2 items-center">
+            <TabsList className="mx-6 mt-4 mb-0 border-b w-[400px] bg-muted/20">
+              <TabsTrigger 
+                value="appearance" 
+                className="flex gap-2 items-center data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
                 <Sun className="h-4 w-4" />
                 Appearance
               </TabsTrigger>
-              <TabsTrigger value="userAccess" className="flex gap-2 items-center">
+              <TabsTrigger 
+                value="userAccess" 
+                className="flex gap-2 items-center data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
                 <UserCircle className="h-4 w-4" />
                 User Access
               </TabsTrigger>
             </TabsList>
             
+            {/* Theme Switching */}
             <TabsContent value="appearance" className="p-6 pt-6">
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-sm font-medium mb-3">Theme Preference</h3>
+                  <h3 className="text-sm font-medium mb-3 text-foreground/90">Theme Preference</h3>
                   <div className="grid grid-cols-2 gap-4 max-w-xs">
                     <Button 
                       variant={settings.appearance.colorMode === "light" ? "default" : "outline"} 
-                      className="justify-start w-full"
+                      className="justify-start w-full shadow-sm hover:shadow-md transition-shadow"
                       onClick={() => handleSettingChange("appearance", "colorMode", "light")}
                     >
                       <Sun className="h-4 w-4 mr-2" />
@@ -141,7 +136,7 @@ export default function SettingsPage() {
                     </Button>
                     <Button 
                       variant={settings.appearance.colorMode === "dark" ? "default" : "outline"} 
-                      className="justify-start w-full"
+                      className="justify-start w-full shadow-sm hover:shadow-md transition-shadow"
                       onClick={() => handleSettingChange("appearance", "colorMode", "dark")}
                     >
                       <Moon className="h-4 w-4 mr-2" />
@@ -152,21 +147,22 @@ export default function SettingsPage() {
               </div>
             </TabsContent>
             
+            {/* User Access */}
             <TabsContent value="userAccess" className="px-6 pt-6 pb-0">
               <div className="space-y-4">
                 <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
                   <Input
                     placeholder="Search users..."
-                    className="pl-9 bg-gray-50 border-gray-300"
+                    className="pl-9 bg-muted/50 border-border/50 shadow-sm focus:shadow-md transition-shadow"
                     value={searchQuery}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                   />
                 </div>
 
-                <div className="overflow-hidden">
+                <div className="overflow-hidden rounded-lg border border-border/50 shadow-sm">
                   <table className="w-full">
-                    <thead className="text-xs uppercase text-gray-500 bg-gray-50">
+                    <thead className="text-xs uppercase text-muted-foreground/80 bg-muted/20">
                       <tr>
                         <th className="px-4 py-2 text-left w-1/3">User</th>
                         <th className="px-4 py-2 text-left w-1/3">Email</th>
@@ -174,30 +170,30 @@ export default function SettingsPage() {
                         <th className="px-4 py-2 text-left w-1/6">Admin</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-border/50">
                       {isLoading ? (
                         Array.from({ length: 3 }).map((_, i) => (
                           <tr key={i} className="animate-pulse">
                             <td className="px-4 py-3">
                               <div className="flex items-center">
-                                <div className="h-8 w-8 rounded-full bg-gray-200"></div>
-                                <div className="ml-3 h-4 w-24 bg-gray-200 rounded"></div>
+                                <div className="h-8 w-8 rounded-full bg-muted/50"></div>
+                                <div className="ml-3 h-4 w-24 bg-muted/50 rounded"></div>
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                              <div className="h-4 w-32 bg-muted/50 rounded"></div>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="h-5 w-20 bg-gray-200 rounded"></div>
+                              <div className="h-5 w-20 bg-muted/50 rounded"></div>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="h-5 w-10 bg-gray-200 rounded"></div>
+                              <div className="h-5 w-10 bg-muted/50 rounded"></div>
                             </td>
                           </tr>
                         ))
                       ) : filteredUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-4 py-4 text-center text-gray-500">
+                          <td colSpan={4} className="px-4 py-4 text-center text-muted-foreground/70">
                             No users found
                           </td>
                         </tr>
@@ -215,22 +211,22 @@ export default function SettingsPage() {
                           const email = user.username.toLowerCase().replace(/\s+/g, '.') + '@example.com';
                           
                           return (
-                            <tr key={user.user_id} className="hover:bg-gray-50">
+                            <tr key={user.user_id} className="hover:bg-muted/30 transition-colors">
                               <td className="px-4 py-3">
                                 <div className="flex items-center">
-                                  <Avatar className="h-8 w-8 bg-gray-200 text-gray-600">
+                                  <Avatar className="h-8 w-8 bg-muted/50 text-foreground/90 shadow-sm">
                                     <AvatarFallback>{initials}</AvatarFallback>
                                   </Avatar>
-                                  <span className="ml-3 font-medium">{user.username}</span>
+                                  <span className="ml-3 font-medium text-foreground/90">{user.username}</span>
                                 </div>
                               </td>
-                              <td className="px-4 py-3 text-gray-500">
+                              <td className="px-4 py-3 text-muted-foreground/80">
                                 {email}
                               </td>
                               <td className="px-4 py-3">
                                 <Badge 
                                   variant={user.isAdmin ? "default" : "outline"} 
-                                  className="text-xs"
+                                  className="text-xs shadow-sm"
                                 >
                                   {user.isAdmin ? (
                                     <>
@@ -244,6 +240,7 @@ export default function SettingsPage() {
                                 <Switch 
                                   checked={user.isAdmin}
                                   onCheckedChange={() => toggleAdminStatus(user.user_id)}
+                                  className="shadow-sm"
                                 />
                               </td>
                             </tr>
@@ -257,11 +254,12 @@ export default function SettingsPage() {
             </TabsContent>
           </Tabs>
           
-          <CardFooter className="flex justify-between items-center px-6 py-4 border-t bg-gray-50">
+          <CardFooter className="flex justify-between items-center px-6 py-4 border-t bg-muted/30">
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => window.location.reload()}
+              className="hover:bg-background shadow-sm hover:shadow-md transition-shadow"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Reset to Defaults
@@ -270,11 +268,12 @@ export default function SettingsPage() {
             <Button 
               onClick={handleSave}
               style={{ backgroundColor: savedIndicator ? "#4CAF50" : extendedPalette.primaryBlue }}
+              className="hover:opacity-90 shadow-sm hover:shadow-md transition-shadow"
             >
               {savedIndicator ? (
                 <>
                   <Check className="h-4 w-4 mr-2" />
-                  Save Changes
+                  Saved
                 </>
               ) : (
                 <>

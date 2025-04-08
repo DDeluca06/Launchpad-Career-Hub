@@ -17,25 +17,6 @@ import { Textarea } from "@/components/ui/form/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/form/select"
 import { cn } from "@/lib/utils"
 
-// Enhanced Partner interface
-interface Partner {
-  partner_id: number;
-  name: string;
-  description: string;
-  industry: string;
-  location: string;
-  jobs_available: number;
-  applicants: number;
-  applicants_hired: number;
-  contact_name?: string;
-  contact_email?: string;
-  contact_phone?: string;
-  website?: string;
-  partnership_start?: string;
-  status?: 'active' | 'inactive' | 'pending';
-  logo_url?: string;
-}
-
 // Stats card component
 function StatCard({ 
   title, 
@@ -661,15 +642,25 @@ export default function PartnersPage() {
     }
     
     try {
-      // In a real app, this would call your API
-      const partnerId = Date.now();
-      const createdPartner = partnerService.create({
-        ...newPartner,
-        partner_id: partnerId,
+      // Ensure all required fields are present and properly typed
+      const partnerData: Omit<Partner, "partner_id"> = {
+        name: newPartner.name || "",
+        description: newPartner.description || "",
+        industry: newPartner.industry || "",
+        location: newPartner.location || "",
         jobs_available: newPartner.jobs_available || 0,
         applicants: newPartner.applicants || 0,
-        applicants_hired: newPartner.applicants_hired || 0
-      });
+        applicants_hired: newPartner.applicants_hired || 0,
+        contact_name: newPartner.contact_name,
+        contact_email: newPartner.contact_email,
+        contact_phone: newPartner.contact_phone,
+        website: newPartner.website,
+        partnership_start: newPartner.partnership_start,
+        status: newPartner.status || "active",
+        logo_url: newPartner.logo_url
+      };
+
+      const createdPartner = partnerService.create(partnerData);
       
       setPartners(prevPartners => [...prevPartners, createdPartner]);
       setSelectedPartner(createdPartner);
@@ -700,22 +691,14 @@ export default function PartnersPage() {
   const handleEditPartner = () => {
     if (!selectedPartner) return;
     
-    try {
-      const updatedPartner = partnerService.update(selectedPartner.partner_id, {
-        ...newPartner
-      });
-      
+    const updatedPartner = partnerService.update(selectedPartner);
+    if (updatedPartner) {
       setPartners(prevPartners => 
-        prevPartners.map(p => 
-          p.partner_id === updatedPartner.partner_id ? updatedPartner : p
-        )
+        prevPartners.map(p => p.partner_id === updatedPartner.partner_id ? updatedPartner : p)
       );
       setSelectedPartner(updatedPartner);
-      setEditPartnerModalOpen(false);
-    } catch (error) {
-      console.error("Error updating partner:", error);
-      alert("There was an error updating the partner. Please try again.");
     }
+    setEditPartnerModalOpen(false);
   };
 
   // Delete partner
@@ -1249,9 +1232,10 @@ export default function PartnersPage() {
                 Cancel
               </Button>
               <Button 
-                variant="destructive"
+                variant="danger"
                 onClick={handleDeletePartner}
               >
+                <Trash2 className="h-4 w-4" />
                 Delete Partner
               </Button>
             </div>

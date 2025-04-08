@@ -58,6 +58,13 @@ export interface Partner {
   jobs_available: number;
   applicants: number;
   applicants_hired: number;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  website?: string;
+  partnership_start?: string;
+  status?: 'active' | 'inactive' | 'pending';
+  logo_url?: string;
 }
 
 export interface Event {

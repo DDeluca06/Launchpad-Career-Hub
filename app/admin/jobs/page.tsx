@@ -121,17 +121,17 @@ function JobList({ jobs, selectedJob, onSelectJob, applicationsCount, isLoading,
             <div className="flex gap-3">
               <CompanyLogo company={job.company} size="sm" />
               <div className="flex-1">
-                <h3 className="font-medium text-gray-900 line-clamp-1">{job.title}</h3>
-                <p className="text-sm text-gray-500 line-clamp-1">{job.company}</p>
+                <h3 className="font-medium text-foreground line-clamp-1">{job.title}</h3>
+                <p className="text-sm text-muted-foreground line-clamp-1">{job.company}</p>
                 <div className="flex justify-between items-center mt-1">
-                  <span className="text-xs text-gray-400">{job.location}</span>
+                  <span className="text-xs text-muted-foreground">{job.location}</span>
                   <Badge className={cn(
                     "text-xs",
                     job.job_type === "internship" 
-                      ? "bg-blue-50 text-blue-700" 
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400" 
                       : job.job_type === "part_time" 
-                        ? "bg-green-50 text-green-700" 
-                        : "bg-orange-50 text-orange-700"
+                        ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" 
+                        : "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400"
                   )}>
                     {applicationsCount[job.job_id] || 0} applicants
                   </Badge>
@@ -142,7 +142,7 @@ function JobList({ jobs, selectedJob, onSelectJob, applicationsCount, isLoading,
         </Card>
       ))}
       {filteredJobs.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-muted-foreground">
           No jobs found matching your criteria
         </div>
       )}
@@ -197,40 +197,40 @@ function JobDetails({ job, applicationsCount, isLoading, onEdit, onDelete }: Job
       <div className="flex items-center gap-4 mb-6">
         <CompanyLogo company={job.company} size="md" />
         <div>
-          <h3 className="font-medium text-lg">{job.company}</h3>
-          <p className="text-gray-500">{job.location}</p>
+          <h3 className="font-medium text-lg text-foreground">{job.company}</h3>
+          <p className="text-muted-foreground">{job.location}</p>
         </div>
       </div>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Job Type</p>
-          <p className="font-medium">{job.job_type}</p>
+        <div className="bg-muted p-3 rounded">
+          <p className="text-xs text-muted-foreground">Job Type</p>
+          <p className="font-medium text-foreground">{job.job_type}</p>
         </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Experience</p>
-          <p className="font-medium">Not specified</p>
+        <div className="bg-muted p-3 rounded">
+          <p className="text-xs text-muted-foreground">Experience</p>
+          <p className="font-medium text-foreground">Not specified</p>
         </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Salary Range</p>
-          <p className="font-medium">Not specified</p>
+        <div className="bg-muted p-3 rounded">
+          <p className="text-xs text-muted-foreground">Salary Range</p>
+          <p className="font-medium text-foreground">Not specified</p>
         </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Applications</p>
-          <p className="font-medium">{applicationsCount[job.job_id] || 0}</p>
+        <div className="bg-muted p-3 rounded">
+          <p className="text-xs text-muted-foreground">Applications</p>
+          <p className="font-medium text-foreground">{applicationsCount[job.job_id] || 0}</p>
         </div>
       </div>
       
       <div className="mb-6">
-        <h3 className="font-medium mb-2">Job Description</h3>
-        <div className="text-gray-700 whitespace-pre-line">
+        <h3 className="font-medium mb-2 text-foreground">Job Description</h3>
+        <div className="text-muted-foreground whitespace-pre-line">
           {job.description || 'No description provided'}
         </div>
       </div>
       
       <div className="mb-6">
-        <h3 className="font-medium mb-2">Requirements</h3>
-        <div className="text-gray-700">
+        <h3 className="font-medium mb-2 text-foreground">Requirements</h3>
+        <div className="text-muted-foreground">
           {Array.isArray(job.tags) ? (
             <ul className="list-disc pl-4 space-y-1">
               {job.tags.map((tag: string, index: number) => (
@@ -504,11 +504,12 @@ export default function AdminJobListings() {
         />
       </MultiPurposeModal>
       
+      {/* Delete Confirmation Modal */}
       <MultiPurposeModal
         open={isDeleteModalOpen}
         onOpenChange={setIsDeleteModalOpen}
-        title="Delete Job"
-        description="Are you sure you want to delete this job posting? This action cannot be undone."
+        title="Delete Job Listing"
+        description="Are you sure you want to delete this job listing? This action cannot be undone."
         size="sm"
         showFooter={true}
         primaryActionText="Delete"
@@ -516,12 +517,9 @@ export default function AdminJobListings() {
         secondaryActionText="Cancel"
         onSecondaryAction={() => setIsDeleteModalOpen(false)}
       >
-        {selectedJob && (
-          <div className="py-2">
-            <p className="mb-2"><strong>Title:</strong> {selectedJob.title}</p>
-            <p><strong>Company:</strong> {selectedJob.company}</p>
-          </div>
-        )}
+        <div className="text-muted-foreground">
+          This will permanently remove the job listing and all associated data.
+        </div>
       </MultiPurposeModal>
       
       <MultiPurposeModal

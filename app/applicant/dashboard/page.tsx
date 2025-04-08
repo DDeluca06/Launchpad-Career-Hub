@@ -48,7 +48,7 @@ interface JobApplication {
   priority?: "high" | "medium" | "low";
 }
 
-// Sample data - this would come from local storage in real implementation
+// Sample data - this would come from the database soon
 const initialApplications: JobApplication[] = [
   { 
     applicationId: 1,
@@ -665,16 +665,16 @@ function EventCard({ title, date, time, type, company }: {
 }) {
   return (
     <MotionDiv 
-      className="flex justify-between items-center p-4 bg-white border rounded-lg shadow-sm"
+      className="flex justify-between items-center p-4 bg-muted/30 border border-border/30 rounded-lg shadow-sm"
       whileHover={{ scale: 1.01, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
     >
       <div className="flex items-center gap-3">
         <div className={cn(
           "w-10 h-10 rounded-full flex items-center justify-center",
-          type === "interview" ? "bg-launchpad-blue text-white" : 
-          type === "assessment" ? "bg-launchpad-green text-white" : 
-          "bg-launchpad-orange text-white")}
+          type === "interview" ? "bg-blue-500/10 text-blue-500" : 
+          type === "assessment" ? "bg-green-500/10 text-green-500" : 
+          "bg-orange-500/10 text-orange-500")}
         >
           {type === "interview" ? 
             <Users className="h-5 w-5" /> :
@@ -684,11 +684,11 @@ function EventCard({ title, date, time, type, company }: {
           }
         </div>
         <div>
-          <h3 className="font-medium">{title}</h3>
-          <p className="text-xs text-gray-500">{company} • {date} • {time}</p>
+          <h3 className="font-medium text-foreground/90">{title}</h3>
+          <p className="text-xs text-muted-foreground/80">{company} • {date} • {time}</p>
         </div>
       </div>
-      <Button size="sm">
+      <Button size="sm" variant="outline" className="border-border/30">
         {type === "interview" ? "Prepare" :
           type === "assessment" ? "Start" :
           "Join"}
@@ -708,11 +708,11 @@ function RecommendedJobCard({ id, title, company, logo, match, location }: {
 }) {
   return (
     <MotionDiv 
-      className="p-4 bg-white border rounded-lg shadow-sm flex items-center gap-3"
+      className="p-4 bg-muted/30 border border-border/30 rounded-lg shadow-sm flex items-center gap-3"
       whileHover={{ scale: 1.01, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
     >
-      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+      <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden">
         <LaunchpadImage
           src={logo}
           alt={company}
@@ -724,10 +724,10 @@ function RecommendedJobCard({ id, title, company, logo, match, location }: {
       <div className="flex-1" data-job-id={id}>
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="font-medium text-sm">{title}</h3>
-            <p className="text-xs text-gray-500">{company} • {location}</p>
+            <h3 className="font-medium text-sm text-foreground/90">{title}</h3>
+            <p className="text-xs text-muted-foreground/80">{company} • {location}</p>
           </div>
-          <Badge className="bg-green-100 text-green-600">
+          <Badge className="bg-green-500/10 text-green-500">
             {match}
           </Badge>
         </div>

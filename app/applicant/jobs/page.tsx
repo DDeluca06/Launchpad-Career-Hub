@@ -1,16 +1,15 @@
 "use client"
 
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { Button } from "@/components/ui/basic/button"
-import { Card, CardContent } from "@/components/ui/basic/card"
-import { Input } from "@/components/ui/form/input"
-import { Search, Filter, MapPin, Briefcase, BadgeDollarSign, Clock, Building, CheckCircle } from "lucide-react"
 import { useState } from "react"
-import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal"
-import { JobFilters } from "@/components/job-filters"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import { Card, CardContent } from "@/components/ui/basic/card"
+import { Button } from "@/components/ui/basic/button"
+import { Input } from "@/components/ui/form/input"
 import { Badge } from "@/components/ui/basic/badge"
-import { Separator } from "@/components/ui/basic/separator"
+import { Search, Filter, MapPin, Clock, DollarSign, CheckCircle2 } from "lucide-react"
+import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal"
 import { cn } from "@/lib/utils"
+import { JobFilters } from "@/components/job-filters"
 
 interface Job {
   id: string;
@@ -237,18 +236,6 @@ export default function ApplicantJobListings() {
     return true;
   });
 
-  // Count active filters
-  const countActiveFilters = () => {
-    let count = 0;
-    if (activeFilters.jobTypes.length > 0) count += activeFilters.jobTypes.length;
-    if (activeFilters.locations.length > 0) count += activeFilters.locations.length;
-    if (activeFilters.remoteOnly) count += 1;
-    if (activeFilters.experienceLevel !== 'any') count += 1;
-    if (activeFilters.salary[0] > 0 || activeFilters.salary[1] < 200) count += 1;
-    if (activeFilters.keywords.trim()) count += 1;
-    return count;
-  };
-
   // Handle loading more jobs
   const handleLoadMore = () => {
     setVisibleJobCount(prev => prev + 3); // Increase the number of visible jobs
@@ -256,172 +243,142 @@ export default function ApplicantJobListings() {
 
   return (
     <DashboardLayout>
-      <div className="container p-4 mx-auto max-w-screen-xl">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Browse Jobs</h1>
-        </div>
-
-        {/* Search and Filter Bar - Simplified */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 mb-6">
-          <div className="flex gap-3">
-            <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input 
-                type="search" 
-                placeholder="Search job title, company, or keywords..." 
-                className="pl-10 border-gray-200 focus:border-launchpad-blue" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+      <div className="container py-6 px-4 mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground/90">Job Listings</h1>
+            <p className="text-muted-foreground/80 mt-1">Browse and apply for available positions</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1 shadow-sm hover:shadow-md transition-shadow"
               onClick={openFilterModal}
-              className="bg-launchpad-blue hover:bg-launchpad-teal text-white gap-2 whitespace-nowrap relative"
             >
-              <Filter className="h-4 w-4" />
-              Filters
-              {countActiveFilters() > 0 && (
-                <Badge className="ml-1 bg-white text-launchpad-blue font-bold text-xs h-5 absolute -top-2 -right-2">
-                  {countActiveFilters()}
-                </Badge>
-              )}
+              <Filter className="h-4 w-4" /> 
+              Filter Jobs
             </Button>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-8 gap-6">
-          {/* Job Listings - Takes 3/8 of the space on large screens */}
-          <div className="lg:col-span-3 space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-medium text-gray-900">Available Positions</h2>
-              <span className="text-sm text-gray-500">{filteredJobs.length} jobs found</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Job List */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
+              <Input
+                placeholder="Search jobs..."
+                className="pl-9 bg-muted/50 border-border/50 shadow-sm focus:shadow-md transition-shadow"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            
-            <div className="space-y-3">
+
+            <div className="space-y-4">
               {filteredJobs.slice(0, visibleJobCount).map((job) => (
-                <div 
-                  key={job.id}
-                  onClick={() => handleJobSelect(job)}
+                <Card 
+                  key={job.id} 
                   className={cn(
-                    "bg-white rounded-lg border p-4 cursor-pointer transition-all hover:shadow-md",
-                    selectedJob?.id === job.id ? "border-launchpad-blue border-l-4" : "border-gray-100"
+                    "cursor-pointer transition-all hover:shadow-md",
+                    selectedJob?.id === job.id ? "border-primary shadow-md" : "border-border/50"
                   )}
+                  onClick={() => handleJobSelect(job)}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center text-gray-500 border border-gray-200">
-                      {job.company.charAt(0)}
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-foreground/90">{job.title}</h3>
+                        <p className="text-muted-foreground/80 mt-1">{job.company}</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs shadow-sm">
+                        {job.type}
+                      </Badge>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{job.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{job.company}</p>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge variant="outline" className="flex items-center text-xs gap-1 font-normal border-gray-200">
-                          <MapPin className="h-3 w-3" />
-                          {job.location}
-                        </Badge>
-                        <Badge variant="outline" className="flex items-center text-xs gap-1 font-normal border-gray-200">
-                          <Briefcase className="h-3 w-3" />
-                          {job.type}
-                        </Badge>
-                        <Badge variant="outline" className="flex items-center text-xs gap-1 font-normal border-gray-200">
-                          <Clock className="h-3 w-3" />
-                          {job.postedDate}
-                        </Badge>
+                    
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <div className="flex items-center text-sm text-muted-foreground/80">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        {job.location}
+                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground/80">
+                        <DollarSign className="h-4 w-4" />
+                        {job.salary}
+                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground/80">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {job.postedDate}
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
+            </div>
 
-              {/* Load More Button */}
-              {visibleJobCount < filteredJobs.length && (
+            {visibleJobCount < filteredJobs.length && (
+              <div className="flex justify-center mt-6">
                 <Button 
                   variant="outline" 
-                  className="w-full mt-4"
                   onClick={handleLoadMore}
+                  className="shadow-sm hover:shadow-md transition-shadow"
                 >
                   Load More Jobs
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          {/* Job Details - Takes 5/8 of the space on large screens */}
-          <div className="lg:col-span-5">
-            <Card className="border-gray-100 shadow-sm">
-              <CardContent className="p-6">
-                <div className="mb-4">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <h2 className="text-2xl font-bold text-gray-900">{selectedJob?.title}</h2>
-                      <div className="flex items-center space-x-2 text-gray-600">
-                        <Building className="h-4 w-4" />
-                        <span>{selectedJob?.company}</span>
-                      </div>
+          {/* Job Details */}
+          <div className="lg:col-span-1">
+            {selectedJob ? (
+              <Card className="sticky top-6 border-border/50 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-foreground/90">{selectedJob.title}</h2>
+                      <p className="text-muted-foreground/80 mt-1">{selectedJob.company}</p>
                     </div>
-                    <Button 
-                      className="bg-launchpad-blue hover:bg-launchpad-teal"
-                      onClick={openApplicationModal}
-                    >
-                      Apply Now
-                    </Button>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-3 mt-4">
-                    <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
-                      <MapPin className="h-3 w-3" />
-                      {selectedJob?.location}
-                    </Badge>
-                    <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
-                      <Briefcase className="h-3 w-3" />
-                      {selectedJob?.type}
-                    </Badge>
-                    <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
-                      <BadgeDollarSign className="h-3 w-3" />
-                      {selectedJob?.salary}
-                    </Badge>
-                    <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1 font-normal">
-                      <Clock className="h-3 w-3" />
-                      Posted {selectedJob?.postedDate}
+                    <Badge variant="outline" className="text-xs shadow-sm">
+                      {selectedJob.type}
                     </Badge>
                   </div>
-                </div>
-                
-                <Separator className="my-6" />
-                
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-3 text-gray-900">Description</h3>
-                    <p className="text-gray-700">{selectedJob?.description}</p>
+
+                  <div className="mt-6 space-y-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-foreground/90">Description</h3>
+                      <p className="text-muted-foreground/80 mt-2">{selectedJob.description}</p>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-medium text-foreground/90">Requirements</h3>
+                      <ul className="mt-2 space-y-2">
+                        {selectedJob.requirements.map((req, index) => (
+                          <li key={index} className="flex items-start text-muted-foreground/80">
+                            <CheckCircle2 className="h-4 w-4 mt-1 mr-2 text-primary" />
+                            {req}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="pt-4">
+                      <Button 
+                        className="w-full shadow-sm hover:shadow-md transition-shadow"
+                        onClick={openApplicationModal}
+                      >
+                        Apply Now
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-3 text-gray-900">Requirements</h3>
-                    <ul className="space-y-2">
-                      {selectedJob?.requirements.map((req, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <CheckCircle className="h-5 w-5 text-launchpad-teal shrink-0 mt-0.5" />
-                          <span className="text-gray-700">{req}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                
-                <div className="mt-8 flex gap-4">
-                  <Button 
-                    className="flex-1 gap-2 bg-launchpad-blue hover:bg-launchpad-teal"
-                    onClick={openApplicationModal}
-                  >
-                    Apply Now
-                  </Button>
-                  <Button variant="outline" className="flex-1 gap-2">
-                    Save Job
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="sticky top-6 border-border/50 shadow-lg">
+                <CardContent className="p-6">
+                  <p className="text-muted-foreground/80 text-center">Select a job to view details</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
@@ -461,7 +418,7 @@ export default function ApplicantJobListings() {
         {applicationSubmitted ? (
           <div className="text-center py-8">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
             <h3 className="text-xl font-medium text-gray-900 mb-2">Application Successfully Submitted!</h3>
             <p className="text-gray-600 mb-6">
