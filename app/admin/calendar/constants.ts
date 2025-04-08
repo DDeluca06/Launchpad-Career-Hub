@@ -121,9 +121,18 @@ export const EXAMPLE_EVENTS = [
 ];
 
 /**
- * Generates an array of days for the calendar
- * @param date The reference date to generate calendar for (usually current month)
- * @returns Array of calendar days with their properties
+ * Generates a calendar grid for a month based on a reference date.
+ *
+ * This function constructs a 6x7 (42-cell) array of day objects for calendar display.
+ * The grid includes days from the previous and next months as needed to fill all cells.
+ * Each day object contains:
+ * - the actual date,
+ * - the day number,
+ * - a flag indicating if it belongs to the current month, and
+ * - a flag indicating if it represents today's date.
+ *
+ * @param date - The reference date used to determine the month for the calendar.
+ * @returns An array of 42 day objects representing the calendar grid.
  */
 export function generateCalendarDays(date: Date) {
   const year = date.getFullYear();
@@ -192,9 +201,14 @@ export function generateCalendarDays(date: Date) {
 }
 
 /**
- * Format a time to 12-hour format with AM/PM
- * @param date Date object to format
- * @returns Formatted time string
+ * Converts a Date object into a 12-hour time string with an AM/PM indicator.
+ *
+ * This function extracts the hour and minute components of the provided Date,
+ * converts the hour from 24-hour to 12-hour format (with 0 hours formatted as 12),
+ * and pads the minutes with a leading zero when necessary.
+ *
+ * @param date - The Date object representing the time to format.
+ * @returns The formatted time as a string in 12-hour notation (e.g., "3:05 PM").
  */
 export function formatTime(date: Date): string {
   let hours = date.getHours();

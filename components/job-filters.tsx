@@ -42,6 +42,14 @@ const LOCATIONS = [
   { id: "hybrid", label: "Hybrid" },
 ]
 
+/**
+ * Renders UI controls for filtering job listings.
+ *
+ * This component presents interactive options to select job types, choose locations, toggle a remote-only filter, and enter keywords. It manages its own filter state initialized with the provided initial filters and notifies the parent component of state changes via the onApply callback when filters are applied or reset.
+ *
+ * @param onApply - Callback function invoked with the current filters when the user applies or resets the filters.
+ * @param initialFilters - The initial filter configuration for the component.
+ */
 export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
   const [filters, setFilters] = useState<JobFilter>(initialFilters)
 
