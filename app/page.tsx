@@ -80,7 +80,7 @@ export default function Home() {
       </main>
       <footer className="border-t py-6">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>© 2025 Job Finder Portal. All rights reserved.</p>
+          <p>© 2025 Launchpad Philly Job Finder Portal. All rights reserved.</p>
         </div>
       </footer>
     </div>
