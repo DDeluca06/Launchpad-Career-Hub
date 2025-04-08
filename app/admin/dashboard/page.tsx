@@ -28,10 +28,11 @@ import { useStats } from "@/hooks/use-stats";
 import { useActivity } from "@/hooks/use-activity";
 
 // Define Activity and User interfaces
-interface User {
-  id: string;
-  name: string;
-}
+// TODO: Add User interface
+// interface User {
+//   id: string;
+//   name: string;
+// }
 
 // TODO: Add Activity interface
 // interface Activity {
