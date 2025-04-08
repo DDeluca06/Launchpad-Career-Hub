@@ -18,6 +18,13 @@ const nextConfig = {
   images: {
     // Enable Next.js image optimization for production
     unoptimized: false,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'w8d9q6vsv9.ufs.sh',
+        pathname: '/f/**',
+      },
+    ],
   },
   experimental: {
     // Keep performance-enhancing features

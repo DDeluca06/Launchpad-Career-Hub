@@ -33,14 +33,6 @@ interface JobFilters {
   keywords: string;
 }
 
-interface ApplicationFormData {
-  name?: string;
-  email?: string;
-  phone?: string;
-  resume?: File;
-  coverLetter?: string;
-}
-
 const jobs: Job[] = [
   { 
     id: "1", 
@@ -154,12 +146,16 @@ export default function ApplicantJobListings() {
   });
   const [applicationModalOpen, setApplicationModalOpen] = useState(false);
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [coverLetter, setCoverLetter] = useState("");
 
   // Handle applying filters
   const handleApplyFilters = (filters: JobFilters) => {
     // For development only
     if (process.env.NODE_ENV === 'development') {
-      console.log('Applying filters:', filters);
+      // console.log('Applying filters:', filters);
     }
     setActiveFilters(filters);
     setFilterModalOpen(false);
@@ -182,10 +178,10 @@ export default function ApplicantJobListings() {
   };
 
   // Function to handle application submission
-  const handleApplicationSubmit = (formData: ApplicationFormData) => {
+  const handleApplicationSubmit = () => {
     // For development only
     if (process.env.NODE_ENV === 'development') {
-      console.log("Application submitted:", formData);
+      // console.log("Application submitted:", { name, email, phone, coverLetter });
     }
     // Here you would typically send the data to your backend
     setApplicationSubmitted(true);
@@ -479,28 +475,24 @@ export default function ApplicantJobListings() {
             <p className="text-gray-700">Please fill out the form below to apply for this position.</p>
             <form onSubmit={(e) => {
               e.preventDefault();
-              handleApplicationSubmit({});
+              handleApplicationSubmit();
             }}>
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
-                  <Input type="text" className="block w-full border-gray-200 focus:border-launchpad-blue" />
+                  <Input type="text" className="block w-full border-gray-200 focus:border-launchpad-blue" value={name} onChange={(e) => setName(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <Input type="email" className="block w-full border-gray-200 focus:border-launchpad-blue" />
+                  <Input type="email" className="block w-full border-gray-200 focus:border-launchpad-blue" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                  <Input type="tel" className="block w-full border-gray-200 focus:border-launchpad-blue" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Resume</label>
-                  <Input type="file" className="block w-full border-gray-200 focus:border-launchpad-blue" />
+                  <Input type="tel" className="block w-full border-gray-200 focus:border-launchpad-blue" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Cover Letter</label>
-                  <textarea className="block w-full border-gray-200 focus:border-launchpad-blue" rows={5}></textarea>
+                  <textarea className="block w-full border-gray-200 focus:border-launchpad-blue" rows={5} value={coverLetter} onChange={(e) => setCoverLetter(e.target.value)}></textarea>
                 </div>
               </div>
               <div className="flex gap-3 justify-end mt-6">
