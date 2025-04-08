@@ -2,287 +2,169 @@
 
 import { useState } from "react"
 import { Label } from "@/components/ui/basic/label"
-import { Checkbox } from "@/components/ui/form/checkbox"
 import { Input } from "@/components/ui/form/input"
-import { Slider } from "@/components/ui/basic/slider"
-import { Switch } from "@/components/ui/basic/switch"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/form/radio-group"
-import { ScrollArea } from "@/components/ui/layout/scroll-area"
-import { Separator } from "@/components/ui/basic/separator"
+import { Button } from "@/components/ui/basic/button"
 import { Search, Briefcase, MapPin, BadgeDollarSign, GraduationCap } from "lucide-react"
 
+interface JobFilter {
+  jobTypes: string[];
+  locations: string[];
+  remoteOnly: boolean;
+  salary: [number, number];
+  experienceLevel: string;
+  keywords: string;
+}
+
 interface JobFiltersProps {
-  onApplyFilters: (filters: JobFilters) => void
-  initialFilters?: JobFilters
+  onApply: (filters: JobFilter) => void;
+  initialFilters: JobFilter;
 }
 
-interface JobFilters {
-  jobTypes: string[]
-  locations: string[]
-  remoteOnly: boolean
-  salary: [number, number]
-  experienceLevel: string
-  keywords: string
-}
-
-const DEFAULT_FILTERS: JobFilters = {
+const DEFAULT_FILTERS: JobFilter = {
   jobTypes: [],
   locations: [],
   remoteOnly: false,
-  salary: [0, 200],
-  experienceLevel: "any",
+  salary: [0, 1000000],
+  experienceLevel: "",
   keywords: ""
 }
 
 const JOB_TYPES = [
-  { id: "full_time", label: "Full Time" },
-  { id: "part_time", label: "Part Time" },
+  { id: "full-time", label: "Full Time" },
+  { id: "part-time", label: "Part Time" },
   { id: "contract", label: "Contract" },
   { id: "internship", label: "Internship" },
-  { id: "temporary", label: "Temporary" }
 ]
 
 const LOCATIONS = [
   { id: "remote", label: "Remote" },
-  { id: "philadelphia_pa", label: "Philadelphia, PA" },
-  { id: "new_york_ny", label: "New York, NY" },
-  { id: "boston_ma", label: "Boston, MA" },
-  { id: "san_francisco_ca", label: "San Francisco, CA" },
-  { id: "seattle_wa", label: "Seattle, WA" }
+  { id: "onsite", label: "On-site" },
+  { id: "hybrid", label: "Hybrid" },
 ]
 
 const EXPERIENCE_LEVELS = [
-  { id: "any", label: "Any Experience" },
+  { id: "", label: "All Levels" },
   { id: "entry", label: "Entry Level" },
   { id: "mid", label: "Mid Level" },
   { id: "senior", label: "Senior Level" },
-  { id: "lead", label: "Lead/Manager" }
+  { id: "director", label: "Director Level" },
 ]
 
-export function JobFilters({ onApplyFilters, initialFilters = DEFAULT_FILTERS }: JobFiltersProps) {
-  const [filters, setFilters] = useState<JobFilters>(initialFilters)
-  
-  // Handle job type selection
-  const handleJobTypeChange = (jobTypeId: string, checked: boolean) => {
-    if (checked) {
-      setFilters(prev => ({
-        ...prev,
-        jobTypes: [...prev.jobTypes, jobTypeId]
-      }))
-    } else {
-      setFilters(prev => ({
-        ...prev,
-        jobTypes: prev.jobTypes.filter(id => id !== jobTypeId)
-      }))
-    }
+export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
+  const [filters, setFilters] = useState<JobFilter>(initialFilters)
+
+  const handleApply = () => {
+    onApply(filters)
   }
-  
-  // Handle location selection
-  const handleLocationChange = (locationId: string, checked: boolean) => {
-    if (checked) {
-      setFilters(prev => ({
-        ...prev,
-        locations: [...prev.locations, locationId]
-      }))
-    } else {
-      setFilters(prev => ({
-        ...prev,
-        locations: prev.locations.filter(id => id !== locationId)
-      }))
-    }
-  }
-  
-  // Handle remote only toggle
-  const handleRemoteOnlyChange = (checked: boolean) => {
-    setFilters(prev => ({
-      ...prev,
-      remoteOnly: checked
-    }))
-  }
-  
-  // Handle salary range change
-  const handleSalaryChange = (value: number[]) => {
-    setFilters(prev => ({
-      ...prev,
-      salary: [value[0], value[1]]
-    }))
-  }
-  
-  // Handle experience level change
-  const handleExperienceLevelChange = (value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      experienceLevel: value
-    }))
-  }
-  
-  // Handle keywords change
-  const handleKeywordsChange = (value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      keywords: value
-    }))
-  }
-  
-  // Reset filters to default
-  const resetFilters = () => {
-    setFilters(DEFAULT_FILTERS)
-  }
-  
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Keywords Section */}
-      <div className="bg-white rounded-lg p-4 border border-gray-100">
-        <Label htmlFor="keywords" className="text-base font-medium flex items-center gap-2 text-gray-800">
-          <Search className="h-4 w-4 text-launchpad-blue" />
-          Keywords
-        </Label>
-        <div className="mt-2">
-          <Input
-            id="keywords"
-            placeholder="Search job titles, skills, or companies"
-            value={filters.keywords}
-            onChange={(e) => handleKeywordsChange(e.target.value)}
-            className="border-gray-200 focus:border-launchpad-blue"
-          />
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Briefcase className="h-4 w-4 text-gray-500" />
+          <Label htmlFor="job-type" className="text-sm font-medium text-gray-700">Job Type</Label>
         </div>
+        <select
+          multiple
+          value={filters.jobTypes}
+          onChange={(e) => {
+            const options = Array.from(e.target.selectedOptions, option => option.value)
+            setFilters(prev => ({ ...prev, jobTypes: options }))
+          }}
+          className="w-full border-gray-200 focus:border-launchpad-blue"
+        >
+          {JOB_TYPES.map((jobType) => (
+            <option key={jobType.id} value={jobType.id}>{jobType.label}</option>
+          ))}
+        </select>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Job Type Section */}
-        <div className="bg-white rounded-lg p-4 border border-gray-100">
-          <h3 className="text-base font-medium mb-3 flex items-center gap-2 text-gray-800">
-            <Briefcase className="h-4 w-4 text-launchpad-blue" />
-            Job Type
-          </h3>
-          <div className="grid grid-cols-1 gap-2">
-            {JOB_TYPES.map((jobType) => (
-              <div key={jobType.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`jobType-${jobType.id}`}
-                  checked={filters.jobTypes.includes(jobType.id)}
-                  onCheckedChange={(checked) => 
-                    handleJobTypeChange(jobType.id, checked === true)
-                  }
-                  className="text-launchpad-blue data-[state=checked]:bg-launchpad-blue data-[state=checked]:border-launchpad-blue"
-                />
-                <Label 
-                  htmlFor={`jobType-${jobType.id}`}
-                  className="text-sm font-normal cursor-pointer text-gray-700"
-                >
-                  {jobType.label}
-                </Label>
-              </div>
-            ))}
-          </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-gray-500" />
+          <Label htmlFor="location" className="text-sm font-medium text-gray-700">Location</Label>
         </div>
-      
-        {/* Location Section */}
-        <div className="bg-white rounded-lg p-4 border border-gray-100">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-base font-medium flex items-center gap-2 text-gray-800">
-              <MapPin className="h-4 w-4 text-launchpad-blue" />
-              Location
-            </h3>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="remote-only"
-                checked={filters.remoteOnly}
-                onCheckedChange={handleRemoteOnlyChange}
-                className="data-[state=checked]:bg-launchpad-blue"
-              />
-              <Label htmlFor="remote-only" className="text-sm cursor-pointer text-gray-700">Remote Only</Label>
-            </div>
-          </div>
-          
-          <ScrollArea className="h-[150px] pr-4">
-            <div className="grid grid-cols-1 gap-2">
-              {LOCATIONS.map((location) => (
-                <div key={location.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`location-${location.id}`}
-                    checked={filters.locations.includes(location.id)}
-                    onCheckedChange={(checked) => 
-                      handleLocationChange(location.id, checked === true)
-                    }
-                    disabled={filters.remoteOnly && location.id !== "remote"}
-                    className="text-launchpad-blue data-[state=checked]:bg-launchpad-blue data-[state=checked]:border-launchpad-blue"
-                  />
-                  <Label 
-                    htmlFor={`location-${location.id}`}
-                    className="text-sm font-normal cursor-pointer text-gray-700"
-                  >
-                    {location.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
+        <select
+          multiple
+          value={filters.locations}
+          onChange={(e) => {
+            const options = Array.from(e.target.selectedOptions, option => option.value)
+            setFilters(prev => ({ ...prev, locations: options }))
+          }}
+          className="w-full border-gray-200 focus:border-launchpad-blue"
+        >
+          {LOCATIONS.map((location) => (
+            <option key={location.id} value={location.id}>{location.label}</option>
+          ))}
+        </select>
       </div>
-      
-      {/* Salary Range Section */}
-      <div className="bg-white rounded-lg p-4 border border-gray-100">
-        <h3 className="text-base font-medium mb-3 flex items-center gap-2 text-gray-800">
-          <BadgeDollarSign className="h-4 w-4 text-launchpad-blue" />
-          Salary Range (in $1,000s)
-        </h3>
-        <div className="px-2 pt-2">
-          <Slider
-            defaultValue={[filters.salary[0], filters.salary[1]]}
-            max={200}
-            step={5}
-            value={[filters.salary[0], filters.salary[1]]}
-            onValueChange={handleSalaryChange}
-            className="mt-2"
-          />
-          <div className="flex justify-between mt-3 text-sm text-gray-500">
-            <div>${filters.salary[0]}k</div>
-            <div>${filters.salary[1]}k{filters.salary[1] === 200 ? "+" : ""}</div>
-          </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <GraduationCap className="h-4 w-4 text-gray-500" />
+          <Label htmlFor="experience-level" className="text-sm font-medium text-gray-700">Experience Level</Label>
         </div>
-      </div>
-      
-      {/* Experience Level Section */}
-      <div className="bg-white rounded-lg p-4 border border-gray-100">
-        <h3 className="text-base font-medium mb-3 flex items-center gap-2 text-gray-800">
-          <GraduationCap className="h-4 w-4 text-launchpad-blue" />
-          Experience Level
-        </h3>
-        <RadioGroup
+        <select
           value={filters.experienceLevel}
-          onValueChange={handleExperienceLevelChange}
-          className="grid grid-cols-1 gap-2"
+          onChange={(e) => setFilters(prev => ({ ...prev, experienceLevel: e.target.value }))}
+          className="w-full border-gray-200 focus:border-launchpad-blue"
         >
           {EXPERIENCE_LEVELS.map((level) => (
-            <div key={level.id} className="flex items-center space-x-2">
-              <RadioGroupItem 
-                value={level.id} 
-                id={`experience-${level.id}`}
-                className="text-launchpad-blue"
-              />
-              <Label 
-                htmlFor={`experience-${level.id}`}
-                className="text-sm font-normal cursor-pointer text-gray-700"
-              >
-                {level.label}
-              </Label>
-            </div>
+            <option key={level.id} value={level.id}>{level.label}</option>
           ))}
-        </RadioGroup>
+        </select>
       </div>
-      
-      <Separator className="my-4" />
-      
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={resetFilters}
-          className="text-sm text-launchpad-blue hover:text-launchpad-teal hover:underline mr-auto"
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <BadgeDollarSign className="h-4 w-4 text-gray-500" />
+          <Label htmlFor="salary-range" className="text-sm font-medium text-gray-700">Salary Range</Label>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            value={filters.salary[0]}
+            onChange={(e) => setFilters(prev => ({ ...prev, salary: [Number(e.target.value), prev.salary[1]] }))}
+            className="w-1/2 border-gray-200 focus:border-launchpad-blue"
+            placeholder="Min"
+          />
+          <Input
+            type="number"
+            value={filters.salary[1]}
+            onChange={(e) => setFilters(prev => ({ ...prev, salary: [prev.salary[0], Number(e.target.value)] }))}
+            className="w-1/2 border-gray-200 focus:border-launchpad-blue"
+            placeholder="Max"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4 text-gray-500" />
+          <Label htmlFor="keywords" className="text-sm font-medium text-gray-700">Keywords</Label>
+        </div>
+        <Input
+          value={filters.keywords}
+          onChange={(e) => setFilters(prev => ({ ...prev, keywords: e.target.value }))}
+          className="w-full border-gray-200 focus:border-launchpad-blue"
+          placeholder="Enter keywords..."
+        />
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <Button
+          variant="outline"
+          onClick={() => setFilters(DEFAULT_FILTERS)}
         >
-          Reset Filters
-        </button>
+          Reset
+        </Button>
+        <Button
+          onClick={handleApply}
+          className="bg-launchpad-blue hover:bg-launchpad-teal"
+        >
+          Apply Filters
+        </Button>
       </div>
     </div>
   )
-} 
+}

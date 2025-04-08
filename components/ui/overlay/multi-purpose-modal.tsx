@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Dialog, DialogContent as BaseDialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/overlay/dialog"
+import { Dialog, DialogContent as DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/overlay/dialog"
 import { Button } from "@/components/ui/basic/button"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"

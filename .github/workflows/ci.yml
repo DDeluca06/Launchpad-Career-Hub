@@ -22,4 +22,159 @@ jobs:
       - name: Run TypeScript check
         run: pnpm run type-check # Run TypeScript check (ensure this script is in package.json)
       - name: Build Next.js app
-        run: pnpm run build # Build the Next.js application
+        run: pnpm run build # Build the Next.js applicatin
+
+        # # i do not want this deploying to my server without my express consent
+
+# name: Deploy Next.js App
+
+# on:
+#   push:
+#     branches:
+#       - main  # Runs when pushing to the main branch
+#   workflow_dispatch:  # Allows manual triggering of the workflow
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       - name: Install pnpm
+#         uses: pnpm/action-setup@v2
+#         with:
+#           version: 8
+#           run_install: true
+
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: '20'
+#           cache: 'pnpm'
+
+#       - name: Get pnpm store directory
+#         shell: bash
+#         run: |
+#           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+#       - name: Setup pnpm cache
+#         uses: actions/cache@v3
+#         with:
+#           path: ${{ env.STORE_PATH }}
+#           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+#           restore-keys: |
+#             ${{ runner.os }}-pnpm-store-
+
+#       - name: Install dependencies
+#         run: pnpm install --frozen-lockfile
+
+#       - name: Build Next.js app
+#         run: pnpm build
+
+#       - name: Verify build output
+#         run: |
+#           echo "Listing current directory contents:"
+#           ls -la
+#           echo "Checking for .next directory:"
+#           if [ -d ".next" ]; then
+#             echo ".next directory exists."
+#             echo "Listing .next contents:"
+#             ls -la .next
+#           else
+#             echo "Error: .next directory not found after build!"
+#             exit 1
+#           fi
+#           echo "Checking for next.config.js:"
+#           if [ -f "next.config.js" ]; then
+#             echo "next.config.js file exists."
+#           else
+#             # Depending on your setup, this might be optional
+#             echo "Warning: next.config.js file not found after build!"
+#           fi
+
+#       - name: Create staging directory and copy artifacts
+#         run: |
+#           mkdir staging
+#           cp -r .next staging/
+#           cp package.json staging/
+#           cp pnpm-lock.yaml staging/
+#           cp ecosystem.config.js staging/
+#           # Copy next.config.js only if it exists
+#           if [ -f "next.config.js" ]; then
+#             cp next.config.js staging/
+#           fi
+#           cp -r public staging/
+#           echo "Listing staging directory contents:"
+#           ls -la staging
+
+#       - name: Upload build artifact
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: next-build
+#           path: ./staging # Upload the staging directory
+#   # deploy:
+#   #   runs-on: ubuntu-latest
+#   #   needs: build  # Ensure build job completes successfully first
+#   #   steps:
+#   #     - name: Download build artifact
+#   #       uses: actions/download-artifact@v4
+#   #       with:
+#   #         name: next-build         # Name of the artifact to download
+#   #         path: .                  # Download artifact content (staging dir) to workspace root
+
+#   #     # Verify that the essential .next directory exists after download
+#   #     - name: Verify downloaded artifacts
+#   #       run: |
+#   #         echo "Listing current directory contents:"
+#   #         ls -la
+#   #         if [ ! -d ".next" ]; then
+#   #           echo "Error: .next directory not found in downloaded artifacts"
+#   #           exit 1
+#   #         fi
+
+#   #     - name: Deploy to server
+#   #       env:
+          # SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          # SERVER_USER: ${{ secrets.SERVER_USER }}
+          # SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          # SERVER_PATH: ${{ secrets.SERVER_PATH }}
+#   #       run: |
+#   #         set -ex # Enable verbose output and exit on error
+
+#   #         echo "Setting up SSH key..."
+#   #         mkdir -p ~/.ssh
+#   #         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+#   #         chmod 600 ~/.ssh/id_rsa
+#   #         echo "SSH key setup complete."
+          
+#   #         echo "Optional: Adding server host key to known_hosts..."
+#   #         # Uncomment the next line if you want to use ssh-keyscan instead of StrictHostKeyChecking=no
+#   #         # ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts
+#   #         echo "Host key step skipped/completed."
+
+#   #         echo "Copying files to server via scp..."
+#   #         # Copy necessary files from workspace root
+#   #         scp -o StrictHostKeyChecking=no -v -r ./.next ./package.json ./pnpm-lock.yaml ./ecosystem.config.js ./next.config.js ./public $SERVER_USER@$SERVER_HOST:$SERVER_PATH/
+#   #         echo "SCP command finished."
+          
+#   #         echo "Executing remote commands via ssh..."
+#   #         ssh -o StrictHostKeyChecking=no -v $SERVER_USER@$SERVER_HOST "set -ex && \
+#   #           echo 'Changing to directory: $SERVER_PATH' && \
+#   #           cd $SERVER_PATH && \
+#   #           echo 'Installing pnpm on server...' && \
+#   #           curl -f https://get.pnpm.io/v6.js | node - add --global pnpm && \
+#   #           echo 'Installing production dependencies...' && \
+#   #           echo 'Checking pnpm version...' && \
+#   #           pnpm --version && \
+#   #           echo 'Installing production dependencies...' && \
+#   #           pnpm install --prod --frozen-lockfile && \
+#   #           echo 'Restarting application with PM2...' && \
+#   #           pm2 delete next-app || true && \
+#   #           echo 'Restarting application with PM2...' && \
+#   #           pm2 delete next-app || echo 'PM2 delete failed or app not found, continuing...' && \
+#   #           pm2 start ecosystem.config.js && \
+#   #           echo 'Saving PM2 state...' && \
+#   #           pm2 save && \
+#   #           echo 'Deployment commands successful!'"
+#   #         echo "SSH command finished."

@@ -2,208 +2,88 @@
 
 import { useState } from "react"
 import { Badge } from "@/components/ui/basic/badge"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/basic/card"
-import { cn } from "@/lib/utils"
-import { LaunchpadImage } from "@/components/ui/basic/image"
-import { MapPin, Briefcase } from "lucide-react"
-import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal"
-import { JobDetails } from "@/components/job-details"
-import { jobService, Job } from "@/lib/local-storage"
+import { Card, CardContent } from "@/components/ui/basic/card"
+import { Briefcase } from "lucide-react"
+import { Image as LocalImage } from "@/components/ui/basic/image"
+import { Button } from "@/components/ui/basic/button"
 
-export type JobStatus = 
-  | "interested" 
-  | "applied" 
-  | "phoneScreening" 
-  | "interviewStage" 
-  | "finalInterviewStage" 
-  | "offerExtended" 
-  | "negotiation" 
-  | "offerAccepted" 
-  | "rejected";
-
-interface JobCardProps {
-  id: string
-  title: string
-  company: string
-  location?: string
-  jobType?: string
-  companyLogo?: string
-  status?: JobStatus
-  draggable?: boolean
-  onClick?: () => void
-  dragHandleProps?: any
-  fullJobDetails?: Job
+interface Job {
+  id: string;
+  job_id: number;
+  job_type: string;
+  title: string;
+  company: string;
+  location: string;
+  type: string;
+  description: string;
+  website: string;
+  partner_id: number;
+  created_at: string;
+  postedDate: string;
+  salary: string;
+  tags: string[];
+  logo?: string;
 }
 
-export function JobCard({ 
-  id, 
-  title, 
-  company, 
-  location,
-  jobType,
-  companyLogo,
-  status, 
-  draggable = false, 
-  onClick,
-  dragHandleProps,
-  fullJobDetails
-}: JobCardProps) {
-  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-  const [jobDetails, setJobDetails] = useState<Job | null>(null);
+interface JobCardProps {
+  job: Job;
+  onApply: () => void;
+}
 
-  const statusColors: Record<string, string> = {
-    interested: "bg-launchpad-lightBlue hover:bg-launchpad-blue text-black",
-    applied: "bg-launchpad-blue hover:bg-launchpad-teal text-white",
-    phoneScreening: "bg-launchpad-green hover:bg-launchpad-darkGreen text-white",
-    interviewStage: "bg-launchpad-teal hover:bg-launchpad-blue text-white",
-    finalInterviewStage: "bg-launchpad-darkGreen hover:bg-launchpad-green text-white",
-    offerExtended: "bg-launchpad-orange hover:bg-launchpad-brown text-white",
-    negotiation: "bg-launchpad-brown hover:bg-launchpad-orange text-white",
-    offerAccepted: "bg-green-600 hover:bg-green-700 text-white",
-    rejected: "bg-launchpad-darkGray hover:bg-gray-700 text-white",
-  }
+export function JobCard({ job, onApply }: JobCardProps) {
+  const [isApplied, setIsApplied] = useState(false);
 
-  const statusBorderColors: Record<string, string> = {
-    interested: "border-l-launchpad-lightBlue",
-    applied: "border-l-launchpad-blue",
-    phoneScreening: "border-l-launchpad-green",
-    interviewStage: "border-l-launchpad-teal",
-    finalInterviewStage: "border-l-launchpad-darkGreen",
-    offerExtended: "border-l-launchpad-orange",
-    negotiation: "border-l-launchpad-brown",
-    offerAccepted: "border-l-green-600",
-    rejected: "border-l-launchpad-darkGray",
-  }
-
-  const formatStatusLabel = (status: string): string => {
-    if (!status) return '';
-    
-    // Handle special cases
-    if (status === 'phoneScreening') return 'Phone Screening';
-    if (status === 'interviewStage') return 'Interview';
-    if (status === 'finalInterviewStage') return 'Final Interview';
-    if (status === 'offerExtended') return 'Offer Extended';
-    if (status === 'offerAccepted') return 'Offer Accepted';
-    
-    // Default formatting for other statuses
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
-
-  const handleCardClick = async () => {
-    if (onClick) {
-      onClick();
-      return;
-    }
-    
-    if (!fullJobDetails && !jobDetails) {
-      try {
-        const jobId = parseInt(id);
-        const details = jobService.getById(jobId);
-        if (details) {
-          setJobDetails(details);
-        }
-      } catch (error) {
-        console.error("Error fetching job details:", error);
-      }
-    }
-    
-    setDetailsModalOpen(true);
-  };
-
-  const jobToDisplay = fullJobDetails || jobDetails || {
-    job_id: parseInt(id),
-    title,
-    company,
-    location: location || "",
-    job_type: jobType || "",
-    description: "",
-    website: "",
-    partner_id: 0,
-    created_at: new Date().toISOString(),
-    tags: []
-  };
-
-  const handleApplyClick = () => {
-    console.log(`Applying for job ${id}`);
-    setDetailsModalOpen(false);
+  const handleApply = () => {
+    setIsApplied(true);
+    onApply();
   };
 
   return (
-    <>
-      <Card
-        className={cn(
-          "transition-all",
-          status && `border-l-4 ${status ? statusBorderColors[status] : ''}`,
-          draggable && "cursor-grab active:cursor-grabbing",
-          "hover:shadow-md"
-        )}
-        onClick={handleCardClick}
-        {...dragHandleProps}
-      >
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-start">
-            <div className="flex gap-2">
-              <div className="h-10 w-10 rounded-md border flex items-center justify-center bg-white overflow-hidden">
-                {companyLogo ? (
-                  <img src={companyLogo} alt={company} className="h-full w-full object-contain" />
-                ) : (
-                  <LaunchpadImage 
-                    imageId="default-profile-picture" 
-                    width={40} 
-                    height={40} 
-                    className="h-full w-full object-contain" 
-                    unoptimized={true}
-                  />
-                )}
-              </div>
-              <div>
-                <CardTitle className="text-base">{title}</CardTitle>
-                <p className="text-sm text-muted-foreground">{company}</p>
-              </div>
+    <Card className="border border-gray-200 hover:border-launchpad-blue transition-colors">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4 mb-4">
+          {job.logo ? (
+            <div className="w-12 h-12 relative">
+              <LocalImage
+                src={job.logo}
+                alt={`${job.company} logo`}
+                width={48}
+                height={48}
+                className="object-contain"
+              />
             </div>
-            {status && (
-              <Badge className={status ? statusColors[status] : ''}>
-                {formatStatusLabel(status)}
-              </Badge>
-            )}
+          ) : (
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+              <Briefcase className="h-6 w-6 text-gray-400" />
+            </div>
+          )}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
+            <p className="text-sm text-gray-500">{job.company}</p>
           </div>
-        </CardHeader>
-        <CardContent className="pb-2">
-          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-            {location && (
-              <div className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                <span>{location}</span>
-              </div>
-            )}
-            {jobType && (
-              <div className="flex items-center gap-1">
-                <Briefcase className="h-3 w-3" />
-                <span>{jobType}</span>
-              </div>
-            )}
-          </div>
-        </CardContent>
-        <CardFooter className="pt-0">
-          <p className="text-xs text-muted-foreground">Job ID: {id}</p>
-        </CardFooter>
-      </Card>
+        </div>
 
-      <MultiPurposeModal
-        open={detailsModalOpen}
-        onOpenChange={setDetailsModalOpen}
-        title={title}
-        size="lg"
-        showFooter={false}
-      >
-        <JobDetails 
-          job={jobToDisplay} 
-          onApplyClick={handleApplyClick}
-          onSaveClick={() => console.log(`Saving job ${id}`)}
-          onShareClick={() => console.log(`Sharing job ${id}`)}
-        />
-      </MultiPurposeModal>
-    </>
-  )
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary">{job.type}</Badge>
+            <Badge variant="secondary">{job.location}</Badge>
+            <Badge variant="secondary">{job.salary}</Badge>
+          </div>
+
+          <p className="text-gray-600 line-clamp-3">{job.description}</p>
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">Posted {job.postedDate}</p>
+            <Button
+              onClick={handleApply}
+              className="bg-launchpad-blue hover:bg-launchpad-teal text-white"
+              disabled={isApplied}
+            >
+              {isApplied ? 'Applied' : 'Apply Now'}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
-

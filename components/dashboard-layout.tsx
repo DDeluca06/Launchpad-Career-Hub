@@ -3,12 +3,11 @@
 import type React from "react"
 import { DashboardNav } from "@/components/dashboard-nav"
 import { LaunchpadImage } from "@/components/ui/basic/image"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
-import { Bell, Menu } from "lucide-react"
+import { Bell } from "lucide-react"
 import { Button } from "@/components/ui/basic/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/layout/sheet"
 import { motion } from "framer-motion"
-import { useState } from "react"
+
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -16,8 +15,6 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, isAdmin = false }: DashboardLayoutProps) {
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-
   return (
     <div className="flex min-h-screen max-h-screen overflow-hidden flex-col bg-gray-50 dark:bg-gray-900">
       <header className="sticky top-0 z-20 border-b bg-white dark:bg-gray-800 shadow-sm">
@@ -26,24 +23,31 @@ export function DashboardLayout({ children, isAdmin = false }: DashboardLayoutPr
             <Sheet>
               <SheetTrigger asChild className="md:hidden">
                 <Button variant="ghost" size="icon" className="mr-2">
-                  <Menu className="h-5 w-5" />
+                  {/* <Menu className="h-5 w-5" /> */}
                   <span className="sr-only">Toggle menu</span>
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-64">
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <div className="p-4 border-b flex items-center justify-center">
-                  <LaunchpadImage imageId="newLogo" width={120} height={48} className="h-8 w-auto" />
+                  <LaunchpadImage 
+                    imageId="default-profile-picture" 
+                    alt="User profile picture" 
+                    width={40} 
+                    height={40} 
+                    className="object-contain" 
+                  />
                 </div>
                 <DashboardNav isAdmin={isAdmin} />
               </SheetContent>
             </Sheet>
             <div className="flex items-center">
-              <LaunchpadImage 
-                imageId="newLogo" 
-                width={130} 
-                height={52} 
-                className="h-8 w-auto hidden md:block" 
+              <img
+                src="https://149667878.v2.pressablecdn.com/wp-content/uploads/2022/07/01-main-color-launchpad-logo.png"
+                alt="Launchpad Logo"
+                width={130}
+                height={52}
+                className="h-8 w-auto hidden md:block"
               />
             </div>
             <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 hidden md:block"></div>
@@ -57,12 +61,21 @@ export function DashboardLayout({ children, isAdmin = false }: DashboardLayoutPr
               <span className="sr-only">Notifications</span>
               <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-launchpad-orange"></span>
             </Button>
-            <Avatar>
-              <AvatarImage src="/placeholder-user.jpg" alt="User" />
-              <AvatarFallback className="bg-launchpad-blue text-white">
-                {isAdmin ? "AD" : "US"}
-              </AvatarFallback>
-            </Avatar>
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
+                <LaunchpadImage 
+                  imageId="default-profile-picture" 
+                  alt="User profile picture" 
+                  width={40} 
+                  height={40} 
+                  className="object-contain" 
+                />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">Welcome back!</p>
+                <p className="text-sm text-gray-500">{/* user?.name */}</p>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -86,4 +99,3 @@ export function DashboardLayout({ children, isAdmin = false }: DashboardLayoutPr
     </div>
   )
 }
-

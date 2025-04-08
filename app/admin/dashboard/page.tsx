@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { KanbanBoard } from "@/components/kanban-board"
+// import { KanbanBoard } from "@/components/kanban-board"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/basic/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs"
 import { Button } from "@/components/ui/basic/button"
@@ -401,11 +401,11 @@ export default function AdminDashboard() {
                       <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center">
                         <LaunchpadImage
                           src={`/company-logos/${job.company.toLowerCase().replace(/\s+/g, '-')}.png`}
+                          fallbackSrc="/placeholder-logo.png"
                           alt={job.company}
                           width={32}
                           height={32}
                           className="object-contain"
-                          fallbackSrc="/placeholder-logo.png"
                         />
                       </div>
                       <div className="flex-1">
@@ -421,6 +421,49 @@ export default function AdminDashboard() {
                       </div>
                       <Badge className="bg-launchpad-blue/10 text-launchpad-blue">
                         {job.job_type.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          {/* Recent Applicants */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Recent Applicants</CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs">View All</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 pb-3 border-b last:border-0 border-gray-100">
+                      <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-3 w-1/3 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentApplicants.map((user) => (
+                    <div key={user.user_id} className="flex items-center gap-3 pb-3 border-b last:border-0 border-gray-100">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src="https://i0.wp.com/launchpadphilly.org/wp-content/uploads/2022/07/03-more-transp-launchpad-logo-less-padding-copy-4.png?fit=500%2C443&ssl=1" alt={user.username} />
+                        <AvatarFallback>{user.username.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium">{user.username}</h4>
+                        <p className="text-xs text-gray-500 mt-1">{user.program || 'No program specified'}</p>
+                      </div>
+                      <Badge className="bg-launchpad-blue/10 text-launchpad-blue">
+                        Recent
                       </Badge>
                     </div>
                   ))}
@@ -461,7 +504,7 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   <div className="flex items-start gap-3 pb-4 border-b border-gray-100">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src="/placeholder-user.jpg" alt="Jordan Lee" />
+                      <AvatarImage src="https://i0.wp.com/launchpadphilly.org/wp-content/uploads/2022/07/03-more-transp-launchpad-logo-less-padding-copy-4.png?fit=500%2C443&ssl=1" alt="Jordan Lee" />
                       <AvatarFallback>JL</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -474,7 +517,7 @@ export default function AdminDashboard() {
                   
                   <div className="flex items-start gap-3 pb-4 border-b border-gray-100">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src="/placeholder-user.jpg" alt="Alex Johnson" />
+                      <AvatarImage src="https://i0.wp.com/launchpadphilly.org/wp-content/uploads/2022/07/03-more-transp-launchpad-logo-less-padding-copy-4.png?fit=500%2C443&ssl=1" alt="Alex Johnson" />
                       <AvatarFallback>AJ</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -487,7 +530,7 @@ export default function AdminDashboard() {
                   
                   <div className="flex items-start gap-3">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src="/placeholder-user.jpg" alt="Sam Williams" />
+                      <AvatarImage src="https://i0.wp.com/launchpadphilly.org/wp-content/uploads/2022/07/03-more-transp-launchpad-logo-less-padding-copy-4.png?fit=500%2C443&ssl=1" alt="Sam Williams" />
                       <AvatarFallback>SW</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -527,7 +570,20 @@ export default function AdminDashboard() {
             </div>
             
             <TabsContent value="applications" className="m-0">
-              <KanbanBoard />
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <FileSpreadsheet className="h-12 w-12 text-gray-300 mb-3" />
+                    <h3 className="text-lg font-medium mb-2">Applications Overview</h3>
+                    <p className="text-gray-500 text-center max-w-md mb-4">
+                      The Kanban board for managing applications is currently under development.
+                    </p>
+                    <Button className="bg-launchpad-blue hover:bg-launchpad-teal text-white">
+                      View Applications List
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
             
             <TabsContent value="candidates" className="m-0">

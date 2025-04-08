@@ -59,7 +59,7 @@ const TabsTrigger = React.forwardRef<
       )}
       {...props}
     >
-      {variant === "pills" && (props as any)["data-state"] === "active" && (
+      {variant === "pills" && (props as { "data-state"?: string })["data-state"] === "active" && (
         <motion.span
           className="absolute inset-0 bg-launchpad-blue rounded-full"
           layoutId="tab-pill-background"

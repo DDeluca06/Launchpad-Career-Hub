@@ -3,7 +3,6 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
-import { extendedPalette, statusColors } from "@/lib/colors"
 
 const badgeVariants = cva(
   "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
@@ -41,6 +40,18 @@ const badgeVariants = cva(
     },
   }
 )
+
+// Define a type for the status values
+export type StatusBadgeVariant = 
+  | "interested" 
+  | "applied" 
+  | "phoneScreening" 
+  | "interviewStage" 
+  | "finalInterviewStage" 
+  | "offerExtended" 
+  | "negotiation" 
+  | "offerAccepted" 
+  | "rejected";
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
@@ -83,10 +94,10 @@ export function StatusBadge({
   className,
   size = "default",
   ...props 
-}: Omit<BadgeProps, 'variant' | 'status'> & { status: keyof typeof statusColors }) {
+}: Omit<BadgeProps, 'variant' | 'status'> & { status: StatusBadgeVariant }) {
   return (
     <Badge
-      status={status as any}
+      status={status}
       size={size}
       className={cn("capitalize", className)}
       {...props}
@@ -96,4 +107,4 @@ export function StatusBadge({
   );
 }
 
-export { Badge, badgeVariants } 
+export { Badge, badgeVariants }
