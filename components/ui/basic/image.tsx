@@ -21,6 +21,12 @@ interface LaunchpadImageProps {
 }
 
 export function Image({ src, alt, className, width, height }: ImageProps) {
+  // Use a fallback image if the source is invalid
+  if (!src) {
+    console.warn('Image source is missing');
+    return null;
+  }
+  
   return (
     <NextImage
       src={src}
@@ -34,22 +40,55 @@ export function Image({ src, alt, className, width, height }: ImageProps) {
 
 export function LaunchpadImage({ imageId, alt, className, width, height }: LaunchpadImageProps) {
   const image = ALL_IMAGES[imageId];
-  if (!image || typeof image.src !== 'string') {
-    console.warn(`Image not found or invalid: ${imageId}`);
-    return null;
-  }
+  
   if (!image) {
     console.warn(`Image not found: ${imageId}`);
-    return null;
+    // Fallback to a default image that's stored locally
+    return (
+      <div className={`${className || ''} bg-gray-200 flex items-center justify-center`} style={{ width, height }}>
+        <span className="text-xs text-gray-500">Image not found</span>
+      </div>
+    );
+  }
+  
+  if (typeof image.src !== 'string') {
+    console.warn(`Invalid image source for: ${imageId}`);
+    return (
+      <div className={`${className || ''} bg-gray-200 flex items-center justify-center`} style={{ width, height }}>
+        <span className="text-xs text-gray-500">Invalid image</span>
+      </div>
+    );
   }
 
+  // If using an external URL, use a regular img tag instead of NextImage to avoid domain issues
+  const isExternalUrl = 
+    image.src.startsWith('http') && 
+    !image.src.includes('localhost') && 
+    !image.src.includes('.ufs.sh') && // Only allow .ufs.sh URLs to go through NextImage
+    !image.src.includes('vercel.app');
+    
+  if (isExternalUrl) {
+    return (
+      <NextImage
+        src={image.src}
+        alt={alt || image.alt}
+        className={className}
+        width={width || 100}
+        height={height || 100}
+        unoptimized={true}  // Skip optimization for external URLs
+        style={{ objectFit: 'contain' }}
+      />
+    );
+  }
+
+  // For internal URLs that we've configured in next.config.js, use NextImage
   return (
     <NextImage
       src={image.src}
-      alt={alt}
+      alt={alt || image.alt}
       className={className}
-      width={width}
-      height={height}
+      width={width || 100}
+      height={height || 100}
     />
   );
 }

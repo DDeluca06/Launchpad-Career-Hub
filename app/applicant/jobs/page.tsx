@@ -150,6 +150,7 @@ export default function ApplicantJobListings() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
+  const [visibleJobCount, setVisibleJobCount] = useState(3); // Number of jobs to display initially
 
   // Handle applying filters
   const handleApplyFilters = (filters: JobFilters) => {
@@ -248,6 +249,11 @@ export default function ApplicantJobListings() {
     return count;
   };
 
+  // Handle loading more jobs
+  const handleLoadMore = () => {
+    setVisibleJobCount(prev => prev + 3); // Increase the number of visible jobs
+  };
+
   return (
     <DashboardLayout>
       <div className="container p-4 mx-auto max-w-screen-xl">
@@ -293,7 +299,7 @@ export default function ApplicantJobListings() {
             </div>
             
             <div className="space-y-3">
-              {filteredJobs.map((job) => (
+              {filteredJobs.slice(0, visibleJobCount).map((job) => (
                 <div 
                   key={job.id}
                   onClick={() => handleJobSelect(job)}
@@ -327,6 +333,17 @@ export default function ApplicantJobListings() {
                   </div>
                 </div>
               ))}
+
+              {/* Load More Button */}
+              {visibleJobCount < filteredJobs.length && (
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={handleLoadMore}
+                >
+                  Load More Jobs
+                </Button>
+              )}
             </div>
           </div>
 

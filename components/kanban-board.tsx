@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/basic/button";
 import { Plus } from "lucide-react";
@@ -75,10 +76,13 @@ export function KanbanBoard({ jobs, onJobUpdate }: KanbanBoardProps) {
                 <div className="flex items-center gap-4 mb-4">
                   {job.logo ? (
                     <div className="w-12 h-12 relative">
-                      <img
+                      <Image
                         src={job.logo}
                         alt={`${job.company} logo`}
+                        width={48}
+                        height={48}
                         className="object-contain"
+                        unoptimized={true}
                       />
                     </div>
                   ) : (
