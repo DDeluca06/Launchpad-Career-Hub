@@ -7,6 +7,17 @@
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
   "root": true,
+  "ignores": [
+    "lib/generated/**/*",
+    ".next/**/*",
+    "out/**/*",
+    "dist/**/*",
+    "node_modules/**/*",
+    ".cache/**/*",
+    ".eslintcache",
+    ".env*",
+    "!.env.example"
+  ],
   "rules": {
     "@typescript-eslint/no-unused-vars": "error",
     "@typescript-eslint/no-explicit-any": "error",

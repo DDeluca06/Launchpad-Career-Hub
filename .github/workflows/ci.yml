@@ -14,41 +14,46 @@ jobs:
         with:
           node-version: '18'
       - name: Install pnpm
-        run: npm install -g pnpm 
+        run: npm install -g pnpm
       - name: Install dependencies
-        run: pnpm install 
-      - name: Verify ESLint configuration # Check our .eslintignore file. We need this or else linter freaks out because of Prisma generated files.
+        run: pnpm install
+      - name: Verify ESLint configuration
         run: |
           echo "Checking ESLint configuration..."
-          if [ ! -f ".eslintignore" ]; then
-            echo "Error: .eslintignore file not found!"
+          if ! grep -q '"ignores"' .eslintrc.json; then
+            echo "Error: 'ignores' property missing from ESLint configuration"
             exit 1
           fi
-          
-          if ! grep -q "lib/generated/\*\*/\*" .eslintignore; then
-            echo "Error: Prisma generated files pattern missing from .eslintignore"
+          if ! grep -q "lib/generated/\*\*/\*" .eslintrc.json; then
+            echo "Error: Prisma generated files pattern missing from ESLint configuration"
             exit 1
           fi
-          
           echo "ESLint configuration verified."
-          echo "Current .eslintignore contents:"
-          cat .eslintignore
       - name: Show ignored files
         run: |
           echo "Files that will be ignored by ESLint:"
           npx eslint --print-config . | grep -A 100 "ignorePatterns" || true
       - name: Run ESLint
         run: |
-          echo "Running ESLint with verbose output..."
-          if ! pnpm run lint -- --max-warnings=0; then
+          echo "Running ESLint..."
+          
+          echo "Running Next.js lint..."
+          if ! pnpm run lint; then
+            echo "Next.js lint found errors. Please check the output above."
+            exit 1
+          fi
+          
+          echo "Running custom ESLint configuration..."
+          if ! npx eslint . --max-warnings=0; then
             echo "ESLint found errors. Please check the output above."
             exit 1
           fi
+
           echo "ESLint check completed successfully."
       - name: Run TypeScript check
-        run: pnpm run type-check # Run TypeScript check (ensure this script is in package.json)
+        run: pnpm run type-check
       - name: Build Next.js app
-        run: pnpm run build # Build the Next.js application
+        run: pnpm run build
 
         # # i do not want this deploying to my server without my express consent
 
