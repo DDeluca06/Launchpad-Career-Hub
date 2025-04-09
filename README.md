@@ -6,7 +6,8 @@ Active Work in Progress project being created on behalf of Launchpad Philly.
 # Tech Stack
 To complete this project, we are relying on the following technologies:
 - Next.js
-- MongoDB
+- PostgreSQL
+- Prisma
 
 # Credits and Attributions
 Project is being worked on by Team LP and, at the end of the statement of work, will be transferred to the Faculty Advisor as requested by the client.

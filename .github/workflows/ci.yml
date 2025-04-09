@@ -2,7 +2,7 @@ name: CI - Lint and Build
 
 on:
   pull_request:
-    branches: [ main ] # Or your main branch name
+    branches: [ main ]
 
 jobs:
   lint-and-build:
@@ -12,17 +12,43 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18' # Or your preferred Node.js version
+          node-version: '18'
       - name: Install pnpm
-        run: npm install -g pnpm # Install pnpm globally
+        run: npm install -g pnpm 
       - name: Install dependencies
-        run: pnpm install # Install dependencies using pnpm
+        run: pnpm install 
+      - name: Verify ESLint configuration # Check our .eslintignore file. We need this or else linter freaks out because of Prisma generated files.
+        run: |
+          echo "Checking ESLint configuration..."
+          if [ ! -f ".eslintignore" ]; then
+            echo "Error: .eslintignore file not found!"
+            exit 1
+          fi
+          
+          if ! grep -q "lib/generated/\*\*/\*" .eslintignore; then
+            echo "Error: Prisma generated files pattern missing from .eslintignore"
+            exit 1
+          fi
+          
+          echo "ESLint configuration verified."
+          echo "Current .eslintignore contents:"
+          cat .eslintignore
+      - name: Show ignored files
+        run: |
+          echo "Files that will be ignored by ESLint:"
+          npx eslint --print-config . | grep -A 100 "ignorePatterns" || true
       - name: Run ESLint
-        run: pnpm run lint # Run ESLint to check for linting errors
+        run: |
+          echo "Running ESLint with verbose output..."
+          if ! pnpm run lint -- --max-warnings=0; then
+            echo "ESLint found errors. Please check the output above."
+            exit 1
+          fi
+          echo "ESLint check completed successfully."
       - name: Run TypeScript check
         run: pnpm run type-check # Run TypeScript check (ensure this script is in package.json)
       - name: Build Next.js app
-        run: pnpm run build # Build the Next.js applicatin
+        run: pnpm run build # Build the Next.js application
 
         # # i do not want this deploying to my server without my express consent
 

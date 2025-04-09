@@ -1,0 +1,18 @@
+# Prisma generated files
+lib/generated/**/*
+
+# Build output
+.next/
+out/
+dist/
+
+# Dependencies
+node_modules/
+
+# Cache
+.cache/
+.eslintcache
+
+# Environment files
+.env*
+!.env.example 
