@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { Button } from "@/components/ui/basic/button";
@@ -295,8 +295,12 @@ export default function JobsPage() {
     email: "",
     phone: "",
     resume: null as File | null,
-    coverLetter: ""
+    coverLetter: "",
   });
+
+  const [userResumes, setUserResumes] = useState<Array<{resume_id: number, file_name: string, is_default: boolean | null}>>([]);
+  const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
+  const [isLoadingResumes, setIsLoadingResumes] = useState(false);
 
   // Handler functions
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -710,6 +714,39 @@ export default function JobsPage() {
     );
   }
 
+  useEffect(() => {
+    if (applyModalOpen) {
+      const fetchUserResumes = async () => {
+        setIsLoadingResumes(true);
+        try {
+          // In a real application, you would get the current user's ID from authentication
+          // For this example, we'll use a placeholder user ID of 1
+          const userId = 1; // Replace with actual user ID from authentication
+          const response = await fetch(`/api/resumes?userId=${userId}`);
+          if (response.ok) {
+            const data = await response.json();
+            setUserResumes(data);
+            
+            // If there's a default resume, select it automatically
+            const defaultResume = data.find((resume: {resume_id: number, file_name: string, is_default: boolean | null}) => resume.is_default);
+            if (defaultResume) {
+              setSelectedResumeId(defaultResume.resume_id);
+            } else if (data.length > 0) {
+              // Otherwise select the first resume
+              setSelectedResumeId(data[0].resume_id);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch resumes:", error);
+        } finally {
+          setIsLoadingResumes(false);
+        }
+      };
+
+      fetchUserResumes();
+    }
+  }, [applyModalOpen]);
+
   return (
     <DashboardLayout>
       <div className="container py-6 px-4 mx-auto">
@@ -968,17 +1005,28 @@ export default function JobsPage() {
                 
                 <div>
                   <Label htmlFor="resume">Resume</Label>
-                  <Input 
-                    id="resume" 
-                    type="file" 
-                    className="cursor-pointer"
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files && files.length > 0) {
-                        setApplicationData({...applicationData, resume: files[0]});
-                      }
-                    }}
-                  />
+                  {isLoadingResumes ? (
+                    <p className="text-sm text-gray-500">Loading your resumes...</p>
+                  ) : userResumes.length > 0 ? (
+                    <select
+                      id="resume"
+                      value={selectedResumeId || ""}
+                      onChange={(e) => setSelectedResumeId(e.target.value ? parseInt(e.target.value) : null)}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2"
+                      required
+                    >
+                      <option value="">Select a resume</option>
+                      {userResumes.map((resume) => (
+                        <option key={resume.resume_id} value={resume.resume_id}>
+                          {resume.file_name} {resume.is_default ? "(Default)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="text-sm text-gray-500">
+                      No resumes found. Please upload a resume in your profile settings.
+                    </div>
+                  )}
                 </div>
                 
                 <div>

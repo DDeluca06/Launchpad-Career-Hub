@@ -1,22 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/basic/button";
 
-interface Job {
-  title: string;
-  company: string;
-  location: string;
-  type: string;
-  salary: string;
+interface Resume {
+  resume_id: number;
+  file_name: string;
+  file_path: string;
+  is_default: boolean | null;
 }
+
+
 
 interface JobApplicationData {
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  resume: File | null;
+  resumeId: number | null;
   coverLetter: File | null;
   linkedin: string;
   github: string;
@@ -25,7 +26,7 @@ interface JobApplicationData {
 }
 
 interface JobApplicationFormProps {
-  job: Job;
+  userId: number; 
   onSubmit: (data: JobApplicationData) => void;
 }
 
@@ -84,19 +85,50 @@ const Textarea: React.FC<TextareaProps> = ({
   </div>
 );
 
-export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
+export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps) {
   const [formData, setFormData] = useState<JobApplicationData>({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
-    resume: null,
+    resumeId: null,
     coverLetter: null,
     linkedin: "",
     github: "",
     portfolio: "",
     additionalInfo: "",
   });
+  
+  const [userResumes, setUserResumes] = useState<Resume[]>([]);
+  const [isLoadingResumes, setIsLoadingResumes] = useState(false);
+
+  useEffect(() => {
+    const fetchUserResumes = async () => {
+      if (!userId) return;
+      
+      setIsLoadingResumes(true);
+      try {
+        const response = await fetch(`/api/resumes?userId=${userId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setUserResumes(data);
+          
+          const defaultResume = data.find((resume: Resume) => resume.is_default);
+          if (defaultResume) {
+            setFormData(prev => ({ ...prev, resumeId: defaultResume.resume_id }));
+          } else if (data.length > 0) {
+            setFormData(prev => ({ ...prev, resumeId: data[0].resume_id }));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch resumes:", error);
+      } finally {
+        setIsLoadingResumes(false);
+      }
+    };
+
+    fetchUserResumes();
+  }, [userId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,17 +181,32 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
         <label className="block text-sm font-medium text-gray-700">
           Resume
         </label>
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              setFormData((prev) => ({ ...prev, resume: file }));
+        {isLoadingResumes ? (
+          <p className="text-sm text-gray-500">Loading your resumes...</p>
+        ) : userResumes.length > 0 ? (
+          <select
+            value={formData.resumeId || ""}
+            onChange={(e) => 
+              setFormData((prev) => ({ 
+                ...prev, 
+                resumeId: e.target.value ? parseInt(e.target.value) : null 
+              }))
             }
-          }}
-          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-launchpad-blue file:text-white hover:file:bg-launchpad-teal"
-        />
+            className="block w-full border-gray-200 rounded-md shadow-sm focus:border-launchpad-blue focus:ring-launchpad-blue"
+            required
+          >
+            <option value="">Select a resume</option>
+            {userResumes.map((resume) => (
+              <option key={resume.resume_id} value={resume.resume_id}>
+                {resume.file_name} {resume.is_default ? "(Default)" : ""}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p className="text-sm text-gray-500">
+            No resumes found. Please upload a resume in your profile settings.
+          </p>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -213,13 +260,10 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
         onChange={(e) =>
           setFormData((prev) => ({ ...prev, additionalInfo: e.target.value }))
         }
-        placeholder="Tell us why you're a great fit for this role..."
+        placeholder="Tell us anything else you'd like us to know about you"
       />
 
-      <Button
-        type="submit"
-        className="w-full bg-launchpad-blue hover:bg-launchpad-teal text-white"
-      >
+      <Button type="submit" className="w-full bg-launchpad-blue hover:bg-launchpad-teal text-white">
         Submit Application
       </Button>
     </form>
