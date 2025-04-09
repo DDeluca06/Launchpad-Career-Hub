@@ -51,20 +51,20 @@ const REQUIRED_FIELDS = [
  */
 export async function POST(req: NextRequest) {
   try {
-    console.log('Received upload request');
+    console.warn('Received upload request');
     const formData = await req.formData();
     const file = formData.get('file') as File;
 
     // Validate file presence
     if (!file) {
-      console.log('No file found in request');
+      console.warn('No file found in request');
       return NextResponse.json(
         { success: false, error: 'No file uploaded' },
         { status: 400 }
       );
     }
 
-    console.log('Processing file:', {
+    console.warn('Processing file:', {
       name: file.name,
       type: file.type,
       size: file.size
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     // Validate file type
     if (!file.name.endsWith('.csv')) {
-      console.log('Invalid file type:', file.name);
+      console.warn('Invalid file type:', file.name);
       return NextResponse.json(
         { success: false, error: 'Only CSV files are allowed' },
         { status: 400 }
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     // Read and parse CSV content
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileContent = buffer.toString('utf-8');
-    console.log('File content length:', fileContent.length);
+    console.warn('File content length:', fileContent.length);
 
     let records: CSVUser[];
     try {
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         skip_empty_lines: true,
         trim: true,
       });
-      console.log('Parsed records:', records.length);
+      console.warn('Parsed records:', records.length);
     } catch (parseError) {
       console.error('CSV parse error:', parseError);
       return NextResponse.json(
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     // Validate records presence
     if (!records || records.length === 0) {
-      console.log('No records found in CSV');
+      console.warn('No records found in CSV');
       return NextResponse.json(
         { success: false, error: 'CSV file is empty' },
         { status: 400 }
@@ -115,11 +115,11 @@ export async function POST(req: NextRequest) {
 
     // Validate required fields presence
     const missingFields = REQUIRED_FIELDS.filter(
-      field => !records[0].hasOwnProperty(field)
+      field => !Object.prototype.hasOwnProperty.call(records[0], field)
     );
 
     if (missingFields.length > 0) {
-      console.log('Missing required fields:', missingFields);
+      console.warn('Missing required fields:', missingFields);
       return NextResponse.json(
         { 
           success: false, 
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (invalidRecords.length > 0) {
-      console.log('Found invalid records:', invalidRecords.length);
+      console.warn('Found invalid records:', invalidRecords.length);
       return NextResponse.json(
         { 
           success: false, 
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
       id_number: record.id_number
     }));
 
-    console.log('Successfully processed CSV file');
+    console.warn('Successfully processed CSV file');
     return NextResponse.json(
       { success: true, data: transformedRecords },
       { status: 200 }

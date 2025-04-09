@@ -344,7 +344,7 @@ export default function ApplicantsPage() {
       const formData = new FormData();
       formData.append('file', csvFile);
 
-      console.log('Uploading file:', {
+      console.warn('Uploading file:', {
         name: csvFile.name,
         type: csvFile.type,
         size: csvFile.size
@@ -356,7 +356,7 @@ export default function ApplicantsPage() {
       });
 
       const result = await response.json();
-      console.log('Server response:', result);
+      console.warn('Server response:', result);
 
       if (response.ok) {
         const usersFromCsv = result.data;
@@ -727,13 +727,13 @@ export default function ApplicantsPage() {
               Upload a CSV file with user data. The file should include the following columns:
             </p>
             <ul className="text-sm text-gray-600 list-disc pl-5 mb-4">
-              <li>first_name: User's first name</li>
-              <li>last_name: User's last name</li>
-              <li>email: User's email address</li>
-              <li>username: User's username</li>
-              <li>password: User's password</li>
-              <li>id_number: User's identification number</li>
-              <li>program_phase: User's program phase</li>
+              <li>first_name: User&apos;s first name</li>
+              <li>last_name: User&apos;s last name</li>
+              <li>email: User&apos;s email address</li>
+              <li>username: User&apos;s username</li>
+              <li>password: User&apos;s password</li>
+              <li>id_number: User&apos;s identification number</li>
+              <li>program_phase: User&apos;s program phase</li>
             </ul>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
               <input
