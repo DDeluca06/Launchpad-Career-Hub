@@ -9,7 +9,7 @@
 // What does this mean for you, the developer?
 // You should be using this file to import Prisma Client
 // and not creating your own instance of it.
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../lib/generated/prisma'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
