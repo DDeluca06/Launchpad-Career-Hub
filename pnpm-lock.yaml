@@ -193,7 +193,7 @@ importers:
         specifier: ^15.2.4
         version: 15.3.0(eslint@9.24.0(jiti@1.21.7))(typescript@5.8.3)
       postcss:
-        specifier: ^8
+        specifier: '>=8.4.31'
         version: 8.5.3
       tailwindcss:
         specifier: ^3.4.17
