@@ -12,6 +12,7 @@ Launchpad Career Hub is a modern web application built with Next.js 15, TypeScri
 - **State Management**: React Hooks
 - **Package Manager**: pnpm
 - **Development Tools**: TypeScript, ESLint, PostCSS
+- **Database**: PostgreSQL, Prisma ORM
 
 ## Project Structure
 ```
