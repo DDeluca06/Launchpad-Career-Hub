@@ -147,3 +147,12 @@ Icon?
 .Spotlight-V100
 .Trashes
 .next
+
+# Prisma
+/prisma/migrations/
+/prisma/*.db
+/prisma/*.db-journal
+/prisma/*.sqlite
+/prisma/*.sqlite-journal
+/prisma/*.sqlite3
+/prisma/*.sqlite3-journal
