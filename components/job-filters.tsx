@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Label } from "@/components/ui/basic/label";
 import { Input } from "@/components/ui/form/input";
 import { Button } from "@/components/ui/basic/button";
-import { Search, Briefcase, MapPin } from "lucide-react";
+import { Search, Briefcase, MapPin, Tag } from "lucide-react";
+import { Badge } from "@/components/ui/basic/badge";
 
 interface JobFilter {
   jobTypes: string[];
@@ -13,11 +14,20 @@ interface JobFilter {
   salary: [number, number];
   experienceLevel: string;
   keywords: string;
+  tags: string[];
 }
 
 interface JobFiltersProps {
   onApply: (filters: JobFilter) => void;
   initialFilters: JobFilter;
+  availableTags?: string[];
+}
+
+// Export the ref interface for parent components
+export interface JobFiltersRef {
+  getCurrentFilters: () => JobFilter;
+  applyFilters: () => void;
+  resetFilters: () => void;
 }
 
 const DEFAULT_FILTERS: JobFilter = {
@@ -27,11 +37,12 @@ const DEFAULT_FILTERS: JobFilter = {
   salary: [0, 200],
   experienceLevel: "any",
   keywords: "",
+  tags: [],
 };
 
 const JOB_TYPES = [
-  { id: "full-time", label: "Full Time" },
-  { id: "part-time", label: "Part Time" },
+  { id: "full_time", label: "Full Time" },
+  { id: "part_time", label: "Part Time" },
   { id: "contract", label: "Contract" },
   { id: "internship", label: "Internship" },
 ];
@@ -49,132 +60,187 @@ const LOCATIONS = [
  *
  * @param onApply - Callback function invoked with the current filters when the user applies or resets the filters.
  * @param initialFilters - The initial filter configuration for the component.
+ * @param availableTags - Optional array of tags that can be filtered on
  */
-export function JobFilters({ onApply, initialFilters }: JobFiltersProps) {
-  const [filters, setFilters] = useState<JobFilter>(initialFilters);
+export const JobFilters = forwardRef<JobFiltersRef, JobFiltersProps>(
+  function JobFilters({ onApply, initialFilters, availableTags = [] }, ref) {
+    const [filters, setFilters] = useState<JobFilter>({
+      ...initialFilters,
+      tags: initialFilters.tags || [],
+    });
 
-  const handleApply = () => {
-    onApply(filters);
-  };
+    // Force update filters whenever initialFilters change
+    useEffect(() => {
+      setFilters({
+        ...initialFilters,
+        tags: initialFilters.tags || [],
+      });
+    }, [initialFilters]);
 
-  const handleReset = () => {
-    setFilters(DEFAULT_FILTERS);
-    onApply(DEFAULT_FILTERS);
-  };
+    // Expose methods to the parent component through the ref
+    useImperativeHandle(ref, () => ({
+      getCurrentFilters: () => filters,
+      applyFilters: () => {
+        console.log("JobFilters - applying filters:", filters);
+        onApply(filters);
+      },
+      resetFilters: () => {
+        console.log("JobFilters - resetting filters");
+        const resetFilters = DEFAULT_FILTERS;
+        setFilters(resetFilters);
+        onApply(resetFilters);
+      }
+    }));
 
-  const toggleJobType = (typeId: string) => {
-    const newTypes = filters.jobTypes.includes(typeId)
-      ? filters.jobTypes.filter((type) => type !== typeId)
-      : [...filters.jobTypes, typeId];
-    setFilters((prev) => ({ ...prev, jobTypes: newTypes }));
-  };
+    const toggleJobType = (typeId: string) => {
+      const newTypes = filters.jobTypes.includes(typeId)
+        ? filters.jobTypes.filter((type) => type !== typeId)
+        : [...filters.jobTypes, typeId];
+        
+      console.log(`JobFilters - toggling job type ${typeId}, new types:`, newTypes);
+      setFilters((prev) => ({ ...prev, jobTypes: newTypes }));
+    };
 
-  const toggleLocation = (locationId: string) => {
-    const newLocations = filters.locations.includes(locationId)
-      ? filters.locations.filter((loc) => loc !== locationId)
-      : [...filters.locations, locationId];
-    setFilters((prev) => ({ ...prev, locations: newLocations }));
-  };
+    const toggleLocation = (locationId: string) => {
+      const newLocations = filters.locations.includes(locationId)
+        ? filters.locations.filter((loc) => loc !== locationId)
+        : [...filters.locations, locationId];
+        
+      console.log(`JobFilters - toggling location ${locationId}, new locations:`, newLocations);
+      setFilters((prev) => ({ ...prev, locations: newLocations }));
+    };
 
-  const toggleRemoteOnly = () => {
-    setFilters((prev) => ({ ...prev, remoteOnly: !prev.remoteOnly }));
-  };
+    const toggleRemoteOnly = () => {
+      const newRemoteOnly = !filters.remoteOnly;
+      console.log(`JobFilters - toggling remote only to ${newRemoteOnly}`);
+      setFilters((prev) => ({ ...prev, remoteOnly: newRemoteOnly }));
+    };
 
-  return (
-    <div className="space-y-6 py-2">
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Briefcase className="h-5 w-5 text-gray-600" />
-          <Label className="text-base font-medium text-gray-800">
-            Job Type
-          </Label>
+    const toggleTag = (tag: string) => {
+      const newTags = filters.tags.includes(tag)
+        ? filters.tags.filter((t) => t !== tag)
+        : [...filters.tags, tag];
+        
+      console.log(`JobFilters - toggling tag ${tag}, new tags:`, newTags);
+      setFilters((prev) => ({ ...prev, tags: newTags }));
+    };
+
+    return (
+      <div className="space-y-6 py-2">
+        {/* Job Type Filter */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Briefcase className="h-5 w-5 text-gray-600" />
+            <Label className="text-base font-medium text-gray-800">
+              Job Type
+            </Label>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {JOB_TYPES.map((jobType) => (
+              <Button
+                key={jobType.id}
+                variant={
+                  filters.jobTypes.includes(jobType.id) ? "default" : "outline"
+                }
+                size="sm"
+                onClick={() => toggleJobType(jobType.id)}
+                className={`rounded-full ${filters.jobTypes.includes(jobType.id) ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
+              >
+                {jobType.label}
+              </Button>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {JOB_TYPES.map((jobType) => (
+
+        {/* Location Filter */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-gray-600" />
+            <Label className="text-base font-medium text-gray-800">
+              Location
+            </Label>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {LOCATIONS.map((location) => (
+              <Button
+                key={location.id}
+                variant={
+                  filters.locations.includes(location.id) ? "default" : "outline"
+                }
+                size="sm"
+                onClick={() => toggleLocation(location.id)}
+                className={`rounded-full ${filters.locations.includes(location.id) ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
+              >
+                {location.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
             <Button
-              key={jobType.id}
-              variant={
-                filters.jobTypes.includes(jobType.id) ? "default" : "outline"
-              }
+              variant={filters.remoteOnly ? "default" : "outline"}
               size="sm"
-              onClick={() => toggleJobType(jobType.id)}
-              className={`rounded-full ${filters.jobTypes.includes(jobType.id) ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
+              onClick={toggleRemoteOnly}
+              className={`rounded-full ${filters.remoteOnly ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
             >
-              {jobType.label}
+              Remote Only
             </Button>
-          ))}
+          </div>
         </div>
-      </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-5 w-5 text-gray-600" />
-          <Label className="text-base font-medium text-gray-800">
-            Location
-          </Label>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {LOCATIONS.map((location) => (
-            <Button
-              key={location.id}
-              variant={
-                filters.locations.includes(location.id) ? "default" : "outline"
+        {/* Tags Filter */}
+        {availableTags.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Tag className="h-5 w-5 text-gray-600" />
+              <Label className="text-base font-medium text-gray-800">
+                Tags
+              </Label>
+            </div>
+            <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md">
+              {availableTags.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant={filters.tags.includes(tag) ? "default" : "outline"}
+                  className={`cursor-pointer ${
+                    filters.tags.includes(tag)
+                      ? "bg-blue-500 hover:bg-blue-600"
+                      : "hover:bg-gray-100"
+                  }`}
+                  onClick={() => toggleTag(tag)}
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+            {filters.tags.length > 0 && (
+              <div className="text-sm text-blue-600">
+                {filters.tags.length} tag{filters.tags.length > 1 ? 's' : ''} selected
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Keywords Filter */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-gray-600" />
+            <Label className="text-base font-medium text-gray-800">
+              Keywords
+            </Label>
+          </div>
+          <div className="relative">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Input
+              value={filters.keywords}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, keywords: e.target.value }))
               }
-              size="sm"
-              onClick={() => toggleLocation(location.id)}
-              className={`rounded-full ${filters.locations.includes(location.id) ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
-            >
-              {location.label}
-            </Button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 mt-2">
-          <Button
-            variant={filters.remoteOnly ? "default" : "outline"}
-            size="sm"
-            onClick={toggleRemoteOnly}
-            className={`rounded-full ${filters.remoteOnly ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
-          >
-            Remote Only
-          </Button>
+              className="pl-10 border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Skills, job titles, companies..."
+            />
+          </div>
         </div>
       </div>
-
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Search className="h-5 w-5 text-gray-600" />
-          <Label className="text-base font-medium text-gray-800">
-            Keywords
-          </Label>
-        </div>
-        <div className="relative">
-          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <Input
-            value={filters.keywords}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, keywords: e.target.value }))
-            }
-            className="pl-10 border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            placeholder="Skills, job titles, companies..."
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-between space-x-4 pt-4 border-t mt-4">
-        <Button
-          variant="outline"
-          onClick={handleReset}
-          className="border-gray-300 text-gray-700 hover:bg-gray-50"
-        >
-          Reset Filters
-        </Button>
-        <Button
-          onClick={handleApply}
-          className="bg-blue-500 hover:bg-blue-600 text-white"
-        >
-          Apply Filters
-        </Button>
-      </div>
-    </div>
-  );
-}
+    );
+  }
+);

@@ -27,16 +27,16 @@ export interface Resume {
 
 export interface Job {
   job_id: number;
-  job_type: string;
   title: string;
-  description: string;
+  description?: string;
   company: string;
-  website: string;
-  location: string;
+  website?: string;
+  location?: string;
+  job_type: string;
   partner_id: number;
   created_at: string;
-  tags: string[];
-  companyLogo?: string;
+  tags?: string[];
+  archived?: boolean;
 }
 
 export interface Application {
@@ -216,7 +216,7 @@ export const jobService = {
     return jobs.filter(job => 
       job.title.toLowerCase().includes(lowercaseQuery) ||
       job.company.toLowerCase().includes(lowercaseQuery) ||
-      job.location.toLowerCase().includes(lowercaseQuery) ||
+      job.location?.toLowerCase().includes(lowercaseQuery) ||
       job.description?.toLowerCase().includes(lowercaseQuery) ||
       job.tags?.some(tag => tag.toLowerCase().includes(lowercaseQuery))
     );

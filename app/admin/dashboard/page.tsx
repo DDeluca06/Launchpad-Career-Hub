@@ -114,7 +114,7 @@ function ActivityLoading() {
  * Fetches data using the custom `useStats` hook and conditionally renders:
  * - A loading skeleton via `<DashboardSectionLoading />` while statistics are loading.
  * - An error message if data retrieval fails.
- * - A responsive grid of `<StatCard />` components showing "Total Jobs", "Total Applicants",
+ * - A responsive grid of `<StatCard />` components showing "Total Jobs", "Total Applications",
  *   "Active Interviews", and "Offers Sent" with appropriate icons and colors.
  */
 function StatsOverview() {
@@ -136,7 +136,7 @@ function StatsOverview() {
         }
       />
       <StatCard
-        title="Total Applicants"
+        title="Total Applications"
         value={stats.totalApplicants}
         icon={
           <Users
@@ -409,6 +409,88 @@ function RecentActivitySection() {
 }
 
 /**
+ * Renders the upcoming interviews section for the admin dashboard.
+ * 
+ * This component displays a list of upcoming interviews, showing key information
+ * about each interview such as the candidate, position, and scheduled time.
+ */
+function UpcomingInterviewsSection() {
+  // In a real implementation, these would be fetched from an API
+  const upcomingInterviews = [
+    {
+      id: "1",
+      candidateName: "Jamie Rodriguez",
+      position: "Web Developer Intern",
+      company: "TechPhilly",
+      date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2), // 2 days from now
+      time: "10:00 AM"
+    },
+    {
+      id: "2",
+      candidateName: "Alex Johnson",
+      position: "Data Science Intern",
+      company: "Analytics Co",
+      date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3), // 3 days from now
+      time: "2:30 PM"
+    },
+    {
+      id: "3",
+      candidateName: "Sam Williams",
+      position: "UX Design Intern",
+      company: "Design Studio",
+      date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5), // 5 days from now
+      time: "11:15 AM"
+    }
+  ];
+
+  return (
+    <Card className="bg-card">
+      <CardHeader>
+        <CardTitle className="text-foreground">Upcoming Interviews</CardTitle>
+        <CardDescription className="text-muted-foreground">
+          Scheduled interviews for the next 7 days
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {upcomingInterviews.map((interview) => (
+            <div key={interview.id} className="flex items-start gap-4">
+              <div className="rounded-full p-2 bg-muted">
+                <div style={{ color: extendedPalette.teal }}>
+                  <UserCircle className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {interview.candidateName}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {interview.position} at {interview.company}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {interview.date.toLocaleDateString()} at {interview.time}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Link href="/admin/interviews" className="w-full">
+          <Button
+            variant="outline"
+            className="w-full justify-between group-hover:border-opacity-50 group-hover:bg-muted"
+          >
+            View All Interviews
+            <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          </Button>
+        </Link>
+      </CardFooter>
+    </Card>
+  );
+}
+
+/**
  * Renders the admin dashboard layout.
  *
  * This component provides an interface for administrators to monitor key metrics and activities.
@@ -438,32 +520,32 @@ export default function AdminDashboard() {
         </Suspense>
 
         {/* Main Dashboard Sections with Suspense */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Suspense
             fallback={
               <>
-                {[1, 2, 3, 4, 5, 6].map((i) => (
+                {[1, 2, 3].map((i) => (
                   <DashboardSectionLoading key={i} />
                 ))}
               </>
             }
           >
             <DashboardSection
-              title="Student Progress"
-              description="Track student growth and achievements"
+              title="Partner Companies"
+              description="Manage Philadelphia tech partnerships"
               icon={
-                <BarChart2
+                <Building
                   className="h-6 w-6"
-                  style={{ color: extendedPalette.primaryBlue }}
+                  style={{ color: extendedPalette.brown }}
                 />
               }
-              href="/admin/analytics"
+              href="/admin/partners"
               stats={[
-                { label: "Workshops Completed", value: "24" },
-                { label: "Projects Submitted", value: "68" },
-                { label: "Avg Progress", value: "78%" },
+                { label: "Total Partners", value: "12" },
+                { label: "Jobs", value: "24" },
+                { label: "Active", value: "8" },
               ]}
-              color={extendedPalette.primaryBlue}
+              color={extendedPalette.brown}
             />
 
             <DashboardSection
@@ -501,67 +583,16 @@ export default function AdminDashboard() {
               ]}
               color={extendedPalette.teal}
             />
-
-            <DashboardSection
-              title="Partner Companies"
-              description="Manage Philadelphia tech partnerships"
-              icon={
-                <Building
-                  className="h-6 w-6"
-                  style={{ color: extendedPalette.brown }}
-                />
-              }
-              href="/admin/partners"
-              stats={[
-                { label: "Total Partners", value: "12" },
-                { label: "Active Programs", value: "4" },
-                { label: "Mentors", value: "18" },
-              ]}
-              color={extendedPalette.brown}
-            />
-
-            <DashboardSection
-              title="Workshops & Events"
-              description="Schedule tech workshops and career events"
-              icon={
-                <Calendar
-                  className="h-6 w-6"
-                  style={{ color: extendedPalette.primaryOrange }}
-                />
-              }
-              href="/admin/calendar"
-              stats={[
-                { label: "Upcoming Events", value: "7" },
-                { label: "This Week", value: "3" },
-                { label: "Workshops", value: "12" },
-              ]}
-              color={extendedPalette.primaryOrange}
-            />
-
-            <DashboardSection
-              title="Mentor Program"
-              description="Connect students with industry mentors"
-              icon={
-                <UserCircle
-                  className="h-6 w-6"
-                  style={{ color: extendedPalette.darkGray }}
-                />
-              }
-              href="/admin/settings"
-              stats={[
-                { label: "Active Mentors", value: "18" },
-                { label: "Mentees", value: "54" },
-                { label: "Sessions", value: "32" },
-              ]}
-              color={extendedPalette.darkGray}
-            />
           </Suspense>
         </div>
 
-        {/* Recent Activity with Suspense */}
-        <div>
+        {/* Recent Activity and Upcoming Interviews */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Suspense fallback={<ActivityLoading />}>
             <RecentActivitySection />
+          </Suspense>
+          <Suspense fallback={<ActivityLoading />}>
+            <UpcomingInterviewsSection />
           </Suspense>
         </div>
       </div>

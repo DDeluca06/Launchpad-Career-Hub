@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, FormEvent, useMemo } from "react";
 import { format } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import {
@@ -30,6 +30,17 @@ import {
   formatTime,
 } from "./constants";
 import { Skeleton } from "@/components/ui/feedback/skeleton";
+import { Label } from "@/components/ui/basic/label";
+import { Input } from "@/components/ui/form/input";
+import { Textarea } from "@/components/ui/form/textarea";
+import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/form/select";
 
 // Type for calendar day
 type CalendarDay = {
@@ -41,9 +52,7 @@ type CalendarDay = {
 };
 
 /**
- * Renders the calendar interface for managing and viewing events on an admin dashboard.
- *
- * The CalendarPage component maintains state for the current and selected dates, calendar days, and events. It simulates data loading and computes the calendar grid with events assigned to their corresponding days. Users can navigate between months or return to today, view detailed event cards for the selected day, and see upcoming and recent events in a sidebar. Quick action buttons also provide shortcuts to create or view events.
+ * Calendar page component specifically for tracking and scheduling interviews.
  */
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -51,24 +60,68 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [events, setEvents] = useState(EXAMPLE_EVENTS);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Modal states
+  const [isCreateInterviewModalOpen, setIsCreateInterviewModalOpen] = useState(false);
+  const [isAddInterviewModalOpen, setIsAddInterviewModalOpen] = useState(false);
+  
+  // New interview form state
+  const [newInterview, setNewInterview] = useState({
+    title: "",
+    description: "",
+    location: "",
+    date: format(new Date(), "yyyy-MM-dd"),
+    startTime: "09:00",
+    endTime: "10:00",
+    capacity: 1,
+    candidate: "",
+    position: "",
+  });
 
-  // Get selected day's events
-  const selectedDateEvents = selectedDate
-    ? events.filter((event) => {
-        const eventDate = new Date(event.start);
-        return (
-          eventDate.getDate() === selectedDate.getDate() &&
-          eventDate.getMonth() === selectedDate.getMonth() &&
-          eventDate.getFullYear() === selectedDate.getFullYear()
-        );
-      })
-    : [];
+  // Use useMemo to prevent recalculation on every render
+  const filteredEvents = useMemo(() => 
+    events.filter(event => event.type === EVENT_TYPES.INTERVIEW),
+    [events]
+  );
+
+  // Get selected day's events (interviews only)
+  const selectedDateEvents = useMemo(() => 
+    selectedDate
+      ? filteredEvents.filter((event) => {
+          const eventDate = new Date(event.start);
+          return (
+            eventDate.getDate() === selectedDate.getDate() &&
+            eventDate.getMonth() === selectedDate.getMonth() &&
+            eventDate.getFullYear() === selectedDate.getFullYear()
+          );
+        })
+      : [],
+    [selectedDate, filteredEvents]
+  );
+
+  // Get upcoming interviews (next 3 interviews from today)
+  const upcomingEvents = useMemo(() => 
+    [...filteredEvents]
+      .filter((event) => new Date(event.start) >= new Date())
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+      .slice(0, 3),
+    [filteredEvents]
+  );
+
+  // Get recent interviews (past 3 interviews)
+  const recentEvents = useMemo(() => 
+    [...filteredEvents]
+      .filter((event) => new Date(event.start) < new Date())
+      .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
+      .slice(0, 3),
+    [filteredEvents]
+  );
 
   // Initialize and load data
   useEffect(() => {
     // Simulate API/database loading
     setTimeout(() => {
-      setEvents(EXAMPLE_EVENTS);
+      setEvents(EXAMPLE_EVENTS.filter(event => event.type === EVENT_TYPES.INTERVIEW));
       setIsLoading(false);
     }, 800);
   }, []);
@@ -83,8 +136,8 @@ export default function CalendarPage() {
       events: [] as typeof EXAMPLE_EVENTS,
     }));
 
-    // Add events to calendar days
-    events.forEach((event) => {
+    // Add events to calendar days (interviews only)
+    filteredEvents.forEach((event) => {
       const eventDate = new Date(event.start);
       const eventDay = daysWithEvents.find(
         (day) =>
@@ -99,7 +152,7 @@ export default function CalendarPage() {
     });
 
     setCalendarDays(daysWithEvents);
-  }, [currentDate, events]);
+  }, [currentDate, filteredEvents]);
 
   // Navigate to previous month
   const goToPreviousMonth = () => {
@@ -120,18 +173,6 @@ export default function CalendarPage() {
     setCurrentDate(new Date());
     setSelectedDate(new Date());
   };
-
-  // Get upcoming events (next 3 events from today)
-  const upcomingEvents = [...events]
-    .filter((event) => new Date(event.start) >= new Date())
-    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
-    .slice(0, 3);
-
-  // Get recent events (past 3 events)
-  const recentEvents = [...events]
-    .filter((event) => new Date(event.start) < new Date())
-    .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
-    .slice(0, 3);
 
   // Function to determine badge color based on event type
   const getEventBadgeColor = (eventType: EVENT_TYPES) => {
@@ -197,6 +238,64 @@ export default function CalendarPage() {
     );
   };
 
+  // Event addition handlers
+  const handleAddInterview = (e: FormEvent) => {
+    e.preventDefault();
+    
+    // Create the interview object
+    const startDateTime = new Date(`${newInterview.date}T${newInterview.startTime}`);
+    const endDateTime = new Date(`${newInterview.date}T${newInterview.endTime}`);
+    
+    const interviewTitle = newInterview.title || 
+      `Interview: ${newInterview.candidate} - ${newInterview.position}`;
+    
+    const newInterviewObject = {
+      id: Math.random().toString(36).substring(2, 9),
+      title: interviewTitle,
+      description: newInterview.description,
+      type: EVENT_TYPES.INTERVIEW,
+      location: newInterview.location,
+      start: startDateTime.toISOString(),
+      end: endDateTime.toISOString(),
+      capacity: newInterview.capacity,
+      attendees: 0,
+    };
+    
+    // Add the interview
+    setEvents([...events, newInterviewObject]);
+    
+    // Close the modal
+    setIsCreateInterviewModalOpen(false);
+    setIsAddInterviewModalOpen(false);
+    
+    // Reset the form
+    resetInterviewForm();
+  };
+  
+  // Reset form function
+  const resetInterviewForm = () => {
+    setNewInterview({
+      title: "",
+      description: "",
+      location: "",
+      date: format(new Date(), "yyyy-MM-dd"),
+      startTime: "09:00",
+      endTime: "10:00",
+      capacity: 1,
+      candidate: "",
+      position: "",
+    });
+  };
+  
+  // Open add interview modal with the selected date
+  const openAddInterviewForDay = () => {
+    setNewInterview({
+      ...newInterview,
+      date: format(selectedDate, "yyyy-MM-dd"),
+    });
+    setIsAddInterviewModalOpen(true);
+  };
+
   return (
     <DashboardLayout isAdmin>
       <div className="flex flex-col space-y-4 p-6 pb-24">
@@ -204,9 +303,15 @@ export default function CalendarPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <CalendarIcon className="h-6 w-6 text-gray-700" />
-            <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Interview Calendar</h1>
           </div>
           <div className="flex space-x-2">
+            <Button 
+              className="bg-launchpad-blue hover:bg-launchpad-teal text-white"
+              onClick={() => setIsCreateInterviewModalOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" /> Schedule Interview
+            </Button>
             <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -247,8 +352,8 @@ export default function CalendarPage() {
                 {/* Calendar Grid */}
                 <div className="grid grid-cols-7 gap-1">
                   {calendarDays.map((day, index) => {
-                    // Count events for this day
-                    const dayEvents = events.filter((event) => {
+                    // Count interviews for this day
+                    const dayEvents = filteredEvents.filter((event) => {
                       const eventDate = new Date(event.start);
                       return (
                         eventDate.getDate() === day.date.getDate() &&
@@ -299,21 +404,21 @@ export default function CalendarPage() {
               </CardContent>
             </Card>
 
-            {/* Selected Day Events */}
+            {/* Selected Day Interviews */}
             <Card className="shadow-sm border-0">
               <CardHeader className="pb-2 border-b flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>
-                    Events for {format(selectedDate, "MMMM d, yyyy")}
+                    Interviews for {format(selectedDate, "MMMM d, yyyy")}
                   </CardTitle>
                   <CardDescription>
                     {selectedDateEvents.length === 0
-                      ? "No events scheduled for this day"
-                      : `${selectedDateEvents.length} event${selectedDateEvents.length !== 1 ? "s" : ""} scheduled`}
+                      ? "No interviews scheduled for this day"
+                      : `${selectedDateEvents.length} interview${selectedDateEvents.length !== 1 ? "s" : ""} scheduled`}
                   </CardDescription>
                 </div>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-1" /> Add Event
+                <Button size="sm" onClick={openAddInterviewForDay}>
+                  <Plus className="h-4 w-4 mr-1" /> Add Interview
                 </Button>
               </CardHeader>
               <CardContent className="overflow-auto max-h-[400px] p-4">
@@ -342,12 +447,12 @@ export default function CalendarPage() {
                 ) : selectedDateEvents.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <CalendarIcon className="h-12 w-12 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium">No events scheduled</h3>
+                    <h3 className="text-lg font-medium">No interviews scheduled</h3>
                     <p className="text-sm text-gray-500 mt-1">
-                      There are no events scheduled for this day.
+                      There are no interviews scheduled for this day.
                     </p>
-                    <Button className="mt-4">
-                      <Plus className="h-4 w-4 mr-1" /> Schedule an Event
+                    <Button className="mt-4" onClick={openAddInterviewForDay}>
+                      <Plus className="h-4 w-4 mr-1" /> Add Interview
                     </Button>
                   </div>
                 ) : (
@@ -357,13 +462,13 @@ export default function CalendarPage() {
             </Card>
           </div>
 
-          {/* Sidebar: Upcoming and Recent Events */}
+          {/* Sidebar: Upcoming and Recent Interviews */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Upcoming Events */}
+            {/* Upcoming Interviews */}
             <Card className="shadow-sm border-0">
               <CardHeader className="pb-2 border-b">
-                <CardTitle>Upcoming Events</CardTitle>
-                <CardDescription>Next 3 scheduled events</CardDescription>
+                <CardTitle>Upcoming Interviews</CardTitle>
+                <CardDescription>Next 3 scheduled interviews</CardDescription>
               </CardHeader>
               <CardContent className="p-4">
                 {isLoading ? (
@@ -378,7 +483,7 @@ export default function CalendarPage() {
                     ))
                 ) : upcomingEvents.length === 0 ? (
                   <div className="text-center py-4 text-gray-500">
-                    No upcoming events
+                    No upcoming interviews
                   </div>
                 ) : (
                   upcomingEvents.map((event) => (
@@ -391,25 +496,20 @@ export default function CalendarPage() {
                         {format(new Date(event.start), "MMM d")} ·{" "}
                         {formatTime(new Date(event.start))}
                       </div>
-                      <Badge
-                        className={cn(
-                          "text-xs mt-1",
-                          getEventBadgeColor(event.type),
-                        )}
-                      >
-                        {event.type.toString().replace("_", " ")}
-                      </Badge>
+                      <div className="text-sm text-gray-500">
+                        {event.location}
+                      </div>
                     </div>
                   ))
                 )}
               </CardContent>
             </Card>
 
-            {/* Recent Events */}
+            {/* Recent Interviews */}
             <Card className="shadow-sm border-0">
               <CardHeader className="pb-2 border-b">
-                <CardTitle>Recent Events</CardTitle>
-                <CardDescription>Last 3 events</CardDescription>
+                <CardTitle>Recent Interviews</CardTitle>
+                <CardDescription>Last 3 interviews</CardDescription>
               </CardHeader>
               <CardContent className="p-4">
                 {isLoading ? (
@@ -424,7 +524,7 @@ export default function CalendarPage() {
                     ))
                 ) : recentEvents.length === 0 ? (
                   <div className="text-center py-4 text-gray-500">
-                    No recent events
+                    No recent interviews
                   </div>
                 ) : (
                   recentEvents.map((event) => (
@@ -437,14 +537,9 @@ export default function CalendarPage() {
                         {format(new Date(event.start), "MMM d")} ·{" "}
                         {formatTime(new Date(event.start))}
                       </div>
-                      <Badge
-                        className={cn(
-                          "text-xs mt-1",
-                          getEventBadgeColor(event.type),
-                        )}
-                      >
-                        {event.type.toString().replace("_", " ")}
-                      </Badge>
+                      <div className="text-sm text-gray-500">
+                        {event.location}
+                      </div>
                     </div>
                   ))
                 )}
@@ -457,17 +552,217 @@ export default function CalendarPage() {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col space-y-2 p-4">
-                <Button className="w-full justify-start">
-                  <Plus className="h-4 w-4 mr-2" /> Create Event
+                <Button className="w-full justify-start" onClick={() => setIsCreateInterviewModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> Schedule Interview
                 </Button>
                 <Button variant="outline" className="w-full justify-start">
-                  <CalendarIcon className="h-4 w-4 mr-2" /> View All Events
+                  <CalendarIcon className="h-4 w-4 mr-2" /> View All Interviews
                 </Button>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
+      {/* Schedule Interview Modal */}
+      <MultiPurposeModal
+        open={isCreateInterviewModalOpen}
+        onOpenChange={setIsCreateInterviewModalOpen}
+        title="Schedule New Interview"
+        size="md"
+        showFooter={true}
+        primaryActionText="Schedule Interview"
+        onPrimaryAction={() => handleAddInterview(new Event('submit') as unknown as FormEvent)}
+        secondaryActionText="Cancel"
+        onSecondaryAction={() => setIsCreateInterviewModalOpen(false)}
+      >
+        <div className="py-4">
+          <form onSubmit={handleAddInterview} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="interview-candidate">Candidate Name</Label>
+                <Input
+                  id="interview-candidate"
+                  value={newInterview.candidate}
+                  onChange={(e) => setNewInterview({ ...newInterview, candidate: e.target.value })}
+                  placeholder="Enter candidate name"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="interview-position">Position</Label>
+                <Input
+                  id="interview-position"
+                  value={newInterview.position}
+                  onChange={(e) => setNewInterview({ ...newInterview, position: e.target.value })}
+                  placeholder="Enter position title"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="interview-title">Interview Title (Optional)</Label>
+              <Input
+                id="interview-title"
+                value={newInterview.title}
+                onChange={(e) => setNewInterview({ ...newInterview, title: e.target.value })}
+                placeholder="Leave blank to auto-generate from candidate and position"
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-1">
+                <Label htmlFor="interview-date">Date</Label>
+                <Input
+                  id="interview-date"
+                  type="date"
+                  value={newInterview.date}
+                  onChange={(e) => setNewInterview({ ...newInterview, date: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="interview-start-time">Start Time</Label>
+                <Input
+                  id="interview-start-time"
+                  type="time"
+                  value={newInterview.startTime}
+                  onChange={(e) => setNewInterview({ ...newInterview, startTime: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="interview-end-time">End Time</Label>
+                <Input
+                  id="interview-end-time"
+                  type="time"
+                  value={newInterview.endTime}
+                  onChange={(e) => setNewInterview({ ...newInterview, endTime: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="interview-location">Location</Label>
+              <Input
+                id="interview-location"
+                value={newInterview.location}
+                onChange={(e) => setNewInterview({ ...newInterview, location: e.target.value })}
+                placeholder="Virtual / Office Location / Room Number"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="interview-description">Notes</Label>
+              <Textarea
+                id="interview-description"
+                value={newInterview.description}
+                onChange={(e) => setNewInterview({ ...newInterview, description: e.target.value })}
+                placeholder="Interview details, preparation notes, questions to ask..."
+                className="min-h-[100px]"
+              />
+            </div>
+          </form>
+        </div>
+      </MultiPurposeModal>
+
+      {/* Add Interview Modal - same as Create but with pre-selected date */}
+      <MultiPurposeModal
+        open={isAddInterviewModalOpen}
+        onOpenChange={setIsAddInterviewModalOpen}
+        title={`Add Interview for ${format(selectedDate, "MMMM d, yyyy")}`}
+        size="md"
+        showFooter={true}
+        primaryActionText="Add Interview"
+        onPrimaryAction={() => handleAddInterview(new Event('submit') as unknown as FormEvent)}
+        secondaryActionText="Cancel"
+        onSecondaryAction={() => setIsAddInterviewModalOpen(false)}
+      >
+        <div className="py-4">
+          <form onSubmit={handleAddInterview} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="add-interview-candidate">Candidate Name</Label>
+                <Input
+                  id="add-interview-candidate"
+                  value={newInterview.candidate}
+                  onChange={(e) => setNewInterview({ ...newInterview, candidate: e.target.value })}
+                  placeholder="Enter candidate name"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="add-interview-position">Position</Label>
+                <Input
+                  id="add-interview-position"
+                  value={newInterview.position}
+                  onChange={(e) => setNewInterview({ ...newInterview, position: e.target.value })}
+                  placeholder="Enter position title"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="add-interview-title">Interview Title (Optional)</Label>
+              <Input
+                id="add-interview-title"
+                value={newInterview.title}
+                onChange={(e) => setNewInterview({ ...newInterview, title: e.target.value })}
+                placeholder="Leave blank to auto-generate from candidate and position"
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="add-interview-start-time">Start Time</Label>
+                <Input
+                  id="add-interview-start-time"
+                  type="time"
+                  value={newInterview.startTime}
+                  onChange={(e) => setNewInterview({ ...newInterview, startTime: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="add-interview-end-time">End Time</Label>
+                <Input
+                  id="add-interview-end-time"
+                  type="time"
+                  value={newInterview.endTime}
+                  onChange={(e) => setNewInterview({ ...newInterview, endTime: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="add-interview-location">Location</Label>
+              <Input
+                id="add-interview-location"
+                value={newInterview.location}
+                onChange={(e) => setNewInterview({ ...newInterview, location: e.target.value })}
+                placeholder="Virtual / Office Location / Room Number"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="add-interview-description">Notes</Label>
+              <Textarea
+                id="add-interview-description"
+                value={newInterview.description}
+                onChange={(e) => setNewInterview({ ...newInterview, description: e.target.value })}
+                placeholder="Interview details, preparation notes, questions to ask..."
+                className="min-h-[100px]"
+              />
+            </div>
+          </form>
+        </div>
+      </MultiPurposeModal>
     </DashboardLayout>
   );
 }

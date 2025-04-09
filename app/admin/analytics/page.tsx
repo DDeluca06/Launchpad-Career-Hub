@@ -108,6 +108,7 @@ interface JobFilter {
   salary: [number, number];
   experienceLevel: string;
   keywords: string;
+  tags: string[];
 }
 
 // Update defaultFilters
@@ -118,6 +119,7 @@ const defaultFilters: JobFilter = {
   salary: [0, 200],
   experienceLevel: "any",
   keywords: "",
+  tags: [],
 };
 
 // Colors for charts - using our design system colors
