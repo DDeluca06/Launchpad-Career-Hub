@@ -2,7 +2,7 @@ name: CI - Lint and Build
 
 on:
   pull_request:
-    branches: [ main ] # Or your main branch name
+    branches: [ main ]
 
 jobs:
   lint-and-build:
@@ -12,17 +12,31 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18' # Or your preferred Node.js version
+          node-version: '18'
       - name: Install pnpm
-        run: npm install -g pnpm # Install pnpm globally
+        run: npm install -g pnpm
       - name: Install dependencies
-        run: pnpm install # Install dependencies using pnpm
-      - name: Run ESLint
-        run: pnpm run lint # Run ESLint to check for linting errors
+        run: pnpm install
+      - name: Verify ESLint configuration
+        run: |
+          echo "Checking ESLint configuration..."
+          if ! grep -q '"ignorePatterns"' .eslintrc.json; then
+            echo "Error: 'ignorePatterns' property missing from ESLint configuration"
+            exit 1
+          fi
+          if ! grep -q "lib/generated/\*\*/\*" .eslintrc.json; then
+            echo "Error: Prisma generated files pattern missing from ESLint configuration"
+            exit 1
+          fi
+          echo "ESLint configuration verified."
+      - name: Run Next.js lint
+        run: |
+          echo "Running Next.js lint..."
+          pnpm run lint
       - name: Run TypeScript check
-        run: pnpm run type-check # Run TypeScript check (ensure this script is in package.json)
+        run: pnpm run type-check
       - name: Build Next.js app
-        run: pnpm run build # Build the Next.js applicatin
+        run: pnpm run build
 
         # # i do not want this deploying to my server without my express consent
 
