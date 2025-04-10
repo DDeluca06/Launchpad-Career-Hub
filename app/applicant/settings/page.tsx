@@ -102,10 +102,23 @@ export default function ApplicantSettingsPage() {
     
     // In a real app, you would upload to a server
     // For demo, we'll use a local URL
+    // Revoke previous object URL if it exists
+    if (profileImage && profileImage.startsWith('blob:')) {
+      URL.revokeObjectURL(profileImage);
+    }
     const imageUrl = URL.createObjectURL(file);
     setProfileImage(imageUrl);
   }
   
+  // Clean up URL on unmount
+  useEffect(() => {
+    return () => {
+      if (profileImage && profileImage.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImage);
+      }
+    };
+  }, [profileImage]);
+
   // Click handler for profile image upload button
   const handleProfileImageClick = () => {
     fileInputRef.current?.click();
