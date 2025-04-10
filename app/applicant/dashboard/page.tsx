@@ -163,7 +163,7 @@ export default function ApplicantDashboard() {
       const jobs = jobService.getAll();
       
       // Transform jobs into application format
-      const mockApplications: JobApplication[] = jobs.map(job => ({
+      const mockApplications: JobApplication[] = jobs.map((job: Job) => ({
         applicationId: job.job_id,
         jobId: job.job_id,
         userId: 1, // Mock user ID
@@ -206,7 +206,7 @@ export default function ApplicantDashboard() {
           title: 'Application Submitted',
           description: 'You applied for Frontend Developer at Tech Co',
           timestamp: '2023-04-05T10:30:00Z',
-          job: jobs.find(j => j.title === 'Frontend Developer')
+          job: jobs.find((j: Job) => j.title === 'Frontend Developer')
         },
         {
           id: 2,
@@ -214,7 +214,7 @@ export default function ApplicantDashboard() {
           title: 'Application Update',
           description: 'Your application for UX Designer is now in review',
           timestamp: '2023-04-04T14:15:00Z',
-          job: jobs.find(j => j.title === 'UX Designer')
+          job: jobs.find((j: Job) => j.title === 'UX Designer')
         },
         {
           id: 3,
@@ -222,7 +222,7 @@ export default function ApplicantDashboard() {
           title: 'Interview Scheduled',
           description: 'Technical interview for Backend Engineer position',
           timestamp: '2023-04-03T09:45:00Z',
-          job: jobs.find(j => j.title === 'Backend Engineer')
+          job: jobs.find((j: Job) => j.title === 'Backend Engineer')
         },
         {
           id: 4,
@@ -230,7 +230,7 @@ export default function ApplicantDashboard() {
           title: 'Job Saved',
           description: 'You saved the Product Manager position for later',
           timestamp: '2023-04-02T16:20:00Z',
-          job: jobs.find(j => j.title === 'Product Manager')
+          job: jobs.find((j: Job) => j.title === 'Product Manager')
         }
       ];
       

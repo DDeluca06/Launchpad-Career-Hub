@@ -7,10 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "seed": "node prisma/seed-script.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
+    "@nivo/bar": "^0.88.0",
+    "@nivo/core": "^0.88.0",
+    "@nivo/line": "^0.88.0",
+    "@nivo/pie": "^0.88.0",
     "@prisma/client": "^6.6.0",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.4",
@@ -55,6 +60,7 @@
     "react-beautiful-dnd": "^13.1.1",
     "react-day-picker": "8.10.1",
     "react-dom": "^18.2.0",
+    "react-highlight-words": "^0.21.0",
     "react-hook-form": "^7.54.1",
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.0",
@@ -69,12 +75,15 @@
     "@types/react": "^18.2.0",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-dom": "^18.2.0",
+    "@types/react-highlight-words": "^0.20.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.10.0",
     "eslint-config-next": "^15.2.4",
     "postcss": ">=8.4.31",
+    "prisma": "^6.6.0",
     "tailwindcss": "^3.4.17",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
