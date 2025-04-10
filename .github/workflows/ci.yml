@@ -15,9 +15,9 @@ jobs:
           node-version: '18'
           cache: 'npm'
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
       - name: Generate Prisma Client
-        run: pnpm prisma generate
+        run: npm prisma generate
       - name: Verify ESLint configuration
         run: |
           echo "Checking ESLint configuration..."
