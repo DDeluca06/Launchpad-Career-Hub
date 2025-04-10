@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 
 interface StatsData {
   totalJobs: number
-  totalApplicants: number
+  totalApplications: number
   activeInterviews: number
   offersSent: number
 }
@@ -10,47 +10,65 @@ interface StatsData {
 /**
  * Provides job application statistics along with loading and error states.
  *
- * This custom React hook initializes statistics data and simulates an API call
- * by using a timeout to update the statistics after a delay of 800 milliseconds.
+ * This custom React hook fetches statistics from the server-side API.
  * It manages state for the statistics, a loading indicator, and any potential errors,
  * and returns these values for use in components.
  *
  * @returns An object containing:
- *   - stats: An object with job statistics including total jobs, total applicants, active interviews, and offers sent.
+ *   - stats: An object with job statistics including total jobs, total applications, active interviews, and offers sent.
  *   - loading: A boolean that is true while data is loading and false once the data has been set.
- *   - error: An Error object if an error occurred during the simulated data fetching; otherwise, null.
+ *   - error: An Error object if an error occurred during data fetching; otherwise, null.
+ *   - refetch: A function to manually trigger a data refresh.
  */
 export function useStats() {
   const [stats, setStats] = useState<StatsData>({
     totalJobs: 0,
-    totalApplicants: 0,
+    totalApplications: 0,
     activeInterviews: 0,
     offersSent: 0
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
-  useEffect(() => {
-    // Simulate API call with a delay
-    const timeout = setTimeout(() => {
-      try {
-        // DUMMY DATA - Replace with actual API call when backend is set up
-        const dummyData: StatsData = {
-          totalJobs: 24,
-          totalApplicants: 156,
-          activeInterviews: 18,
-          offersSent: 7
-        }
-        setStats(dummyData)
-        setLoading(false)
-      } catch (err) {
-        setError(err as Error)
-        setLoading(false)
+  const fetchStats = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch stats from API
+      const response = await fetch('/api/dashboard/stats');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch stats: ${response.status}`);
       }
-    }, 800) // Simulate loading delay
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch stats');
+      }
+      
+      // Set the stats with API data
+      setStats(data.stats.topStats);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+      setError(err as Error);
+      setLoading(false);
 
-    return () => clearTimeout(timeout)
-  }, [])
+      // Fall back to dummy data in case of error
+      setStats({
+        totalJobs: 24,
+        totalApplications: 156,
+        activeInterviews: 18,
+        offersSent: 7
+      });
+    }
+  }, []);
 
-  return { stats, loading, error }
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  return { stats, loading, error, refetch: fetchStats }
 } 
