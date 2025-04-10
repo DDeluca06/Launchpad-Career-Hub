@@ -1,5 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { parse } from 'csv-parse/sync';
+import { PrismaClient, ProgramType } from '../../../lib/generated/prisma';
+import bcrypt from 'bcryptjs';
+
+const prisma = new PrismaClient();
 
 /**
  * Interface defining the expected structure of a user record from the CSV file.
@@ -10,15 +14,11 @@ interface CSVUser {
   first_name: string;
   /** User's last name */
   last_name: string;
-  /** User's email address */
-  email: string;
   /** User's username */
   username: string;
   /** User's password */
   password: string;
-  /** User's identification number */
-  id_number: string;
-  /** User's program phase */
+  /** User's program phase (must be one of: Foundations, 101, LiftOff, Alumni) */
   program_phase: string;
 }
 
@@ -29,10 +29,8 @@ interface CSVUser {
 const REQUIRED_FIELDS = [
   'first_name',
   'last_name',
-  'email',
   'username',
   'password',
-  'id_number',
   'program_phase'
 ];
 
@@ -44,12 +42,13 @@ const REQUIRED_FIELDS = [
  * 2. Parses the CSV content
  * 3. Validates the required fields and data format
  * 4. Transforms the data into the expected format
- * 5. Returns the processed data or appropriate error messages
+ * 5. Creates users in the database using Prisma
+ * 6. Returns the processed data or appropriate error messages
  * 
  * @param req - The incoming request containing the CSV file
  * @returns A response with either the processed data or an error message
  */
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     console.warn('Received upload request');
     const formData = await req.formData();
@@ -80,9 +79,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Read and parse CSV content
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const fileContent = buffer.toString('utf-8');
-    console.warn('File content length:', fileContent.length);
+    const buffer = await file.arrayBuffer();
+    const content = new TextDecoder().decode(buffer);
+    console.warn('File content length:', content.length);
 
     let records: CSVUser[];
     try {
@@ -90,7 +89,7 @@ export async function POST(req: NextRequest) {
       // - columns: true - Use first row as headers
       // - skip_empty_lines: true - Ignore empty lines
       // - trim: true - Remove whitespace from values
-      records = parse(fileContent, {
+      records = parse(content, {
         columns: true,
         skip_empty_lines: true,
         trim: true,
@@ -131,12 +130,10 @@ export async function POST(req: NextRequest) {
 
     // Validate data format and content
     const invalidRecords = records.filter(record => {
-      return !record.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/) || // Email validation
-             !record.username.trim() || // Username not empty
+      return !record.username.trim() || // Username not empty
              !record.first_name.trim() || // First name not empty
              !record.last_name.trim() || // Last name not empty
              !record.password.trim() || // Password not empty
-             !record.id_number.trim() || // ID number not empty
              !record.program_phase.trim(); // Program phase not empty
     });
 
@@ -151,30 +148,83 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /**
-     * Transform the CSV records into the format expected by the application.
-     * This step combines first_name and last_name into a single name field
-     * and maps program_phase to program for compatibility.
-     */
-    const transformedRecords = records.map(record => ({
-      name: `${record.first_name} ${record.last_name}`,
-      username: record.username,
-      email: record.email,
-      password: record.password,
-      program: record.program_phase,
-      id_number: record.id_number
-    }));
+    // Process records and create users
+    const createdUsers = [];
+    const errors = [];
+
+    for (const record of records) {
+      try {
+        // Hash the password
+        const passwordHash = await bcrypt.hash(record.password, 10);
+
+        // Convert program phase to the correct format
+        const programPhase = record.program_phase;
+        console.warn('Raw program phase value:', programPhase);
+        console.warn('Program phase length:', programPhase.length);
+        console.warn('Program phase char codes:', Array.from(programPhase).map(char => char.charCodeAt(0)));
+        
+        let programType: ProgramType;
+        
+        switch (programPhase) {
+          case 'Foundations':
+            programType = 'FOUNDATIONS';
+            break;
+          case '101':
+            programType = 'ONE_ZERO_ONE';
+            break;
+          case 'LiftOff':
+            programType = 'LIFTOFF';
+            break;
+          case 'Alumni':
+            programType = 'ALUMNI';
+            break;
+          default:
+            return NextResponse.json(
+              { error: `Invalid program phase: "${programPhase}". Program phase must be exactly one of: "Foundations", "101", "LiftOff", "Alumni" (case-sensitive)` },
+              { status: 400 }
+            );
+        }
+
+        // Create user with hashed password
+        const user = await prisma.users.create({
+          data: {
+            first_name: record.first_name,
+            last_name: record.last_name,
+            username: record.username,
+            password_hash: passwordHash,
+            program: programType,
+            is_active: true,
+            is_admin: false,
+          },
+        });
+
+        createdUsers.push(user);
+      } catch (error: unknown) {
+        console.error('Error creating user:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        errors.push(`Failed to create user ${record.username}: ${errorMessage}`);
+      }
+    }
+
+    if (errors.length > 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Some users could not be created: ${errors.join(', ')}`,
+          createdUsers
+        },
+        { status: 400 }
+      );
+    }
 
     console.warn('Successfully processed CSV file');
     return NextResponse.json(
-      { success: true, data: transformedRecords },
+      { success: true, data: createdUsers },
       { status: 200 }
     );
-  } catch (error) {
-    console.error('Upload error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to process CSV file' },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    console.error('Error processing CSV:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
