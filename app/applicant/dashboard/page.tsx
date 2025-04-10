@@ -8,13 +8,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar";
 import { Badge } from "@/components/ui/basic/badge";
 import { extendedPalette } from "@/lib/colors";
-import { 
-  Briefcase, 
-  Building2, 
-  Clock, 
-  MapPin, 
-  MessageSquare, 
-  Star, 
+import {
+  Briefcase,
+  Building2,
+  Clock,
+  MapPin,
+  MessageSquare,
+  Star,
   Users,
   FileCheck,
   CheckSquare,
@@ -33,7 +33,7 @@ interface ApplicantDashboardStats {
 
 interface RecentActivity {
   id: number;
-  type: 'application' | 'status_change' | 'interview' | 'offer' | 'saved';
+  type: 'application' | 'status_change' | 'interview' | 'offer' | 'interested';
   title: string;
   description: string;
   timestamp: string;
@@ -59,11 +59,11 @@ export default function ApplicantDashboard() {
     savedJobs: 0,
     completedAssessments: 0
   });
-  
+
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [recommendations, setRecommendations] = useState<JobRecommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Job statistics for analytics and future dashboard enhancements
   const [jobStats, setJobStats] = useState({
     total: 0,
@@ -78,10 +78,10 @@ export default function ApplicantDashboard() {
       try {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
+
         // Load applications from local storage
         const applications = applicationService.getAll();
-         
+
         // Update stats
         setStats({
           totalApplications: applications.length,
@@ -89,7 +89,7 @@ export default function ApplicantDashboard() {
           savedJobs: applications.filter((app) => app.status === 'saved').length,
           completedAssessments: Math.floor(Math.random() * 10),
         });
-        
+
         // Job stats
         setJobStats({
           total: applications.length,
@@ -97,29 +97,29 @@ export default function ApplicantDashboard() {
           interested: applications.filter((app) => app.status === 'saved').length,
           rejected: applications.filter((app) => app.status === 'rejected').length,
         });
-        
+
         // Generate recent activity
         const activity = generateRecentActivity();
         setRecentActivity(activity);
-        
+
         // Generate recommendations
         const recommendations = generateJobRecommendations();
         setRecommendations(recommendations);
-        
+
         setIsLoading(false);
       } catch (error) {
         console.error("Error loading dashboard data:", error);
         setIsLoading(false);
       }
     };
-    
+
     loadDashboardData();
   }, []);
-  
+
   // Generate recent activity based on applications
   const generateRecentActivity = (): RecentActivity[] => {
     const activity: RecentActivity[] = [];
-    
+
     // Add some sample activities
     activity.push({
       id: 1,
@@ -128,7 +128,7 @@ export default function ApplicantDashboard() {
       description: 'You submitted your application to Google',
       timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
     });
-    
+
     activity.push({
       id: 2,
       type: 'status_change',
@@ -136,7 +136,7 @@ export default function ApplicantDashboard() {
       description: 'Your application at Amazon moved to Interview stage',
       timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
     });
-    
+
     activity.push({
       id: 3,
       type: 'interview',
@@ -144,7 +144,7 @@ export default function ApplicantDashboard() {
       description: 'Technical interview with Microsoft on April 15, 2025',
       timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
     });
-    
+
     activity.push({
       id: 4,
       type: 'offer',
@@ -152,22 +152,22 @@ export default function ApplicantDashboard() {
       description: 'You received an offer from Netflix for Senior Developer role',
       timestamp: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
     });
-    
+
     activity.push({
       id: 5,
-      type: 'saved',
-      title: 'Saved a job',
-      description: 'You saved Product Manager position at Facebook',
+      type: 'interested',
+      title: 'Marked a job as interested',
+      description: 'You marked Product Manager position at Facebook as interested',
       timestamp: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
     });
-    
+
     return activity;
   };
-  
+
   // Generate job recommendations
   const generateJobRecommendations = (): JobRecommendation[] => {
     const recommendations: JobRecommendation[] = [];
-    
+
     // Add some sample recommendations
     recommendations.push({
       id: 1,
@@ -177,7 +177,7 @@ export default function ApplicantDashboard() {
       matchPercentage: 95,
       isNew: true,
     });
-    
+
     recommendations.push({
       id: 2,
       title: "Full Stack Engineer",
@@ -186,7 +186,7 @@ export default function ApplicantDashboard() {
       matchPercentage: 88,
       isNew: true,
     });
-    
+
     recommendations.push({
       id: 3,
       title: "React Developer",
@@ -195,7 +195,7 @@ export default function ApplicantDashboard() {
       matchPercentage: 82,
       isNew: false,
     });
-    
+
     recommendations.push({
       id: 4,
       title: "Software Engineer",
@@ -204,7 +204,7 @@ export default function ApplicantDashboard() {
       matchPercentage: 78,
       isNew: false,
     });
-    
+
     return recommendations;
   };
 
@@ -213,34 +213,34 @@ export default function ApplicantDashboard() {
     const now = new Date();
     const date = new Date(timestamp);
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
+
     if (diffInSeconds < 60) {
       return 'just now';
     }
-    
+
     const diffInMinutes = Math.floor(diffInSeconds / 60);
     if (diffInMinutes < 60) {
       return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
     }
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) {
       return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
     }
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 30) {
       return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
     }
-    
+
     const diffInMonths = Math.floor(diffInDays / 30);
     return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
   };
 
   // Activity icon component based on activity type
-  function ActivityIcon({ type }: { type: 'application' | 'status_change' | 'interview' | 'offer' | 'saved' }) {
+  function ActivityIcon({ type }: { type: 'application' | 'status_change' | 'interview' | 'offer' | 'interested' }) {
     const iconClass = "h-5 w-5";
-    
+
     switch (type) {
       case 'application':
         return <Send className={`${iconClass} text-blue-500`} />;
@@ -250,7 +250,7 @@ export default function ApplicantDashboard() {
         return <MessageSquare className={`${iconClass} text-amber-500`} />;
       case 'offer':
         return <FileCheck className={`${iconClass} text-green-500`} />;
-      case 'saved':
+      case 'interested':
         return <Save className={`${iconClass} text-gray-500`} />;
       default:
         return <Clock className={`${iconClass} text-gray-500`} />;
@@ -266,91 +266,89 @@ export default function ApplicantDashboard() {
             <div className="flex space-x-2">
               <Button variant="outline" className="hidden md:flex">
                 <Star className="mr-2 h-4 w-4" />
-                Saved Jobs
+                Interested Jobs
               </Button>
               <Button>
                 Find Jobs
               </Button>
             </div>
           </div>
-          
+
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <StatCard 
+            <StatCard
               title="Total Applications"
               value={jobStats.total}
               icon={<Briefcase className="h-5 w-5" style={{ color: extendedPalette.primaryBlue }} />}
               isLoading={isLoading}
               subtitle={`${jobStats.applied} applied • ${jobStats.interested} interested`}
             />
-            <StatCard 
+            <StatCard
               title="Active Interviews"
               value={stats.activeInterviews}
               icon={<Users className="h-5 w-5" style={{ color: extendedPalette.primaryGreen }} />}
               isLoading={isLoading}
             />
-            <StatCard 
+            <StatCard
               title="Saved Jobs"
               value={stats.savedJobs}
               icon={<Star className="h-5 w-5" style={{ color: extendedPalette.teal }} />}
               isLoading={isLoading}
             />
           </div>
-          
+
         {/* Main Dashboard Sections */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          
-          
-          
+
+
+
         </div>
-        
+
         {/* Kanban Task Board */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              
+
             </div>
           </div>
           <KanbanPage />
         </div>
-        
-        {/* Two Column Layout: Recent Activity and Upcoming Interviews */}
+
+        {/* Two Column Layout: Recent Activity and Job Recommendations */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Recent Activity */}
-          <Card className="border border-gray-200 shadow-sm">
+          <Card className="border border-gray-200 shadow-sm h-full">
             <CardHeader className="pb-2 border-b bg-gray-50">
               <CardTitle className="text-lg font-medium">Recent Activity</CardTitle>
               <CardDescription>Your latest updates and actions</CardDescription>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="p-4 overflow-auto max-h-[400px]">
               <ul className="space-y-4">
                 {recentActivity.map((activity) => (
-                  <li key={activity.id} className="flex items-start gap-4">
-                    <div className="mt-1">
+                  <li key={activity.id} className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0">
+                    <div className="mt-0.5 bg-gray-100 p-1.5 rounded-full">
                       <ActivityIcon type={activity.type} />
                     </div>
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">{activity.title}</p>
+                        <p className="text-sm font-medium text-gray-900">{activity.title}</p>
                         <p className="text-xs text-gray-500">{formatRelativeTime(activity.timestamp)}</p>
                       </div>
-                      <p className="text-sm text-gray-500">{activity.description}</p>
+                      <p className="text-sm text-gray-600">{activity.description}</p>
                     </div>
                   </li>
                 ))}
               </ul>
             </CardContent>
-            <CardFooter className="border-t bg-gray-50">
+            <CardFooter className="border-t bg-gray-50 px-4 py-2">
               <Button variant="outline" size="sm" className="w-full">
                 View All Activity
               </Button>
             </CardFooter>
           </Card>
-        </div>
-        
-        {/* Job Recommendations */}
-        <div className="mb-8">
-          <Card className="border border-gray-200 shadow-sm">
+
+          {/* Job Recommendations */}
+          <Card className="border border-gray-200 shadow-sm h-full">
             <CardHeader className="pb-2 border-b bg-gray-50">
               <CardTitle className="text-lg font-medium">Recommended Jobs</CardTitle>
               <CardDescription>Based on your profile and preferences</CardDescription>
@@ -402,17 +400,17 @@ export default function ApplicantDashboard() {
 }
 
 // Stats Card Component
-function StatCard({ 
-  title, 
-  value, 
-  icon, 
-  isLoading, 
+function StatCard({
+  title,
+  value,
+  icon,
+  isLoading,
   subtitle,
   suffix
-}: { 
-  title: string; 
-  value: number; 
-  icon: React.ReactNode; 
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
   isLoading: boolean;
   subtitle?: string;
   suffix?: string;

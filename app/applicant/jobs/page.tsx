@@ -28,7 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/naviga
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/data-display/skeleton";
 import { cn } from "@/lib/utils";
-import { jobService, applicationService, userService, resumeService, User } from "@/lib/local-storage";
+import { jobService, applicationService, userService, resumeService, User, userProfileService, UserProfile } from "@/lib/local-storage";
 
 // Types
 interface Job {
@@ -217,6 +217,12 @@ export default function JobsPage() {
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<"jobs" | "applications">("jobs");
+  const [applyModalOpen, setApplyModalOpen] = useState<boolean>(false);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     jobType: [],
     experienceLevel: [],
@@ -225,21 +231,16 @@ export default function JobsPage() {
     industry: [],
   });
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [applyModalOpen, setApplyModalOpen] = useState<boolean>(false);
-  const [showFilters, setShowFilters] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"jobs" | "applications">("jobs");
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [applicationData, setApplicationData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
-    resume: null as File | null,
     coverLetter: "",
+    idealCandidate: ""
   });
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userResumes, setUserResumes] = useState<Array<{resume_id: number, file_name: string, is_default: boolean | null}>>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
   const [isLoadingResumes, setIsLoadingResumes] = useState(false);
@@ -254,6 +255,23 @@ export default function JobsPage() {
       // Get current user
       const user = userService.getCurrentUser() || userService.getById(2) || null;
       setCurrentUser(user);
+      
+      // Get user profile if user exists
+      if (user) {
+        const profile = userProfileService.getByUserId(user.user_id);
+        setUserProfile(profile || null);
+        
+        // If profile exists, populate the form with profile data
+        if (profile) {
+          setApplicationData(prev => ({
+            ...prev,
+            firstName: profile.first_name,
+            lastName: profile.last_name,
+            email: profile.email || prev.email,
+            phone: profile.phone || prev.phone
+          }));
+        }
+      }
       
       // Load jobs from local storage
       const storageJobs = jobService.getAll();
@@ -286,7 +304,7 @@ export default function JobsPage() {
         ],
         postedDate: job.created_at,
         applicationDeadline: new Date(new Date(job.created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        companyLogoUrl: job.companyLogo || "https://via.placeholder.com/150",
+        companyLogoUrl: job.companyLogo || "https://placehold.co/150",
         industry: job.tags?.[0] || "Technology",
         isRemote: job.location.toLowerCase().includes("remote")
       }));
@@ -496,22 +514,30 @@ export default function JobsPage() {
   };
 
   // Submit job application
-  const handleSubmitApplication = () => {
-    if (!selectedJob || !currentUser) return;
+  const handleSubmitApplication = async () => {
+    if (!selectedJob || !currentUser || !selectedResumeId) return;
     
-    // Create application in local storage
-    const jobId = parseInt(selectedJob.id);
-    
-    const newApplication = applicationService.create({
-      user_id: currentUser.user_id,
-      job_id: jobId,
-      status: "applied",
-      resume_id: selectedResumeId || 0,
-      position: selectedJob.title
-    });
-    
-    if (newApplication) {
-      // Add to UI applications list
+    try {
+      // Create a new application
+      const newApplication = applicationService.create({
+        user_id: currentUser.user_id,
+        job_id: parseInt(selectedJob.id), // Convert string id to number
+        status: "submitted",
+        resume_id: selectedResumeId,
+        position: selectedJob.title,
+      });
+      
+      // Save or update user profile information
+      if (currentUser) {
+        userProfileService.createOrUpdate(currentUser.user_id, {
+          first_name: applicationData.firstName,
+          last_name: applicationData.lastName,
+          email: applicationData.email,
+          phone: applicationData.phone
+        });
+      }
+      
+      // Create a UI representation of the application
       const newUIApplication: Application = {
         id: newApplication.application_id.toString(),
         jobId: selectedJob.id,
@@ -520,24 +546,29 @@ export default function JobsPage() {
         companyLogoUrl: selectedJob.companyLogoUrl,
         appliedDate: newApplication.applied_at,
         status: "submitted",
-        notes: applicationData.coverLetter
+        notes: applicationData.idealCandidate
       };
       
       setApplications(prev => [...prev, newUIApplication]);
-      
-      // Close modal and reset form
       setApplyModalOpen(false);
+      
+      // Reset form
       setApplicationData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        resume: null,
-        coverLetter: ""
+        firstName: userProfile?.first_name || "",
+        lastName: userProfile?.last_name || "",
+        email: userProfile?.email || "",
+        phone: userProfile?.phone || "",
+        coverLetter: "",
+        idealCandidate: ""
       });
       
       // Switch to applications tab
       setActiveTab("applications");
+      
+      // Select the newly created application
+      setSelectedApplication(newUIApplication);
+    } catch (error) {
+      console.error("Error submitting application:", error);
     }
   };
 
@@ -1103,6 +1134,8 @@ export default function JobsPage() {
                       placeholder="John"
                       value={applicationData.firstName}
                       onChange={(e) => setApplicationData({...applicationData, firstName: e.target.value})}
+                      readOnly
+                      className="bg-gray-50"
                     />
                   </div>
                   <div>
@@ -1112,6 +1145,8 @@ export default function JobsPage() {
                       placeholder="Doe"
                       value={applicationData.lastName}
                       onChange={(e) => setApplicationData({...applicationData, lastName: e.target.value})}
+                      readOnly
+                      className="bg-gray-50"
                     />
                   </div>
                 </div>
@@ -1165,11 +1200,21 @@ export default function JobsPage() {
                 
                 <div>
                   <Label htmlFor="cover-letter">Cover Letter (Optional)</Label>
-                  <Textarea 
+                  <Input 
                     id="cover-letter" 
-                    placeholder="Why are you interested in this position?"
-                    value={applicationData.coverLetter}
-                    onChange={(e) => setApplicationData({...applicationData, coverLetter: e.target.value})}
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Upload your cover letter (PDF, DOC, or DOCX)</p>
+                </div>
+                
+                <div>
+                  <Label htmlFor="ideal-candidate">Why are you the ideal candidate for this role?</Label>
+                  <Textarea 
+                    id="ideal-candidate" 
+                    placeholder="Describe why you are the perfect fit for this position..."
+                    value={applicationData.idealCandidate}
+                    onChange={(e) => setApplicationData({...applicationData, idealCandidate: e.target.value})}
                   />
                 </div>
               </div>

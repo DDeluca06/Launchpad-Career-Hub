@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import React from 'react';
 import { Task } from '@/types';
 import { Draggable } from 'react-beautiful-dnd';
 import { Card, CardContent } from '@/components/ui/basic/card';
 import { Button } from '@/components/ui/basic/button';
-import { formatDate } from '@/lib/store';
 import { Clock, Edit, Trash2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/form/checkbox';
 
@@ -26,20 +27,6 @@ export function KanbanCard({
   onEditTask,
   onStartTimer,
 }: KanbanCardProps) {
-  // Get priority badge color
-  const getPriorityColor = () => {
-    switch (task.priority) {
-      case 'low':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
-      case 'high':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100';
-    }
-  };
-
   return (
     <Draggable draggableId={task.id} index={index}>
       {(provided, snapshot) => (
@@ -58,7 +45,7 @@ export function KanbanCard({
                       checked={task.status === 'offer' || task.status === 'rejected'}
                       onCheckedChange={(checked) => {
                         onUpdateTask(task.id, {
-                          status: checked ? 'offer' : 'saved',
+                          status: checked ? 'offer' : 'interested',
                         });
                       }}
                       className="mt-1"
@@ -80,15 +67,11 @@ export function KanbanCard({
                 
                 <div className="flex flex-wrap gap-2 items-center justify-between">
                   <div className="flex flex-wrap gap-2">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getPriorityColor()}`}>
-                      {task.priority}
-                    </span>
-                    
-                    {task.dueDate && (
-                      <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-600 px-2 py-0.5 text-xs font-medium">
-                        {formatDate(new Date(task.dueDate))}
+                    {task.tags && task.tags.length > 0 && task.tags.map((tag, index) => (
+                      <span key={index} className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 px-2 py-0.5 text-xs font-medium">
+                        {tag}
                       </span>
-                    )}
+                    ))}
                   </div>
                   
                   <div className="flex items-center space-x-1">

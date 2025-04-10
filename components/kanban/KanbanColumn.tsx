@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/basic/
 interface KanbanColumnProps {
   title: string;
   tasks: Task[];
-  status: 'saved' | 'applied' | 'interview' | 'offer' | 'rejected';
+  status: 'interested' | 'applied' | 'interview' | 'offer' | 'rejected';
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
   onDeleteTask: (taskId: string) => void;
   onEditTask: (task: Task) => void;
@@ -28,7 +28,7 @@ export function KanbanColumn({
   // Get background color based on status
   const getColumnColor = () => {
     switch (status) {
-      case 'saved':
+      case 'interested':
         return 'bg-gray-50 dark:bg-gray-800';
       case 'applied':
         return 'bg-blue-50 dark:bg-blue-900/20';
@@ -46,7 +46,7 @@ export function KanbanColumn({
   // Get border color based on status
   const getBorderColor = () => {
     switch (status) {
-      case 'saved':
+      case 'interested':
         return 'border-t-gray-500';
       case 'applied':
         return 'border-t-blue-500';

@@ -16,7 +16,7 @@ export default function ApplicantSettingsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   // User settings state
   const [userSettings, setUserSettings] = useState({
     username: "",
@@ -30,10 +30,10 @@ export default function ApplicantSettingsPage() {
     const loadUserData = async () => {
       // Get current user or default to user with ID 2 (a non-admin)
       const currentUser = userService.getCurrentUser() || userService.getById(2);
-      
+
       if (currentUser) {
         setUser(currentUser);
-        
+
         // Pre-fill form with user data
         setUserSettings(prev => ({
           ...prev,
@@ -43,10 +43,10 @@ export default function ApplicantSettingsPage() {
         }));
       }
     }
-    
+
     loadUserData();
   }, []);
-  
+
   // Handle setting change
   const handleSettingChange = (key: string, value: string | boolean) => {
     setUserSettings(prev => ({
@@ -54,43 +54,43 @@ export default function ApplicantSettingsPage() {
       [key]: value
     }));
   }
-  
+
   const handleSave = () => {
     // Save to localStorage
     if (user) {
-      const updatedUser = { 
-        ...user, 
+      const updatedUser = {
+        ...user,
         username: userSettings.username,
         status: userSettings.status,
         program: userSettings.program
       };
-      
+
       // Update user in local storage
       const result = userService.update(updatedUser);
-      
+
       if (result) {
         setUser(updatedUser);
-        
+
         // If this is the current logged-in user, update the current user in local storage
         const currentUser = userService.getCurrentUser();
         if (currentUser && currentUser.user_id === user.user_id) {
           userService.logout(); // Clear current user
           userService.login(updatedUser.username, updatedUser.password); // Log back in with updated user
         }
-        
+
         // Show saved indicator
         setSavedIndicator(true);
         setTimeout(() => setSavedIndicator(false), 2000);
       }
     }
   }
-  
+
   // Handle profile image upload
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-   
+
+
     // Revoke previous object URL if it exists
     if (profileImage && profileImage.startsWith('blob:')) {
       URL.revokeObjectURL(profileImage);
@@ -98,7 +98,7 @@ export default function ApplicantSettingsPage() {
     const imageUrl = URL.createObjectURL(file);
     setProfileImage(imageUrl);
   }
-  
+
   // Clean up URL on unmount
   useEffect(() => {
     return () => {
@@ -112,7 +112,7 @@ export default function ApplicantSettingsPage() {
   const handleProfileImageClick = () => {
     fileInputRef.current?.click();
   }
-  
+
   return (
     <DashboardLayout>
       <div className="container py-6 px-4 mx-auto">
@@ -121,10 +121,10 @@ export default function ApplicantSettingsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
             <p className="text-gray-500 mt-1">Manage your profile information</p>
           </div>
-          
+
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={handleSave}
               className="flex items-center gap-1"
@@ -143,7 +143,7 @@ export default function ApplicantSettingsPage() {
             </Button>
           </div>
         </div>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
@@ -162,8 +162,8 @@ export default function ApplicantSettingsPage() {
                     </AvatarFallback>
                   )}
                 </Avatar>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={handleProfileImageClick}
                   className="flex items-center gap-1"
@@ -171,29 +171,29 @@ export default function ApplicantSettingsPage() {
                   <Camera className="h-4 w-4" />
                   Change Photo
                 </Button>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleProfileImageChange} 
-                  className="hidden" 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleProfileImageChange}
+                  className="hidden"
                   accept="image/*"
                 />
               </div>
-              
+
               {/* Form Fields */}
               <div className="flex-1 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
-                    <Input 
-                      id="username" 
-                      value={userSettings.username} 
+                    <Input
+                      id="username"
+                      value={userSettings.username}
                       onChange={(e) => handleSettingChange('username', e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="program">Program</Label>
-                    <select 
+                    <select
                       id="program"
                       className="w-full p-2 border rounded-md"
                       value={userSettings.program}
@@ -210,7 +210,7 @@ export default function ApplicantSettingsPage() {
             </div>
           </div>
         </Card>
-        
+
         <Card className="mt-4">
           <CardHeader>
             <CardTitle>Password</CardTitle>
@@ -225,18 +225,18 @@ export default function ApplicantSettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="new-password">New Password</Label>
-                  <Input 
-                    id="new-password" 
-                    type="password" 
+                  <Input
+                    id="new-password"
+                    type="password"
                     value={userSettings.password}
                     onChange={(e) => handleSettingChange('password', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <Input 
-                    id="confirm-password" 
-                    type="password" 
+                  <Input
+                    id="confirm-password"
+                    type="password"
                     value={userSettings.confirmPassword}
                     onChange={(e) => handleSettingChange('confirmPassword', e.target.value)}
                   />

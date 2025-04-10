@@ -18,16 +18,16 @@ export default function ResumePage() {
     const loadUserData = async () => {
       // Get current user or default to user with ID 2 (a non-admin)
       const currentUser = userService.getCurrentUser() || userService.getById(2);
-      
+
       if (currentUser) {
         setUser(currentUser);
-        
+
         // Load user's resumes from local storage
         const userResumes = resumeService.getByUserId(currentUser.user_id);
         setResumes(userResumes);
       }
     }
-    
+
     loadUserData();
   }, []);
 
@@ -35,14 +35,14 @@ export default function ResumePage() {
   const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     setNewResumeFile(file);
   }
-  
+
   // Upload resume
   const handleResumeUpload = () => {
     if (!newResumeFile || !user) return;
-    
+
     // Validate file type
     const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!validTypes.includes(newResumeFile.type)) {
@@ -59,12 +59,12 @@ export default function ResumePage() {
         file_name: newResumeFile.name,
         isDefault: resumes.length === 0 // Make default if it's the first resume
       });
-      
+
       if (newResume) {
         // Update the UI
         setResumes(prev => [...prev, newResume]);
         setNewResumeFile(null);
-        
+
         // Clear the file input
         if (resumeInputRef.current) {
           resumeInputRef.current.value = '';
@@ -74,20 +74,20 @@ export default function ResumePage() {
       console.error("Error uploading resume:", error);
     }
   }
-  
+
   // Set default resume
   const setDefaultResume = (resumeId: number) => {
     try {
       // Update all resumes in local storage
       resumes.forEach(resume => {
         const isDefault = resume.resume_id === resumeId;
-        
+
         if (isDefault !== resume.isDefault) {
           const updatedResume = { ...resume, isDefault };
           resumeService.update(updatedResume);
         }
       });
-      
+
       // Update UI
       setResumes(prev => prev.map(resume => ({
         ...resume,
@@ -97,17 +97,17 @@ export default function ResumePage() {
       console.error("Error setting default resume:", error);
     }
   }
-  
+
   // Delete resume
   const deleteResume = (resumeId: number) => {
     try {
       // Delete from local storage
       resumeService.delete(resumeId);
-      
+
       // Update UI
       const updatedResumes = resumes.filter(resume => resume.resume_id !== resumeId);
       setResumes(updatedResumes);
-      
+
       // If we deleted the default resume and have other resumes, set a new default
       const deletedDefault = resumes.find(r => r.resume_id === resumeId)?.isDefault;
       if (deletedDefault && updatedResumes.length > 0) {
@@ -128,7 +128,7 @@ export default function ResumePage() {
             <p className="text-gray-500 mt-1">Upload and manage your resumes</p>
           </div>
         </div>
-        
+
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -144,22 +144,22 @@ export default function ResumePage() {
                     <h3 className="font-medium">Upload a new resume</h3>
                     <p className="text-sm text-gray-500 mb-2">Drag and drop or click to browse</p>
                     <div className="flex items-center gap-2">
-                      <input 
-                        type="file" 
-                        ref={resumeInputRef} 
-                        onChange={handleResumeChange} 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        ref={resumeInputRef}
+                        onChange={handleResumeChange}
+                        className="hidden"
                         accept=".pdf,.doc,.docx"
                       />
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => resumeInputRef.current?.click()}
                       >
                         Browse Files
                       </Button>
                       {newResumeFile && (
-                        <Button 
+                        <Button
                           size="sm"
                           onClick={handleResumeUpload}
                           style={{ backgroundColor: extendedPalette.primaryBlue }}
@@ -175,7 +175,7 @@ export default function ResumePage() {
                     )}
                   </div>
                 </div>
-                
+
                 {/* Existing resumes */}
                 <div className="space-y-3">
                   {resumes.length === 0 ? (
@@ -206,16 +206,16 @@ export default function ResumePage() {
                           </div>
                           <div className="flex items-center gap-2">
                             {!resume.isDefault && (
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => setDefaultResume(resume.resume_id)}
                               >
                                 Set as Default
                               </Button>
                             )}
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => deleteResume(resume.resume_id)}
                               className="text-red-500 hover:text-red-700"

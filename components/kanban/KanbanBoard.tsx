@@ -22,7 +22,7 @@ export function ApplicationPipeline({
 }: ApplicationPipelineProps) {
   // Group tasks by status
   const columns = {
-    saved: tasks.filter(task => task.status === 'saved'),
+    interested: tasks.filter(task => task.status === 'interested'),
     applied: tasks.filter(task => task.status === 'applied'),
     interview: tasks.filter(task => task.status === 'interview'),
     offer: tasks.filter(task => task.status === 'offer'),
@@ -46,7 +46,7 @@ export function ApplicationPipeline({
 
     // Update the task status based on the destination column
     onUpdateTask(task.id, {
-      status: destination.droppableId as 'saved' | 'applied' | 'interview' | 'offer' | 'rejected'
+      status: destination.droppableId as 'interested' | 'applied' | 'interview' | 'offer' | 'rejected'
     });
   };
 
@@ -54,9 +54,9 @@ export function ApplicationPipeline({
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <KanbanColumn 
-          title="Saved" 
-          tasks={columns.saved} 
-          status="saved"
+          title="Interested" 
+          tasks={columns.interested} 
+          status="interested"
           onUpdateTask={onUpdateTask}
           onDeleteTask={onDeleteTask}
           onEditTask={onEditTask}

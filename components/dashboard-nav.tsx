@@ -207,7 +207,7 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
             pathname={pathname}
           />
         )}
-        
+
         <NavSection title="Utilities" items={utilityItems} pathname={pathname} />
       </div>
 

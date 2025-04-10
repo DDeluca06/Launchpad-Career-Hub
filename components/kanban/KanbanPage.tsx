@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { formatDate, useAppStore } from '@/lib/store';
+import { useAppStore } from '@/lib/store';
 import { Task } from '@/types';
 import { ApplicationPipeline } from './KanbanBoard';
 import { Button } from '@/components/ui/basic/button';
@@ -31,14 +31,7 @@ import {
   SelectValue 
 } from '@/components/ui/form/select';
 import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from '@/components/ui/overlay/popover';
-import { Calendar } from '@/components/ui/basic/calendar';
-import { 
   PlusCircle, 
-  Calendar as CalendarIcon, 
   Search, 
   Filter 
 } from 'lucide-react';
@@ -47,14 +40,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 
-
 // Task form schema
 const taskFormSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  status: z.enum(['saved', 'applied', 'interview', 'offer', 'rejected']),
-  priority: z.enum(['low', 'medium', 'high']),
-  dueDate: z.date().nullable(),
+  status: z.enum(['interested', 'applied', 'interview', 'offer', 'rejected']),
   tags: z.array(z.string()).optional(),
 });
 
@@ -67,7 +57,6 @@ export function KanbanPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
   // Create form
   const createForm = useForm<TaskFormValues>({
@@ -75,9 +64,7 @@ export function KanbanPage() {
     defaultValues: {
       title: '',
       description: '',
-      status: 'saved',
-      priority: 'medium',
-      dueDate: null,
+      status: 'interested',
       tags: [],
     },
   });
@@ -88,9 +75,7 @@ export function KanbanPage() {
     defaultValues: {
       title: '',
       description: '',
-      status: 'saved',
-      priority: 'medium',
-      dueDate: null,
+      status: 'interested',
       tags: [],
     },
   });
@@ -101,8 +86,6 @@ export function KanbanPage() {
       title: data.title,
       description: data.description || '',
       status: data.status,
-      priority: data.priority,
-      dueDate: data.dueDate,
       tags: data.tags || [],
     });
     
@@ -119,8 +102,6 @@ export function KanbanPage() {
       title: data.title,
       description: data.description || '',
       status: data.status,
-      priority: data.priority,
-      dueDate: data.dueDate,
       tags: data.tags || [],
     });
     
@@ -142,8 +123,6 @@ export function KanbanPage() {
       title: task.title,
       description: task.description,
       status: task.status,
-      priority: task.priority,
-      dueDate: task.dueDate,
       tags: task.tags,
     });
     setIsEditDialogOpen(true);
@@ -166,10 +145,7 @@ export function KanbanPage() {
       // Status filter
       const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
       
-      // Priority filter
-      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
-      
-      return matchesSearch && matchesStatus && matchesPriority;
+      return matchesSearch && matchesStatus;
     });
 
   return (
@@ -218,93 +194,50 @@ export function KanbanPage() {
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={createForm.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="saved">Saved</SelectItem>
-                            <SelectItem value="applied">Applied</SelectItem>
-                            <SelectItem value="interview">Interview</SelectItem>
-                            <SelectItem value="offer">Offer</SelectItem>
-                            <SelectItem value="rejected">Rejected</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={createForm.control}
-                    name="priority"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Priority</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select priority" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="low">Low</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="high">High</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
                 <FormField
                   control={createForm.control}
-                  name="dueDate"
+                  name="status"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Due Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={`w-full justify-start text-left font-normal ${
-                                !field.value && "text-muted-foreground"
-                              }`}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? (
-                                formatDate(field.value)
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value || undefined}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="interested">Interested</SelectItem>
+                          <SelectItem value="applied">Applied</SelectItem>
+                          <SelectItem value="interview">Interview</SelectItem>
+                          <SelectItem value="offer">Offer</SelectItem>
+                          <SelectItem value="rejected">Rejected</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={createForm.control}
+                  name="tags"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tags</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter tags separated by commas" 
+                          value={field.value?.join(', ') || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const tagsArray = value.split(',').map(tag => tag.trim()).filter(Boolean);
+                            field.onChange(tagsArray);
+                          }}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -342,26 +275,11 @@ export function KanbanPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="saved">Saved</SelectItem>
+              <SelectItem value="interested">Interested</SelectItem>
               <SelectItem value="applied">Applied</SelectItem>
               <SelectItem value="interview">Interview</SelectItem>
               <SelectItem value="offer">Offer</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={priorityFilter}
-            onValueChange={setPriorityFilter}
-          >
-            <SelectTrigger className="w-[130px]">
-              <Filter className="mr-2 h-4 w-4" />
-              <span>Priority</span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -412,93 +330,50 @@ export function KanbanPage() {
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={editForm.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="saved">Saved</SelectItem>
-                          <SelectItem value="applied">Applied</SelectItem>
-                          <SelectItem value="interview">Interview</SelectItem>
-                          <SelectItem value="offer">Offer</SelectItem>
-                          <SelectItem value="rejected">Rejected</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editForm.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Priority</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select priority" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
               <FormField
                 control={editForm.control}
-                name="dueDate"
+                name="status"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Due Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={`w-full justify-start text-left font-normal ${
-                              !field.value && "text-muted-foreground"
-                            }`}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? (
-                              formatDate(field.value)
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value || undefined}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="interested">Interested</SelectItem>
+                        <SelectItem value="applied">Applied</SelectItem>
+                        <SelectItem value="interview">Interview</SelectItem>
+                        <SelectItem value="offer">Offer</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tags</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Enter tags separated by commas" 
+                        value={field.value?.join(', ') || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const tagsArray = value.split(',').map(tag => tag.trim()).filter(Boolean);
+                          field.onChange(tagsArray);
+                        }}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

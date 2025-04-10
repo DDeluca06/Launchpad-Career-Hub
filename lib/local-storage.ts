@@ -16,6 +16,17 @@ export interface User {
   created_at: string;
 }
 
+export interface UserProfile {
+  profile_id: number;
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Resume {
   resume_id: number;
   user_id: number;
@@ -94,6 +105,7 @@ export interface DashboardActivity {
 // Storage keys
 const STORAGE_KEYS = {
   USERS: 'launchpad_users',
+  USER_PROFILES: 'launchpad_user_profiles',
   RESUMES: 'launchpad_resumes',
   JOBS: 'launchpad_jobs',
   APPLICATIONS: 'launchpad_applications',
@@ -166,6 +178,68 @@ export const userService = {
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   },
   getCurrentUser: () => getItem<User | null>(STORAGE_KEYS.CURRENT_USER, null),
+};
+
+// User Profile operations
+export const userProfileService = {
+  getAll: () => getItem<UserProfile[]>(STORAGE_KEYS.USER_PROFILES, []),
+  getById: (id: number) => getItem<UserProfile[]>(STORAGE_KEYS.USER_PROFILES, []).find(profile => profile.profile_id === id),
+  getByUserId: (userId: number) => getItem<UserProfile[]>(STORAGE_KEYS.USER_PROFILES, []).find(profile => profile.user_id === userId),
+  create: (profile: Omit<UserProfile, 'profile_id' | 'created_at' | 'updated_at'>) => {
+    const profiles = getItem<UserProfile[]>(STORAGE_KEYS.USER_PROFILES, []);
+    const now = new Date().toISOString();
+    const newProfile: UserProfile = {
+      ...profile,
+      profile_id: profiles.length > 0 ? Math.max(...profiles.map(p => p.profile_id)) + 1 : 1,
+      created_at: now,
+      updated_at: now,
+    };
+    profiles.push(newProfile);
+    setItem(STORAGE_KEYS.USER_PROFILES, profiles);
+    return newProfile;
+  },
+  update: (profile: UserProfile) => {
+    const profiles = getItem<UserProfile[]>(STORAGE_KEYS.USER_PROFILES, []);
+    const index = profiles.findIndex(p => p.profile_id === profile.profile_id);
+    if (index !== -1) {
+      profiles[index] = {
+        ...profile,
+        updated_at: new Date().toISOString()
+      };
+      setItem(STORAGE_KEYS.USER_PROFILES, profiles);
+      return profiles[index];
+    }
+    return null;
+  },
+  delete: (id: number) => {
+    const profiles = getItem<UserProfile[]>(STORAGE_KEYS.USER_PROFILES, []);
+    const filtered = profiles.filter(profile => profile.profile_id !== id);
+    setItem(STORAGE_KEYS.USER_PROFILES, filtered);
+  },
+  // Create or update a user profile
+  createOrUpdate: (userId: number, data: { first_name: string, last_name: string, email?: string, phone?: string }) => {
+    const profiles = getItem<UserProfile[]>(STORAGE_KEYS.USER_PROFILES, []);
+    const existingProfile = profiles.find(p => p.user_id === userId);
+    
+    if (existingProfile) {
+      // Update existing profile
+      const updatedProfile = {
+        ...existingProfile,
+        ...data,
+        updated_at: new Date().toISOString()
+      };
+      return userProfileService.update(updatedProfile);
+    } else {
+      // Create new profile
+      return userProfileService.create({
+        user_id: userId,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email || '',
+        phone: data.phone || '',
+      });
+    }
+  }
 };
 
 // Resume operations
