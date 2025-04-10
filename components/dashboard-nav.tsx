@@ -16,6 +16,7 @@ import {
   LogOut,
   Settings,
   HelpCircle,
+  FileText,
 } from "lucide-react";
 
 interface NavItem {
@@ -182,8 +183,14 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
   const utilityItems: NavItem[] = [
     {
       title: "Profile",
-      href: `${baseUrl}/settings`,
+      href: `${baseUrl}/profile`,
       icon: <Settings />,
+      color: extendedPalette.darkGray,
+    },
+    {
+      title: "Resumes",
+      href: `${baseUrl}/resume-page`,
+      icon: <FileText />,
       color: extendedPalette.darkGray,
     },
   ];

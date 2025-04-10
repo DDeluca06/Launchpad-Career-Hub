@@ -81,7 +81,7 @@ export default function ApplicantDashboard() {
         
         // Load applications from local storage
         const applications = applicationService.getAll();
-        
+         
         // Update stats
         setStats({
           totalApplications: applications.length,
