@@ -125,9 +125,7 @@ function StatCard({ title, value, icon, isLoading, className }: StatCardProps) {
  */
 export default function ApplicantsPage() {
   const [applicants, setApplicants] = useState<ApplicantWithDetails[]>([]);
-  const [filteredApplicants, setFilteredApplicants] = useState<
-    ApplicantWithDetails[]
-  >([]);
+  const [filteredApplicants, setFilteredApplicants] = useState<ApplicantWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -149,6 +147,8 @@ export default function ApplicantsPage() {
     program: "",
   });
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [uploadMessage, setUploadMessage] = useState('');
 
   // Define loadApplicants as a component function
   const loadApplicants = async () => {
@@ -295,31 +295,125 @@ export default function ApplicantsPage() {
     }
   };
 
-  // Handle CSV file upload
+  /**
+   * Handles the file selection event for CSV upload.
+   * Validates that the selected file is a CSV file and updates the state accordingly.
+   * 
+   * @param e - The change event from the file input
+   */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setCsvFile(e.target.files[0]);
+      const file = e.target.files[0];
+      if (!file.name.endsWith('.csv')) {
+        setUploadStatus('error');
+        setUploadMessage('Please upload a CSV file');
+        return;
+      }
+      setCsvFile(file);
+      setUploadStatus('idle');
+      setUploadMessage('');
     }
   };
-
+  
+  /**
+   * Handles the bulk upload of users from a CSV file.
+   * 
+   * This function:
+   * 1. Validates the CSV file
+   * 2. Sends the file to the server for processing
+   * 3. Creates user records from the processed data
+   * 4. Updates the UI with success/error messages
+   * 5. Reloads the applicant list on success
+   * 
+   * The CSV file should contain the following columns:
+   * - first_name: User's first name
+   * - last_name: User's last name
+   * - email: User's email address
+   * - username: User's username
+   * - password: User's password
+   * - id_number: User's identification number
+   * - program_phase: User's program phase
+   */
   const handleBulkUpload = async () => {
     if (!csvFile) return;
+    
+    setUploadStatus('uploading');
+    setUploadMessage('Processing CSV file...');
 
     try {
-      // Mock implementation - in a real app this would process the CSV
-      // and create multiple users
-      console.error("Processing CSV file:", csvFile.name);
+      const formData = new FormData();
+      formData.append('file', csvFile);
 
-      // Reset the file input and close modal
-      setCsvFile(null);
-      setBulkUploadModalOpen(false);
+      console.warn('Uploading file:', {
+        name: csvFile.name,
+        type: csvFile.type,
+        size: csvFile.size
+      });
 
-      // Reload applicants
-      await loadApplicants();
+      const response = await fetch('/api/upload-csv', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      console.warn('Server response:', result);
+
+      if (response.ok) {
+        const usersFromCsv = result.data;
+        let successCount = 0;
+        let errorCount = 0;
+        const errorMessages: string[] = [];
+
+        // Process users in batches
+        for (const user of usersFromCsv) {
+          try {
+            const userId = Date.now();
+            const newUserData = {
+              ...user,
+              user_id: userId,
+              created_at: new Date().toISOString(),
+              status: "active",
+              role: "applicant",
+              isAdmin: false,
+            };
+
+            await userService.create(newUserData);
+            successCount++;
+          } catch (error) {
+            console.error(`Error creating user ${user.email}:`, error);
+            errorCount++;
+            errorMessages.push(`Failed to create user ${user.email}`);
+          }
+        }
+
+        setUploadStatus('success');
+        setUploadMessage(
+          `Successfully created ${successCount} users. ${errorCount > 0 
+            ? `${errorCount} failed. ${errorMessages.join(', ')}` 
+            : ''}`
+        );
+        
+        setCsvFile(null);
+        await loadApplicants();
+        
+        // Auto-close after 5 seconds if successful
+        setTimeout(() => {
+          setBulkUploadModalOpen(false);
+          setUploadStatus('idle');
+          setUploadMessage('');
+        }, 5000);
+      } else {
+        setUploadStatus('error');
+        setUploadMessage(result.error || 'Failed to process CSV file');
+        console.error('Upload failed:', result);
+      }
     } catch (error) {
-      console.error("Error processing CSV file:", error);
+      console.error("Upload error:", error);
+      setUploadStatus('error');
+      setUploadMessage('An unexpected error occurred while processing the file');
     }
   };
+  
 
   return (
     <DashboardLayout isAdmin>
@@ -630,9 +724,17 @@ export default function ApplicantsPage() {
         >
           <div className="mb-4">
             <p className="text-sm text-gray-600 mb-2">
-              Upload a CSV file with user data. The file should include columns
-              for username, name, email, password, and program.
+              Upload a CSV file with user data. The file should include the following columns:
             </p>
+            <ul className="text-sm text-gray-600 list-disc pl-5 mb-4">
+              <li>first_name: User&apos;s first name</li>
+              <li>last_name: User&apos;s last name</li>
+              <li>email: User&apos;s email address</li>
+              <li>username: User&apos;s username</li>
+              <li>password: User&apos;s password</li>
+              <li>id_number: User&apos;s identification number</li>
+              <li>program_phase: User&apos;s program phase</li>
+            </ul>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
               <input
                 type="file"
@@ -648,6 +750,15 @@ export default function ApplicantsPage() {
                 </span>
               </label>
             </div>
+            {uploadStatus !== 'idle' && (
+              <div className={`mt-2 text-sm ${
+                uploadStatus === 'error' ? 'text-red-600' : 
+                uploadStatus === 'success' ? 'text-green-600' : 
+                'text-blue-600'
+              }`}>
+                {uploadMessage}
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-2">
             <Button
@@ -655,12 +766,17 @@ export default function ApplicantsPage() {
               onClick={() => {
                 setCsvFile(null);
                 setBulkUploadModalOpen(false);
+                setUploadStatus('idle');
+                setUploadMessage('');
               }}
             >
               Cancel
             </Button>
-            <Button onClick={handleBulkUpload} disabled={!csvFile}>
-              Upload and Process
+            <Button 
+              onClick={handleBulkUpload} 
+              disabled={!csvFile || uploadStatus === 'uploading'}
+            >
+              {uploadStatus === 'uploading' ? 'Processing...' : 'Upload and Process'}
             </Button>
           </div>
         </MultiPurposeModal>
