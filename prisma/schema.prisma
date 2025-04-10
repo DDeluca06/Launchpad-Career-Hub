@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../lib/generated/prisma"
 }
 
 datasource db {
@@ -55,10 +54,13 @@ enum JobTag {
 enum ApplicationStatus {
   INTERESTED
   APPLIED
+  PHONE_SCREENING
+  INTERVIEW_STAGE
+  FINAL_INTERVIEW_STAGE
+  OFFER_EXTENDED
+  NEGOTIATION
+  OFFER_ACCEPTED
   REJECTED
-  INTERVIEWING
-  NEGOTIATING
-  ACCEPTED
 }
 
 enum AppHistoryStatus {
@@ -124,6 +126,7 @@ model jobs {
   location     String?        @db.VarChar
   partner_id   Int?
   created_at   DateTime?      @default(now()) @db.Timestamptz(6)
+  archived     Boolean        @default(false)
   tags         JobTag[]
   applications applications[]
   partners     partners?      @relation(fields: [partner_id], references: [partner_id], onUpdate: NoAction)
@@ -160,6 +163,7 @@ model resumes {
 model users {
   user_id            Int                  @id @default(autoincrement())
   is_active          Boolean              @default(true)
+  is_archived        Boolean              @default(false)
   username           String               @db.VarChar
   first_name         String               @db.VarChar
   last_name          String               @db.VarChar

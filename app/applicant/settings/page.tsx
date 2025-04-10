@@ -10,7 +10,18 @@ import { Label } from "@/components/ui/basic/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
 import { Check, Save, RefreshCw, UserCircle, FileText, Upload, Trash2, Camera } from "lucide-react"
 import { extendedPalette } from "@/lib/colors"
-import { userService, User } from "@/lib/local-storage"
+
+// Define the User interface directly in this file
+interface User {
+  user_id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  status?: string;
+  program?: string;
+  created_at?: string;
+}
 
 // Simulate resume interface based on DB schema
 interface Resume {
@@ -21,6 +32,28 @@ interface Resume {
   isDefault: boolean;
   created_at: string;
 }
+
+// Mock user service for demo purposes
+const mockUserService = {
+  getById: (id: number): User => {
+    // Return mock user data
+    return {
+      user_id: id,
+      username: "student1",
+      first_name: "Jamie",
+      last_name: "Rodriguez",
+      email: "jamie.rodriguez@example.com",
+      status: "active",
+      program: "foundations",
+      created_at: new Date().toISOString()
+    };
+  },
+  update: (user: User): User => {
+    // In a real app, this would update the database
+    console.error("Updated user:", user);
+    return user;
+  }
+};
 
 export default function ApplicantSettingsPage() {
   const [activeTab, setActiveTab] = useState("profile")
@@ -44,7 +77,7 @@ export default function ApplicantSettingsPage() {
   useEffect(() => {
     const loadUserData = async () => {
       // For demo, we'll use user with ID 2 (a non-admin)
-      const userData = userService.getById(2)
+      const userData = mockUserService.getById(2)
       
       if (userData) {
         setUser(userData)
@@ -93,7 +126,7 @@ export default function ApplicantSettingsPage() {
   }
   
   const handleSave = () => {
-    // In a real app, this would save to backend/localStorage
+    // In a real app, this would save to backend
     if (user) {
       const updatedUser = { 
         ...user, 
@@ -102,7 +135,7 @@ export default function ApplicantSettingsPage() {
         program: userSettings.program
       }
       
-      userService.update(updatedUser)
+      mockUserService.update(updatedUser)
       setUser(updatedUser)
       
       // Show saved indicator
