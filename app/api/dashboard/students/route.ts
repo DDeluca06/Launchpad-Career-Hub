@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ApplicationStatus } from '@/lib/prisma-enums';
 
 /**
  * API route to fetch student application statistics
@@ -26,10 +27,14 @@ export async function GET() {
         }
       }),
       
-      // Count applications with INTERVIEWING status from non-admin users
+      // Count applications with interview-related statuses from non-admin users
       prisma.applications.count({
         where: {
-          status: 'INTERVIEWING',
+          OR: [
+            { status: ApplicationStatus.PHONE_SCREENING },
+            { status: ApplicationStatus.INTERVIEW_STAGE },
+            { status: ApplicationStatus.FINAL_INTERVIEW_STAGE }
+          ],
           users: {
             is_admin: false
           }

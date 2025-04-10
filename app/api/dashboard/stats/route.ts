@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ApplicationStatus } from '@/lib/prisma-enums';
 
 /**
  * API route to fetch dashboard statistics
@@ -7,8 +8,8 @@ import { prisma } from '@/lib/prisma';
  * This route queries the database for:
  * - Total number of jobs
  * - Total number of applications from non-admin users
- * - Number of active interviews (applications with INTERVIEWING status) from non-admin users
- * - Number of offers sent (applications with NEGOTIATING or ACCEPTED status) from non-admin users
+ * - Number of active interviews (applications with interview-related statuses) from non-admin users
+ * - Number of offers sent (applications with offer-related statuses) from non-admin users
  * 
  * @returns A JSON response with statistics data or error message
  */
@@ -33,22 +34,27 @@ export async function GET() {
         }
       }),
       
-      // Count applications with INTERVIEWING status from non-admin users
+      // Count applications with interview-related statuses from non-admin users
       prisma.applications.count({
         where: {
-          status: 'INTERVIEWING',
+          OR: [
+            { status: ApplicationStatus.PHONE_SCREENING },
+            { status: ApplicationStatus.INTERVIEW_STAGE },
+            { status: ApplicationStatus.FINAL_INTERVIEW_STAGE }
+          ],
           users: {
             is_admin: false
           }
         }
       }),
       
-      // Count applications with NEGOTIATING or ACCEPTED status from non-admin users
+      // Count applications with offer-related statuses from non-admin users
       prisma.applications.count({
         where: {
           OR: [
-            { status: 'NEGOTIATING' },
-            { status: 'ACCEPTED' }
+            { status: ApplicationStatus.OFFER_EXTENDED },
+            { status: ApplicationStatus.NEGOTIATION },
+            { status: ApplicationStatus.OFFER_ACCEPTED }
           ],
           users: {
             is_admin: false

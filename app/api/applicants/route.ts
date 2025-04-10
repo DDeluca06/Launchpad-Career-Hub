@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ProgramType, ApplicationStatus } from '@/lib/prisma-enums';
+import { ProgramType } from '@/lib/prisma-enums';
 
 export async function GET(request: NextRequest) {
   try {
@@ -271,40 +271,10 @@ export async function GET(request: NextRequest) {
         last_name: string;
         is_admin: boolean | null;
         is_archived: boolean | null;
-        applications: { status: ApplicationStatus; }[];
-        program: string | null;
-        created_at: Date | null;
-      
-        user_id: number;
-        username: string;
-        first_name: string;
-        last_name: string;
-        is_admin: boolean;
-        is_archived: boolean;
-        applications: {
-        user_id: number;
-        username: string;
-        first_name: string;
-        last_name: string;
-        is_admin: boolean | null;
-        is_archived: boolean | null;
-        applications: { status: ApplicationStatus; }[];
-        program: string | null;
-        created_at: Date | null;
-       status: string }[];
+        applications: Array<{ status: string }>;
         program: string | null;
         created_at: Date | null;
       }) => {
-        user_id: number;
-        username: string;
-        first_name: string;
-        last_name: string;
-        is_admin: boolean | null;
-        is_archived: boolean | null;
-        applications: { status: ApplicationStatus; }[];
-        program: string | null;
-        created_at: Date | null;
-      
         // Determine status based on applications and archived state
         let status;
         if (user.is_archived) {
@@ -537,7 +507,7 @@ export async function PUT(request: NextRequest) {
       last_name?: string;
       is_active?: boolean;
       is_archived?: boolean;
-      program?: string;
+      program?: ProgramType;
     } = {};
     
     // For archive operations
@@ -550,7 +520,11 @@ export async function PUT(request: NextRequest) {
       if (body.lastName) updateData.last_name = body.lastName;
       if (body.isActive !== undefined) updateData.is_active = body.isActive;
       if (body.program) {
-        updateData.program = body.program === '101' ? 'ONE_ZERO_ONE' : body.program.toUpperCase();
+        if (body.program === '101') {
+          updateData.program = ProgramType.ONE_ZERO_ONE;
+        } else {
+          updateData.program = body.program.toUpperCase() as ProgramType;
+        }
       }
     }
     
