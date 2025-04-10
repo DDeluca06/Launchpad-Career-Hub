@@ -13,12 +13,11 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-      - name: Install pnpm
-        run: npm install -g pnpm
+          cache: 'npm'
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
       - name: Generate Prisma Client
-        run: pnpm prisma generate
+        run: npx prisma generate
       - name: Verify ESLint configuration
         run: |
           echo "Checking ESLint configuration..."
@@ -34,11 +33,11 @@ jobs:
       - name: Run Next.js lint
         run: |
           echo "Running Next.js lint..."
-          pnpm run lint
+          npm run lint
       - name: Run TypeScript check
-        run: pnpm run type-check
+        run: npm run type-check
       - name: Build Next.js app
-        run: pnpm run build
+        run: npm run build
 
         # # i do not want this deploying to my server without my express consent
 
