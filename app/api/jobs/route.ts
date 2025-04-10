@@ -1,27 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-// Define types from Prisma schema
-type JobType = 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'APPRENTICESHIP' | 'INTERNSHIP';
-type JobTag = 'FULLY_REMOTE' | 'HYBRID' | 'IN_PERSON' | 'FRONT_END' | 'BACK_END' | 'FULL_STACK' |
-  'NON_PROFIT' | 'START_UP' | 'EDUCATION' | 'HEALTHCARE' | 'FINTECH' | 'MARKETING' |
-  'DATA_SCIENCE' | 'CYBERSECURITY' | 'UX_UI_DESIGN' | 'IT' | 'PRODUCT_MANAGEMENT' |
-  'GAME_DEVELOPMENT' | 'AI_ML' | 'CLOUD_COMPUTING' | 'DEVOPS' | 'BUSINESS_ANALYSIS' |
-  'SOCIAL_MEDIA';
-
-// Valid job tags list as a constant
-const JOB_TAGS = [
-  'FULLY_REMOTE', 'HYBRID', 'IN_PERSON', 'FRONT_END', 'BACK_END', 'FULL_STACK',
-  'NON_PROFIT', 'START_UP', 'EDUCATION', 'HEALTHCARE', 'FINTECH', 'MARKETING',
-  'DATA_SCIENCE', 'CYBERSECURITY', 'UX_UI_DESIGN', 'IT', 'PRODUCT_MANAGEMENT',
-  'GAME_DEVELOPMENT', 'AI_ML', 'CLOUD_COMPUTING', 'DEVOPS', 'BUSINESS_ANALYSIS',
-  'SOCIAL_MEDIA'
-];
-
-// Valid job types list as a constant
-const JOB_TYPES = [
-  'FULL_TIME', 'PART_TIME', 'CONTRACT', 'APPRENTICESHIP', 'INTERNSHIP'
-];
+import { JobType, JobTag } from '@/lib/prisma-enums';
 
 // Define a type for jobs with _count and partners relations
 interface JobWithRelations {
@@ -67,11 +46,85 @@ export interface JobImportData {
 }
 
 /**
- * GET request handler to fetch all job listings
+ * GET request handler to fetch jobs
+ * Can get a single job by id or list all jobs with filters
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    
+    // Check if this is a request for a single job
+    const id = searchParams.get('id');
+    
+    if (id) {
+      const jobId = parseInt(id);
+      
+      if (isNaN(jobId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid job ID' },
+          { status: 400 }
+        );
+      }
+
+      // Fetch the job with application counts
+      const job = await prisma.jobs.findUnique({
+        where: { job_id: jobId },
+        include: {
+          _count: {
+            select: {
+              applications: true
+            }
+          },
+          partners: true,
+          applications: {
+            select: {
+              application_id: true,
+              status: true,
+              applied_at: true,
+              users: {
+                select: {
+                  user_id: true,
+                  first_name: true,
+                  last_name: true,
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!job) {
+        return NextResponse.json(
+          { success: false, error: 'Job not found' },
+          { status: 404 }
+        );
+      }
+
+      // Format the job for the frontend
+      const formattedJob = {
+        job_id: job.job_id,
+        job_type: job.job_type,
+        title: job.title,
+        description: job.description,
+        company: job.company || job.partners?.name || 'Unknown Company',
+        website: job.website,
+        location: job.location,
+        partner_id: job.partner_id,
+        created_at: job.created_at?.toISOString(),
+        tags: job.tags,
+        applications: job.applications,
+        applicationCount: job._count.applications,
+        partner: job.partners ? {
+          name: job.partners.name,
+          industry: job.partners.industry,
+          location: job.partners.location
+        } : null
+      };
+
+      return NextResponse.json({ success: true, job: formattedJob });
+    }
+    
+    // If not fetching a single job, get all jobs with filters
     const jobType = searchParams.get('jobType');
     const locationFilter = searchParams.get('location');
     const tagFilter = searchParams.get('tag');
@@ -231,7 +284,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate job type
-    if (!JOB_TYPES.includes(body.job_type)) {
+    const validJobTypes = Object.values(JobType);
+    if (!validJobTypes.includes(body.job_type)) {
       return NextResponse.json(
         { success: false, error: 'Invalid job type' },
         { status: 400 }
@@ -242,7 +296,7 @@ export async function POST(request: NextRequest) {
     let tags: JobTag[] = [];
     if (Array.isArray(body.tags)) {
       tags = body.tags.filter((tag: string) => 
-        JOB_TAGS.includes(tag)
+        Object.values(JobTag).includes(tag as JobTag)
       ) as JobTag[];
     }
 
@@ -296,12 +350,20 @@ export async function POST(request: NextRequest) {
 /**
  * PUT request handler to update an existing job listing
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest) {
   try {
-    const jobId = parseInt(params.id);
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Job ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    const jobId = parseInt(id);
+    
     if (isNaN(jobId)) {
       return NextResponse.json(
         { success: false, error: 'Invalid job ID' },
@@ -320,7 +382,7 @@ export async function PUT(
     }
 
     // Validate job type if provided
-    if (body.job_type && !JOB_TYPES.includes(body.job_type)) {
+    if (body.job_type && !Object.values(JobType).includes(body.job_type)) {
       return NextResponse.json(
         { success: false, error: 'Invalid job type' },
         { status: 400 }
@@ -330,7 +392,7 @@ export async function PUT(
     // Format tags if provided
     if (body.tags) {
       body.tags = Array.isArray(body.tags) 
-        ? body.tags.filter((tag: string) => JOB_TAGS.includes(tag))
+        ? body.tags.filter((tag: string) => Object.values(JobTag).includes(tag as JobTag))
         : [];
     }
 
@@ -389,6 +451,57 @@ export async function PUT(
     console.error('Error updating job:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update job' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE request handler to delete a job listing
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Job ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    const jobId = parseInt(id);
+    
+    if (isNaN(jobId)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid job ID' },
+        { status: 400 }
+      );
+    }
+
+    // Check if job exists
+    const existingJob = await prisma.jobs.findUnique({
+      where: { job_id: jobId }
+    });
+
+    if (!existingJob) {
+      return NextResponse.json(
+        { success: false, error: 'Job not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the job
+    await prisma.jobs.delete({
+      where: { job_id: jobId }
+    });
+
+    return NextResponse.json({ success: true, message: 'Job deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting job:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete job' },
       { status: 500 }
     );
   }

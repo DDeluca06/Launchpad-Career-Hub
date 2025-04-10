@@ -1,9 +1,109 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ProgramType, ApplicationStatus } from '@/lib/prisma-enums';
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get('id'); // For single applicant
+    
+    // If ID is provided, fetch a single applicant
+    if (id) {
+      const userId = parseInt(id);
+      
+      if (isNaN(userId)) {
+        return NextResponse.json(
+          { error: 'Invalid applicant ID' },
+          { status: 400 }
+        );
+      }
+      
+      // Get the user/applicant
+      const user = await prisma.users.findUnique({
+        where: { user_id: userId },
+        include: {
+          applications: {
+            include: {
+              jobs: true,
+            },
+          },
+        },
+      });
+      
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Applicant not found' },
+          { status: 404 }
+        );
+      }
+      
+      // Determine status based on archived state and applications
+      let status;
+      if (user.is_archived) {
+        status = "archived";
+      } else if (user.applications.length === 0) {
+        status = "unapplied";
+      } else {
+        // Check if any applications are in interview process
+        const hasInterviewApplications = user.applications.some((app: { status: string }) => 
+          ['PHONE_SCREENING', 'INTERVIEW_STAGE', 'FINAL_INTERVIEW_STAGE'].includes(app.status)
+        );
+        
+        // Check if any applications have been accepted
+        const hasAcceptedOffer = user.applications.some((app: { status: string }) => 
+          app.status === 'OFFER_ACCEPTED'
+        );
+        
+        if (hasAcceptedOffer) {
+          status = "placed";
+        } else if (hasInterviewApplications) {
+          status = "interview";
+        } else {
+          status = "unapplied";
+        }
+      }
+      
+      // Format program for display
+      const displayProgram = user.program === 'ONE_ZERO_ONE' ? '101' : 
+                            user.program?.toString() || 'ALUMNI';
+                            
+      // Format the job applications
+      const jobApplications = user.applications.map((app: { 
+        application_id: number; 
+        job_id: number; 
+        jobs: { title: string; company: string; }; 
+        status: string;
+        applied_at: Date | null;
+      }) => {
+        return {
+          id: app.application_id,
+          jobId: app.job_id,
+          jobTitle: app.jobs.title,
+          company: app.jobs.company,
+          status: app.status.toLowerCase(),
+          appliedDate: app.applied_at?.toISOString() || new Date().toISOString(),
+        };
+      });
+      
+      // Create the response object
+      const applicant = {
+        id: user.user_id,
+        userId: user.username,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        email: `${user.username}@example.com`, // In a real app, you'd have the email stored
+        role: user.is_admin ? 'admin' : 'applicant',
+        applications: user.applications.length,
+        status: status,
+        createdAt: user.created_at?.toISOString() || new Date().toISOString(),
+        program: displayProgram,
+        isArchived: user.is_archived
+      };
+      
+      return NextResponse.json({ applicant, jobApplications });
+    }
+    
+    // For listing all applicants
     const status = searchParams.get('status');
     const program = searchParams.get('program');
     const dateFilter = searchParams.get('date');
@@ -28,7 +128,7 @@ export async function GET(request: NextRequest) {
       is_admin: boolean;
       is_active?: boolean;
       is_archived?: boolean;
-      program?: { in: string[] };
+      program?: { in: ProgramType[] };
       OR?: Array<{
         first_name?: { contains: string; mode: 'insensitive' };
         last_name?: { contains: string; mode: 'insensitive' };
@@ -60,7 +160,17 @@ export async function GET(request: NextRequest) {
     if (program) {
       const programs = program.split(',');
       filter.program = {
-        in: programs.map(p => p === '101' ? 'ONE_ZERO_ONE' : p.toUpperCase())
+        in: programs.map(p => {
+          if (p === '101') {
+            return ProgramType.ONE_ZERO_ONE;
+          } else if (p === 'FOUNDATIONS') {
+            return ProgramType.FOUNDATIONS;
+          } else if (p === 'LIFTOFF') {
+            return ProgramType.LIFTOFF;
+          } else {
+            return ProgramType.ALUMNI;
+          }
+        })
       };
     }
     
@@ -159,12 +269,42 @@ export async function GET(request: NextRequest) {
         username: string;
         first_name: string;
         last_name: string;
+        is_admin: boolean | null;
+        is_archived: boolean | null;
+        applications: { status: ApplicationStatus; }[];
+        program: string | null;
+        created_at: Date | null;
+      
+        user_id: number;
+        username: string;
+        first_name: string;
+        last_name: string;
         is_admin: boolean;
         is_archived: boolean;
-        applications: { status: string }[];
+        applications: {
+        user_id: number;
+        username: string;
+        first_name: string;
+        last_name: string;
+        is_admin: boolean | null;
+        is_archived: boolean | null;
+        applications: { status: ApplicationStatus; }[];
+        program: string | null;
+        created_at: Date | null;
+       status: string }[];
         program: string | null;
         created_at: Date | null;
       }) => {
+        user_id: number;
+        username: string;
+        first_name: string;
+        last_name: string;
+        is_admin: boolean | null;
+        is_archived: boolean | null;
+        applications: { status: ApplicationStatus; }[];
+        program: string | null;
+        created_at: Date | null;
+      
         // Determine status based on applications and archived state
         let status;
         if (user.is_archived) {
@@ -267,7 +407,7 @@ export async function GET(request: NextRequest) {
       typeof error.message === 'string'
         ? error.message
         : 'Unknown error';
-    
+        
     return NextResponse.json(
       { error: 'Failed to fetch applicants', details: errorMessage },
       { status: 500 }
@@ -278,54 +418,193 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { firstName, lastName, password, program } = body;
     
     // Validate required fields
-    if (!firstName || !lastName || !password) {
+    if (!body.username || !body.firstName || !body.lastName || !body.password) {
       return NextResponse.json(
-        { error: 'First name, last name, and password are required' },
+        { error: 'Missing required fields' },
         { status: 400 }
       );
     }
     
-    // Get the last user to determine the next ID
-    const lastUser = await prisma.users.findFirst({
-      orderBy: {
-        user_id: 'desc',
-      },
+    // Check if username already exists
+    const existingUser = await prisma.users.findFirst({
+      where: {
+        username: body.username
+      }
     });
     
-    const nextUserId = (lastUser?.user_id || 0) + 1;
-    const userIdWithPrefix = `lp${nextUserId.toString().padStart(4, '0')}`;
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'Username already exists' },
+        { status: 400 }
+      );
+    }
     
-    // Convert program string to ProgramType enum
-    const programType = program === '101' ? 'ONE_ZERO_ONE' : program.toUpperCase();
+    // Format program to match the enum
+    let program = body.program?.toUpperCase();
+    if (program === '101') {
+      program = 'ONE_ZERO_ONE';
+    }
     
-    // Create the new user
+    // Create the user
     const newUser = await prisma.users.create({
       data: {
-        username: userIdWithPrefix,
-        first_name: firstName,
-        last_name: lastName,
-        password_hash: password, // In production, you should hash this password
-        is_admin: false,
+        username: body.username,
+        first_name: body.firstName,
+        last_name: body.lastName,
+        password_hash: body.password, // In a real app, you'd hash this
+        is_admin: body.isAdmin || false,
+        program: program || 'ALUMNI',
         is_active: true,
-        program: programType as 'ONE_ZERO_ONE' | 'LIFTOFF' | 'FOUNDATIONS' | 'ALUMNI', // Use specific union type
-      },
+        is_archived: false
+      }
     });
     
     return NextResponse.json({
-      id: newUser.user_id,
-      userId: newUser.username,
-      firstName: newUser.first_name,
-      lastName: newUser.last_name,
-      program: program,
-      createdAt: newUser.created_at?.toISOString(),
+      applicant: {
+        id: newUser.user_id,
+        userId: newUser.username,
+        firstName: newUser.first_name,
+        lastName: newUser.last_name,
+        email: `${newUser.username}@example.com`,
+        role: newUser.is_admin ? 'admin' : 'applicant',
+        applications: 0,
+        status: 'unapplied',
+        createdAt: newUser.created_at?.toISOString() || new Date().toISOString(),
+        program: newUser.program === 'ONE_ZERO_ONE' ? '101' : newUser.program?.toString() || 'ALUMNI',
+        isArchived: newUser.is_archived
+      }
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error creating applicant:', error);
+    
+    // Safe extraction of error message
+    const errorMessage = 
+      error !== null && 
+      typeof error === 'object' && 
+      'message' in error && 
+      typeof error.message === 'string'
+        ? error.message
+        : 'Unknown error';
+        
     return NextResponse.json(
-      { error: 'Failed to create applicant' },
+      { error: 'Failed to create applicant', details: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PUT request handler for applicant archiving
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get('id');
+    const isArchiveOperation = searchParams.get('archive') === 'true';
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Applicant ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    const userId = parseInt(id);
+    
+    if (isNaN(userId)) {
+      return NextResponse.json(
+        { error: 'Invalid applicant ID' },
+        { status: 400 }
+      );
+    }
+    
+    // Get the request body for updates
+    const body = await request.json();
+    
+    // If this is an archive operation, make sure isArchived is provided
+    if (isArchiveOperation && typeof body.isArchived !== 'boolean') {
+      return NextResponse.json(
+        { error: 'isArchived must be a boolean value' },
+        { status: 400 }
+      );
+    }
+    
+    // Update the user in the database
+    const updateData: {
+      first_name?: string;
+      last_name?: string;
+      is_active?: boolean;
+      is_archived?: boolean;
+      program?: string;
+    } = {};
+    
+    // For archive operations
+    if (isArchiveOperation) {
+      updateData.is_archived = body.isArchived;
+    } 
+    // For general updates
+    else {
+      if (body.firstName) updateData.first_name = body.firstName;
+      if (body.lastName) updateData.last_name = body.lastName;
+      if (body.isActive !== undefined) updateData.is_active = body.isActive;
+      if (body.program) {
+        updateData.program = body.program === '101' ? 'ONE_ZERO_ONE' : body.program.toUpperCase();
+      }
+    }
+    
+    const updatedUser = await prisma.users.update({
+      where: { user_id: userId },
+      data: updateData
+    });
+    
+    if (!updatedUser) {
+      return NextResponse.json(
+        { error: 'Failed to update applicant' },
+        { status: 500 }
+      );
+    }
+    
+    // Format the response
+    const responseData = {
+      id: updatedUser.user_id,
+      userId: updatedUser.username,
+      firstName: updatedUser.first_name,
+      lastName: updatedUser.last_name
+    };
+    
+    // Add archived specific response properties
+    if (isArchiveOperation) {
+      return NextResponse.json({
+        ...responseData,
+        isArchived: updatedUser.is_archived,
+        message: updatedUser.is_archived 
+          ? 'Applicant archived successfully' 
+          : 'Applicant unarchived successfully'
+      });
+    }
+    
+    return NextResponse.json({
+      ...responseData,
+      isActive: updatedUser.is_active,
+      program: updatedUser.program === 'ONE_ZERO_ONE' ? '101' : updatedUser.program?.toString() || 'ALUMNI',
+      message: 'Applicant updated successfully'
+    });
+  } catch (error: unknown) {
+    console.error('Error updating applicant:', error);
+    
+    // Safe extraction of error message
+    const errorMessage = 
+      error !== null && 
+      typeof error === 'object' && 
+      'message' in error && 
+      typeof error.message === 'string'
+        ? error.message
+        : 'Unknown error';
+        
+    return NextResponse.json(
+      { error: 'Failed to update applicant', details: errorMessage },
       { status: 500 }
     );
   }
