@@ -100,8 +100,7 @@ export default function ApplicantSettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // In a real app, you would upload to a server
-    // For demo, we'll use a local URL
+   
     // Revoke previous object URL if it exists
     if (profileImage && profileImage.startsWith('blob:')) {
       URL.revokeObjectURL(profileImage);

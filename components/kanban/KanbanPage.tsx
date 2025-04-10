@@ -157,7 +157,7 @@ export function KanbanPage() {
 
   // Filter tasks
   const filteredTasks = tasks
-    .filter((task) => {
+    .filter((task: Task) => {
       // Search filter
       const matchesSearch = 
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
