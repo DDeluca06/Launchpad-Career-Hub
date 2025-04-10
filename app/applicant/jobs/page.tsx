@@ -125,36 +125,36 @@ function JobDetailsSkeleton() {
           <h3 className="font-medium text-lg">
             <Skeleton className="h-4 w-3/4" />
           </h3>
-          <p className="text-gray-500">
+          <span className="text-gray-500 block">
             <Skeleton className="h-3 w-1/2" />
-          </p>
+          </span>
         </div>
       </div>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-gray-50 p-3 rounded">
           <p className="text-xs text-gray-500">Job Type</p>
-          <p className="font-medium">
+          <span className="font-medium block">
             <Skeleton className="h-4 w-3/4" />
-          </p>
+          </span>
         </div>
         <div className="bg-gray-50 p-3 rounded">
           <p className="text-xs text-gray-500">Experience</p>
-          <p className="font-medium">
+          <span className="font-medium block">
             <Skeleton className="h-4 w-3/4" />
-          </p>
+          </span>
         </div>
         <div className="bg-gray-50 p-3 rounded">
           <p className="text-xs text-gray-500">Salary Range</p>
-          <p className="font-medium">
+          <span className="font-medium block">
             <Skeleton className="h-4 w-3/4" />
-          </p>
+          </span>
         </div>
         <div className="bg-gray-50 p-3 rounded">
           <p className="text-xs text-gray-500">Deadline</p>
-          <p className="font-medium">
+          <span className="font-medium block">
             <Skeleton className="h-4 w-3/4" />
-          </p>
+          </span>
         </div>
       </div>
       
@@ -583,7 +583,7 @@ export default function JobsPage() {
           </div>
           <div>
             <h3 className="font-medium text-lg">{job.company}</h3>
-            <p className="text-gray-500">{job.location}</p>
+            <span className="text-gray-500 block">{job.location}</span>
           </div>
         </div>
         
@@ -753,7 +753,7 @@ export default function JobsPage() {
               </div>
               {application.notes && (
                 <div className="mt-2">
-                  <p className="text-sm text-gray-600">{application.notes}</p>
+                  <span className="text-sm text-gray-600">{application.notes}</span>
                 </div>
               )}
             </div>
@@ -761,7 +761,7 @@ export default function JobsPage() {
             {application.nextSteps && (
               <div className="bg-gray-50 p-4 rounded">
                 <h3 className="font-medium mb-2">Next Steps</h3>
-                <p>{application.nextSteps}</p>
+                <span>{application.nextSteps}</span>
                 {application.interviewDate && (
                   <div className="mt-2 flex items-center gap-2">
                     <Clock className="h-4 w-4 text-gray-500" />
@@ -1043,7 +1043,7 @@ export default function JobsPage() {
                                 </div>
                                 <div className="flex-1">
                                   <h3 className="font-medium text-gray-900 line-clamp-1">{job.title}</h3>
-                                  <p className="text-sm text-gray-500 line-clamp-1">{job.company}</p>
+                                  <span className="text-gray-500 block">{job.company}</span>
                                   <div className="flex flex-wrap gap-2 mt-1">
                                     <Badge variant="outline" className="text-xs flex items-center gap-1">
                                       <MapPin className="h-3 w-3" />
@@ -1140,7 +1140,7 @@ export default function JobsPage() {
                 <div>
                   <Label htmlFor="resume">Resume</Label>
                   {isLoadingResumes ? (
-                    <p className="text-sm text-gray-500">Loading your resumes...</p>
+                    <span className="text-sm text-gray-500">Loading your resumes...</span>
                   ) : userResumes.length > 0 ? (
                     <select
                       id="resume"
