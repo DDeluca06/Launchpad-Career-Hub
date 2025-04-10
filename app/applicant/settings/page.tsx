@@ -279,24 +279,11 @@ export default function ApplicantSettingsPage() {
                           onChange={(e) => handleSettingChange('program', e.target.value)}
                         >
                           <option value="foundations">Foundations</option>
-                          <option value="web_development">Web Development</option>
-                          <option value="data_science">Data Science</option>
-                          <option value="ux_design">UX Design</option>
+                        <option value="101">101</option>
+                        <option value="liftoff">Liftoff</option>
+                        <option value="alumni">Alumni</option>
                         </select>
                       </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Status</Label>
-                      <select 
-                        id="status"
-                        className="w-full p-2 border rounded-md"
-                        value={userSettings.status}
-                        onChange={(e) => handleSettingChange('status', e.target.value)}
-                      >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                      </select>
                     </div>
                   </div>
                 </div>
