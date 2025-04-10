@@ -123,6 +123,14 @@ export default function ApplicantSettingsPage() {
   const handleResumeUpload = () => {
     if (!newResumeFile || !user) return;
     
+    // Validate file type
+    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!validTypes.includes(newResumeFile.type)) {
+      // Show error message to user
+      console.error("Invalid file type. Please upload a PDF or Word document.");
+      return;
+    }
+
     // Create a new resume in local storage
     const newResume = resumeService.create({
       user_id: user.user_id,
