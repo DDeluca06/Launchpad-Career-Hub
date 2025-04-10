@@ -17,7 +17,7 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Generate Prisma Client
-        run: npm prisma generate
+        run: npx prisma generate
       - name: Verify ESLint configuration
         run: |
           echo "Checking ESLint configuration..."
