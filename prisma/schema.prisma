@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../lib/generated/prisma"
 }
 
 datasource db {
@@ -124,6 +123,7 @@ model jobs {
   location     String?        @db.VarChar
   partner_id   Int?
   created_at   DateTime?      @default(now()) @db.Timestamptz(6)
+  archived     Boolean        @default(false)
   tags         JobTag[]
   applications applications[]
   partners     partners?      @relation(fields: [partner_id], references: [partner_id], onUpdate: NoAction)
