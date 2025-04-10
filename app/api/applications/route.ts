@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     const whereClause: {
       user_id?: number;
       job_id?: number;
-      status?: string;
+      status?: ApplicationStatus;
     } = {};
 
     if (userId) {
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      whereClause.status = status.toUpperCase();
+      whereClause.status = status.toUpperCase() as ApplicationStatus;
     }
 
     const applications = await prisma.applications.findMany({

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { JobType, JobTag } from '@/lib/prisma-enums';
+import { JobType, JobTag, ApplicationStatus } from '@/lib/prisma-enums';
 
 // Define a type for jobs with _count and partners relations
 interface JobWithRelations {
@@ -21,17 +21,40 @@ interface JobWithRelations {
   partners?: {
     name: string;
   } | null;
-  applications?: {
+  applications?: Array<{
     application_id: number;
-    status: string;
-    applied_at: Date;
-    users: {
-      user_id: number;
-      first_name: string;
-      last_name: string;
-    }[];
-  }[];
+    status: ApplicationStatus;
+    user_id: number;
+    job_id: number;
+    applied_at: Date | null;
+    status_updated: Date | null;
+    resume_id: number | null;
+    position: string | null;
+  }>;
 }
+
+// Define a type for Prisma's job return type
+type PrismaJobResult = {
+  job_id: number;
+  job_type: string;
+  title: string;
+  description: string | null;
+  company: string;
+  website: string | null;
+  location: string | null;
+  partner_id: number | null;
+  created_at: Date | null;
+  archived: boolean;
+  tags: string[];
+  _count: {
+    applications: number;
+  };
+  partners?: {
+    name: string;
+  } | null;
+  // Using Record<string, unknown>[] instead of any[] to satisfy the linter
+  applications?: Record<string, unknown>[];
+};
 
 // Define type for job import data to use for importing jobs
 export interface JobImportData {
@@ -140,7 +163,7 @@ export async function GET(request: NextRequest) {
     const whereClause: {
       partner_id?: number | null;
       archived?: boolean;
-      job_type?: string;
+      job_type?: JobType;
       location?: {
         contains: string;
         mode: 'insensitive';
@@ -151,7 +174,7 @@ export async function GET(request: NextRequest) {
         company?: { contains: string; mode: 'insensitive' };
       }>;
       tags?: {
-        hasSome: string[];
+        hasSome: JobTag[];
       };
     } = {};
 
@@ -162,7 +185,7 @@ export async function GET(request: NextRequest) {
 
     // Add job type filter if specified
     if (jobType) {
-      whereClause.job_type = jobType;
+      whereClause.job_type = jobType as JobType;
     }
 
     // Add location filter if specified
@@ -193,7 +216,7 @@ export async function GET(request: NextRequest) {
     // Add tag filter if specified
     if (tagFilter) {
       whereClause.tags = {
-        hasSome: [tagFilter]
+        hasSome: [tagFilter as JobTag]
       };
     }
 
@@ -238,23 +261,35 @@ export async function GET(request: NextRequest) {
     console.error(`Found ${jobs.length} jobs`);
 
     // Format jobs for the frontend
-    const formattedJobs = jobs.map((job: JobWithRelations) => ({
-      job_id: job.job_id,
-      job_type: job.job_type,
-      title: job.title,
-      description: job.description,
-      company: job.company || job.partners?.name || 'Unknown Company',
-      website: job.website,
-      location: job.location,
-      partner_id: job.partner_id,
-      created_at: job.created_at?.toISOString(),
-      tags: job.tags,
-      archived: job.archived, // Use the actual value from the database
-      applications: job.applications || [],
-      _count: {
-        applications: job._count.applications
-      }
-    }));
+    const formattedJobs = jobs.map((job: PrismaJobResult) => {
+      // Create a job object that conforms to JobWithRelations interface
+      const formattedJob: JobWithRelations = {
+        job_id: job.job_id,
+        job_type: job.job_type,
+        title: job.title,
+        description: job.description,
+        company: job.company || job.partners?.name || 'Unknown Company',
+        website: job.website,
+        location: job.location,
+        partner_id: job.partner_id,
+        created_at: job.created_at,
+        tags: job.tags,
+        archived: job.archived,
+        _count: {
+          applications: job._count.applications
+        },
+        // Type assertion to satisfy TypeScript without changing the data
+        applications: job.applications as JobWithRelations['applications']
+      };
+      
+      // Return a formatted version with the date converted to string
+      return {
+        ...formattedJob,
+        created_at: formattedJob.created_at?.toISOString(),
+        // Ensure we always return an array for applications
+        applications: formattedJob.applications || []
+      };
+    });
 
     return NextResponse.json({ success: true, jobs: formattedJobs });
   } catch (error) {
@@ -397,25 +432,25 @@ export async function PUT(request: NextRequest) {
     }
 
     // Create data object with only the provided fields
-    const updateData: Partial<{
-      title: string;
-      job_type: string;
-      description: string | null;
-      company: string;
-      website: string | null;
-      location: string | null;
-      tags: string[];
-      archived: boolean;
-      partner_id: number | null;
-    }> = {};
+    const updateData: {
+      title?: string;
+      job_type?: JobType;
+      description?: string | null;
+      company?: string;
+      website?: string | null;
+      location?: string | null;
+      tags?: JobTag[];
+      archived?: boolean;
+      partner_id?: number | null;
+    } = {};
     
     if (body.title !== undefined) updateData.title = body.title;
-    if (body.job_type !== undefined) updateData.job_type = body.job_type;
+    if (body.job_type !== undefined) updateData.job_type = body.job_type as JobType;
     if (body.description !== undefined) updateData.description = body.description;
     if (body.company !== undefined) updateData.company = body.company;
     if (body.website !== undefined) updateData.website = body.website;
     if (body.location !== undefined) updateData.location = body.location;
-    if (body.tags !== undefined) updateData.tags = body.tags;
+    if (body.tags !== undefined) updateData.tags = body.tags as JobTag[];
     if (body.archived !== undefined) updateData.archived = body.archived;
     if (body.partner_id !== undefined) updateData.partner_id = body.partner_id;
 
