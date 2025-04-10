@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/basic/button";
 
+/**
+ * Interface representing a user's resume from the database
+ */
 interface Resume {
   resume_id: number;
   file_name: string;
@@ -10,14 +13,15 @@ interface Resume {
   is_default: boolean | null;
 }
 
-
-
+/**
+ * Interface for the job application form data
+ */
 interface JobApplicationData {
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  resumeId: number | null;
+  resumeId: number | null; // ID of the selected resume from the dropdown
   coverLetter: File | null;
   linkedin: string;
   github: string;
@@ -25,11 +29,17 @@ interface JobApplicationData {
   additionalInfo: string;
 }
 
+/**
+ * Props for the JobApplicationForm component
+ */
 interface JobApplicationFormProps {
-  userId: number; 
-  onSubmit: (data: JobApplicationData) => void;
+  userId: number; // ID of the current user to fetch their resumes
+  onSubmit: (data: JobApplicationData) => void; // Callback function when form is submitted
 }
 
+/**
+ * Props for the reusable Input component
+ */
 interface InputProps {
   type: string;
   label: string;
@@ -39,6 +49,9 @@ interface InputProps {
   className?: string;
 }
 
+/**
+ * Props for the reusable Textarea component
+ */
 interface TextareaProps {
   label: string;
   value: string;
@@ -47,6 +60,9 @@ interface TextareaProps {
   className?: string;
 }
 
+/**
+ * Reusable Input component for form fields
+ */
 const Input: React.FC<InputProps> = ({
   type,
   label,
@@ -67,6 +83,9 @@ const Input: React.FC<InputProps> = ({
   </div>
 );
 
+/**
+ * Reusable Textarea component for form fields
+ */
 const Textarea: React.FC<TextareaProps> = ({
   label,
   value,
@@ -85,7 +104,15 @@ const Textarea: React.FC<TextareaProps> = ({
   </div>
 );
 
+/**
+ * Job Application Form Component
+ * 
+ * This component provides a form for users to apply for jobs.
+ * It includes fields for personal information, resume selection from a dropdown,
+ * cover letter upload, and additional information.
+ */
 export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps) {
+  // State to store form data
   const [formData, setFormData] = useState<JobApplicationData>({
     firstName: "",
     lastName: "",
@@ -99,24 +126,33 @@ export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps
     additionalInfo: "",
   });
   
+  // State to store user's resumes fetched from the database
   const [userResumes, setUserResumes] = useState<Resume[]>([]);
+  // State to track loading state when fetching resumes
   const [isLoadingResumes, setIsLoadingResumes] = useState(false);
 
+  /**
+   * Effect hook to fetch user's resumes when component mounts
+   * or when userId changes
+   */
   useEffect(() => {
     const fetchUserResumes = async () => {
       if (!userId) return;
       
       setIsLoadingResumes(true);
       try {
+        // Fetch resumes from the API route
         const response = await fetch(`/api/resumes?userId=${userId}`);
         if (response.ok) {
           const data = await response.json();
           setUserResumes(data);
           
+          // If there's a default resume, select it automatically
           const defaultResume = data.find((resume: Resume) => resume.is_default);
           if (defaultResume) {
             setFormData(prev => ({ ...prev, resumeId: defaultResume.resume_id }));
           } else if (data.length > 0) {
+            // Otherwise select the first resume
             setFormData(prev => ({ ...prev, resumeId: data[0].resume_id }));
           }
         }
@@ -130,6 +166,10 @@ export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps
     fetchUserResumes();
   }, [userId]);
 
+  /**
+   * Handle form submission
+   * @param e - Form event
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
@@ -137,6 +177,7 @@ export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Personal Information Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           type="text"
@@ -158,6 +199,7 @@ export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps
         />
       </div>
 
+      {/* Contact Information Section */}
       <Input
         type="email"
         label="Email"
@@ -177,13 +219,16 @@ export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps
         }
       />
 
+      {/* Resume Selection Section */}
       <div className="space-y-4">
         <label className="block text-sm font-medium text-gray-700">
           Resume
         </label>
         {isLoadingResumes ? (
+          // Show loading state while fetching resumes
           <p className="text-sm text-gray-500">Loading your resumes...</p>
         ) : userResumes.length > 0 ? (
+          // Show dropdown if user has resumes
           <select
             value={formData.resumeId || ""}
             onChange={(e) => 
@@ -203,12 +248,14 @@ export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps
             ))}
           </select>
         ) : (
+          // Show message if user has no resumes
           <p className="text-sm text-gray-500">
             No resumes found. Please upload a resume in your profile settings.
           </p>
         )}
       </div>
 
+      {/* Cover Letter Upload Section */}
       <div className="space-y-4">
         <label className="block text-sm font-medium text-gray-700">
           Cover Letter (Optional)
@@ -226,6 +273,7 @@ export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps
         />
       </div>
 
+      {/* Professional Profiles Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           type="url"
@@ -254,6 +302,7 @@ export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps
         }
       />
 
+      {/* Additional Information Section */}
       <Textarea
         label="Additional Information"
         value={formData.additionalInfo}
@@ -263,6 +312,7 @@ export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps
         placeholder="Tell us anything else you'd like us to know about you"
       />
 
+      {/* Submit Button */}
       <Button type="submit" className="w-full bg-launchpad-blue hover:bg-launchpad-teal text-white">
         Submit Application
       </Button>

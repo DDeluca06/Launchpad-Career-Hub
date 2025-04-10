@@ -5,26 +5,30 @@ import Link from "next/link"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/basic/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/basic/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
-import { Badge } from "@/components/ui/basic/badge"
-import { jobService, Job } from "@/lib/local-storage"
-import { Briefcase, Calendar, ChevronRight, FileSpreadsheet, MapPin, Plus, UserCircle, Users, Building, Clock, Star, Filter, Search, TrendingUp, Flag } from "lucide-react"
-import { extendedPalette } from "@/lib/colors"
-import { cn } from "@/lib/utils"
-import dynamic from "next/dynamic"
 import { Input } from "@/components/ui/form/input"
+import { Badge } from "@/components/ui/basic/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
+import { MotionDiv } from "@/components/motion-components"
+import { AnimatePresence } from "framer-motion"
 import { LaunchpadImage } from "@/components/launchpad-image"
-
-// Correctly type the dynamic imports
-const MotionDiv = dynamic(
-  () => import("framer-motion").then((mod) => mod.motion.div),
-  { ssr: false },
-);
-
-const AnimatePresence = dynamic(
-  () => import("framer-motion").then((mod) => mod.AnimatePresence),
-  { ssr: false },
-);
+import { cn } from "@/lib/utils"
+import { extendedPalette } from "@/lib/colors"
+import { 
+  Briefcase, 
+  Building, 
+  ChevronRight,
+  Clock, 
+  FileSpreadsheet,
+  Filter, 
+  MapPin, 
+  Plus, 
+  Search, 
+  Star, 
+  TrendingUp, 
+  UserCircle, 
+  Users 
+} from "lucide-react"
+import { jobService, applicationService, Job } from "@/lib/local-storage"
 
 // Define interfaces for the dashboard data
 interface ApplicantDashboardStats {
@@ -66,7 +70,7 @@ interface UpcomingInterview {
 }
 
 // Define job status types based on schema
-type JobStatus = "interested" | "applied" | "interview" | "rejected" | "offer" | "accepted";
+type JobStatus = "interested" | "applied" | "interview" | "offer" | "rejected";
 
 // Define job interface that combines backend schema with UI needs
 interface JobApplication {
@@ -78,7 +82,6 @@ interface JobApplication {
   statusUpdatedAt: string;
   resumeId?: number;
   position: string;
-  // UI-specific properties
   job: {
     title: string;
     company: string;
@@ -86,42 +89,41 @@ interface JobApplication {
     jobType?: string;
     logo?: string;
   };
+  title: string;
+  company: string;
+  location?: string;
+  jobType?: string;
+  logo?: string;
   priority?: "high" | "medium" | "low";
 }
 
-// Define status columns for the kanban board
-const statusColumns = [
-  {
-    id: "interested",
-    title: "Interested",
-    icon: <Flag className="h-4 w-4" />,
-    color: extendedPalette.lightBlue,
-  },
-  {
-    id: "applied",
-    title: "Applied",
-    icon: <Briefcase className="h-4 w-4" />,
-    color: extendedPalette.primaryBlue,
-  },
-  {
-    id: "interview",
-    title: "Interview",
-    icon: <Users className="h-4 w-4" />,
-    color: extendedPalette.primaryGreen,
-  },
-  {
-    id: "offer",
-    title: "Offer",
-    icon: <FileSpreadsheet className="h-4 w-4" />,
-    color: extendedPalette.primaryOrange,
-  },
-  {
-    id: "rejected",
-    title: "Rejected",
-    icon: <TrendingUp className="h-4 w-4 rotate-180" />,
-    color: extendedPalette.darkGray,
-  },
-];
+// Find the closest column to a point
+function findClosestColumnElement(x: number, y: number, columnRefs: React.MutableRefObject<{ [key: string]: HTMLDivElement | null }>): HTMLElement | null {
+  let closestColumn: HTMLElement | null = null;
+  let closestDistance = Infinity;
+  
+  // Check each column
+  Object.values(columnRefs.current).forEach(columnEl => {
+    if (columnEl) {
+      const rect = columnEl.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      // Calculate distance to column center
+      const distance = Math.sqrt(
+        Math.pow(centerX - x, 2) + Math.pow(centerY - y, 2)
+      );
+      
+      // Update closest if this is closer
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestColumn = columnEl;
+      }
+    }
+  });
+  
+  return closestColumn;
+}
 
 export default function ApplicantDashboard() {
   const [stats, setStats] = useState<ApplicantDashboardStats>({
@@ -137,7 +139,6 @@ export default function ApplicantDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeColumn, setActiveColumn] = useState<string | null>(null);
   const [draggingJob, setDraggingJob] = useState<number | null>(null);
   
   // Job statistics for analytics and future dashboard enhancements
@@ -151,6 +152,40 @@ export default function ApplicantDashboard() {
   // Refs for columns to handle drop zones
   const columnRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
+  // Define status columns for the kanban board
+  const statusColumns = [
+    {
+      id: "interested",
+      title: "Saved",
+      icon: <Star className="h-4 w-4" />,
+      color: extendedPalette.teal,
+    },
+    {
+      id: "applied",
+      title: "Applied",
+      icon: <Briefcase className="h-4 w-4" />,
+      color: extendedPalette.primaryBlue,
+    },
+    {
+      id: "interview",
+      title: "Interview",
+      icon: <Users className="h-4 w-4" />,
+      color: extendedPalette.primaryGreen,
+    },
+    {
+      id: "offer",
+      title: "Offer",
+      icon: <TrendingUp className="h-4 w-4" />,
+      color: extendedPalette.primaryOrange,
+    },
+    {
+      id: "rejected",
+      title: "Rejected",
+      icon: <UserCircle className="h-4 w-4" />,
+      color: extendedPalette.darkGray,
+    },
+  ];
+
   // Load dashboard data
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -158,145 +193,218 @@ export default function ApplicantDashboard() {
       
       setIsLoading(true);
       
-      // In a real app, we would fetch user-specific data
-      // For now, we'll simulate with mock data
+      // Get all jobs
       const jobs = jobService.getAll();
       
-      // Transform jobs into application format
-      const mockApplications: JobApplication[] = jobs.map(job => ({
-        applicationId: job.job_id,
-        jobId: job.job_id,
-        userId: 1, // Mock user ID
-        status: "interested" as JobStatus,
-        appliedAt: new Date().toISOString(),
-        statusUpdatedAt: new Date().toISOString(),
-        position: job.title,
-        job: {
+      // Get user's applications from local storage
+      const userApplications = applicationService.getAll();
+      
+      // If user has applications, use them
+      let jobApplications: JobApplication[] = [];
+      
+      if (userApplications && userApplications.length > 0) {
+        // Map applications to JobApplication format
+        jobApplications = userApplications.map(app => {
+          const job = jobService.getById(app.job_id);
+          return {
+            applicationId: app.application_id,
+            jobId: app.job_id,
+            userId: app.user_id,
+            status: app.status as JobStatus,
+            appliedAt: app.applied_at,
+            statusUpdatedAt: app.status_updated_at,
+            resumeId: app.resume_id,
+            position: app.position,
+            job: {
+              title: job?.title || "Unknown Job",
+              company: job?.company || "Unknown Company",
+              location: job?.location,
+              jobType: job?.job_type,
+              logo: job?.companyLogo || "/placeholder-logo.png"
+            },
+            title: job?.title || "Unknown Job",
+            company: job?.company || "Unknown Company",
+            location: job?.location,
+            jobType: job?.job_type,
+            logo: job?.companyLogo || "/placeholder-logo.png",
+            priority: Math.random() > 0.7 ? (Math.random() > 0.5 ? "high" : "medium") : "low"
+          };
+        });
+      } else {
+        // If no applications exist, create mock ones from available jobs
+        jobApplications = jobs.map(job => ({
+          applicationId: job.job_id,
+          jobId: job.job_id,
+          userId: 2,
+          status: "interested" as JobStatus,
+          appliedAt: new Date().toISOString(),
+          statusUpdatedAt: new Date().toISOString(),
+          position: job.title,
+          job: {
+            title: job.title,
+            company: job.company,
+            location: job.location,
+            jobType: job.job_type,
+            logo: job.companyLogo || "/placeholder-logo.png"
+          },
           title: job.title,
           company: job.company,
           location: job.location,
           jobType: job.job_type,
-          logo: job.companyLogo || "/placeholder-logo.png"
-        }
-      }));
+          logo: job.companyLogo || "/placeholder-logo.png",
+          priority: Math.random() > 0.7 ? (Math.random() > 0.5 ? "high" : "medium") : "low"
+        }));
+        
+        // Save these mock applications to local storage
+        jobApplications.forEach(app => {
+          applicationService.create({
+            user_id: app.userId,
+            job_id: app.jobId,
+            status: app.status,
+            resume_id: app.resumeId || 0,
+            position: app.position
+          });
+        });
+      }
       
-      setApplications(mockApplications);
+      setApplications(jobApplications);
       
       // Calculate dashboard stats
       const dashboardStats: ApplicantDashboardStats = {
-        totalApplications: mockApplications.length,
-        activeInterviews: mockApplications.filter(app => app.status === "interview").length,
-        savedJobs: mockApplications.filter(app => app.status === "interested").length,
+        totalApplications: jobApplications.length,
+        activeInterviews: jobApplications.filter(app => app.status === "interview").length,
+        savedJobs: jobApplications.filter(app => app.status === "interested").length,
         completedAssessments: 3
       };
       
       setStats(dashboardStats);
       setJobStats({
-        total: mockApplications.length,
-        applied: mockApplications.filter(app => app.status === "applied").length,
-        interested: mockApplications.filter(app => app.status === "interested").length,
-        rejected: mockApplications.filter(app => app.status === "rejected").length,
+        total: jobApplications.length,
+        applied: jobApplications.filter(app => app.status === "applied").length,
+        interested: jobApplications.filter(app => app.status === "interested").length,
+        rejected: jobApplications.filter(app => app.status === "rejected").length,
       });
       
-      // Generate mock recent activity
-      const mockActivity: RecentActivity[] = [
-        {
-          id: 1,
-          type: 'application',
-          title: 'Application Submitted',
-          description: 'You applied for Frontend Developer at Tech Co',
-          timestamp: '2023-04-05T10:30:00Z',
-          job: jobs.find(j => j.title === 'Frontend Developer')
-        },
-        {
-          id: 2,
-          type: 'status_change',
-          title: 'Application Update',
-          description: 'Your application for UX Designer is now in review',
-          timestamp: '2023-04-04T14:15:00Z',
-          job: jobs.find(j => j.title === 'UX Designer')
-        },
-        {
-          id: 3,
-          type: 'interview',
-          title: 'Interview Scheduled',
-          description: 'Technical interview for Backend Engineer position',
-          timestamp: '2023-04-03T09:45:00Z',
-          job: jobs.find(j => j.title === 'Backend Engineer')
-        },
-        {
-          id: 4,
-          type: 'saved',
-          title: 'Job Saved',
-          description: 'You saved the Product Manager position for later',
-          timestamp: '2023-04-02T16:20:00Z',
-          job: jobs.find(j => j.title === 'Product Manager')
-        }
-      ];
+      // Generate recent activity based on applications
+      const recentActivities: RecentActivity[] = generateRecentActivity(jobApplications, jobs);
       
       // Generate job recommendations
-      const mockRecommendations: JobRecommendation[] = [
-        {
-          id: 101,
-          title: "Senior Frontend Developer",
-          company: "Tech Innovations",
-          location: "Remote",
-          matchPercentage: 92,
-          logo: "/placeholder-logo.png",
-          isNew: true
-        },
-        {
-          id: 102,
-          title: "React Developer",
-          company: "Digital Solutions",
-          location: "Philadelphia, PA",
-          matchPercentage: 87,
-          logo: "/placeholder-logo.png",
-          isNew: false
-        },
-        {
-          id: 103,
-          title: "Full Stack Engineer",
-          company: "Startup Hub",
-          location: "Remote",
-          matchPercentage: 78,
-          logo: "/placeholder-logo.png",
-          isNew: true
-        }
-      ];
+      const jobRecommendations: JobRecommendation[] = generateJobRecommendations(jobs, jobApplications);
       
-      // Generate upcoming interviews
-      const mockInterviews = [
-        {
-          id: 201,
-          company: "Tech Co",
-          position: "Frontend Developer",
-          date: "Apr 15, 2023",
-          time: "10:00 AM",
-          type: "Technical",
-          interviewer: "Alex Johnson",
-          logo: "/placeholder-logo.png"
-        },
-        {
-          id: 202,
-          company: "Digital Solutions",
-          position: "React Developer",
-          date: "Apr 18, 2023",
-          time: "2:00 PM",
-          type: "Behavioral",
-          interviewer: "Sam Williams",
-          logo: "/placeholder-logo.png"
-        }
-      ];
+      // Generate upcoming interviews from applications with interview status
+      const interviews = generateUpcomingInterviews(jobApplications);
       
-      setRecentActivity(mockActivity);
-      setRecommendations(mockRecommendations);
-      setUpcomingInterviews(mockInterviews);
+      setRecentActivity(recentActivities);
+      setRecommendations(jobRecommendations);
+      setUpcomingInterviews(interviews);
       setIsLoading(false);
     };
     
     loadDashboardData();
   }, []);
+
+  // Generate recent activity from applications
+  const generateRecentActivity = (apps: JobApplication[], allJobs: Job[]): RecentActivity[] => {
+    const activities: RecentActivity[] = [];
+    
+    // Sort applications by statusUpdatedAt (most recent first)
+    const sortedApps = [...apps].sort((a, b) => 
+      new Date(b.statusUpdatedAt).getTime() - new Date(a.statusUpdatedAt).getTime()
+    );
+    
+    // Take the 4 most recent applications
+    const recentApps = sortedApps.slice(0, 4);
+    
+    recentApps.forEach((app) => {
+      const job = allJobs.find(j => j.job_id === app.jobId);
+      
+      let type: 'application' | 'status_change' | 'interview' | 'offer' | 'saved' = 'status_change';
+      let title = 'Application Update';
+      let description = `Your application for ${app.job.title} is now ${app.status}`;
+      
+      if (app.status === 'interested') {
+        type = 'saved';
+        title = 'Job Saved';
+        description = `You saved the ${app.job.title} position for later`;
+      } else if (app.status === 'applied') {
+        type = 'application';
+        title = 'Application Submitted';
+        description = `You applied for ${app.job.title} at ${app.job.company}`;
+      } else if (app.status === 'interview') {
+        type = 'interview';
+        title = 'Interview Scheduled';
+        description = `Interview for ${app.job.title} position`;
+      } else if (app.status === 'offer') {
+        type = 'offer';
+        title = 'Offer Received';
+        description = `You received an offer for the ${app.job.title} position`;
+      }
+      
+      activities.push({
+        id: activities.length + 1,
+        type,
+        title,
+        description,
+        timestamp: app.statusUpdatedAt,
+        job
+      });
+    });
+    
+    return activities;
+  };
+
+  // Generate job recommendations
+  const generateJobRecommendations = (allJobs: Job[], userApps: JobApplication[]): JobRecommendation[] => {
+    // Get job IDs that the user has already applied to
+    const appliedJobIds = userApps.map(app => app.jobId);
+    
+    // Filter out jobs the user has already applied to
+    const unappliedJobs = allJobs.filter(job => !appliedJobIds.includes(job.job_id));
+    
+    // Take up to 3 jobs as recommendations
+    const recommendations = unappliedJobs.slice(0, 3).map(job => ({
+      id: job.job_id,
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      matchPercentage: Math.floor(Math.random() * 30) + 70, // Random match between 70-99%
+      logo: job.companyLogo || "/placeholder-logo.png",
+      isNew: Math.random() > 0.5 // 50% chance of being marked as new
+    }));
+    
+    return recommendations;
+  };
+
+  // Generate upcoming interviews
+  const generateUpcomingInterviews = (apps: JobApplication[]): UpcomingInterview[] => {
+    // Filter applications with interview status
+    const interviewApps = apps.filter(app => app.status === "interview");
+    
+    // Generate random interview dates in the future
+    return interviewApps.map((app, index) => {
+      const daysInFuture = Math.floor(Math.random() * 14) + 1; // 1-14 days in future
+      const interviewDate = new Date();
+      interviewDate.setDate(interviewDate.getDate() + daysInFuture);
+      
+      const formattedDate = `${interviewDate.toLocaleString('default', { month: 'short' })} ${interviewDate.getDate()}, ${interviewDate.getFullYear()}`;
+      const hour = Math.floor(Math.random() * 8) + 9; // 9 AM - 5 PM
+      const minute = Math.random() > 0.5 ? '00' : '30'; // Either on the hour or half past
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const formattedHour = hour > 12 ? hour - 12 : hour;
+      const formattedTime = `${formattedHour}:${minute} ${ampm}`;
+      
+      return {
+        id: 200 + index,
+        company: app.job.company,
+        position: app.job.title,
+        date: formattedDate,
+        time: formattedTime,
+        type: Math.random() > 0.5 ? "Technical" : "Behavioral",
+        interviewer: "Hiring Manager",
+        logo: app.job.logo
+      };
+    });
+  };
 
   // Update stats when jobs change
   useEffect(() => {
@@ -332,17 +440,27 @@ export default function ApplicantDashboard() {
 
   // Update job status on drop
   const handleStatusChange = (applicationId: number, newStatus: JobStatus) => {
-    setApplications((prev) =>
-      prev.map((app) =>
-        app.applicationId === applicationId
-          ? {
-              ...app,
-              status: newStatus,
-              statusUpdatedAt: new Date().toISOString(),
-            }
-          : app,
-      ),
-    );
+    // Find the application to update
+    const appToUpdate = applications.find(app => app.applicationId === applicationId);
+    
+    if (appToUpdate) {
+      // Update application in local state
+      setApplications((prev) =>
+        prev.map((app) =>
+          app.applicationId === applicationId
+            ? {
+                ...app,
+                status: newStatus,
+                statusUpdatedAt: new Date().toISOString(),
+              }
+            : app,
+        ),
+      );
+      
+      // Update application in local storage
+      applicationService.updateStatus(applicationId, newStatus);
+    }
+    
     setDraggingJob(null); // Reset dragging state
   };
 
@@ -353,17 +471,6 @@ export default function ApplicantDashboard() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
             <p className="text-gray-500 mt-1">Track your job search progress and opportunities</p>
-          </div>
-        
-          <div className="flex items-center gap-3">
-            <Button variant="outline" className="gap-2">
-              <Calendar className="h-4 w-4" />
-              Schedule Interview
-            </Button>
-            <Button className="gap-2" style={{ backgroundColor: extendedPalette.primaryBlue }}>
-              <Plus className="h-4 w-4" />
-              Save New Job
-            </Button>
           </div>
         </div>
 
@@ -401,30 +508,15 @@ export default function ApplicantDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* Job Applications Section */}
           <DashboardSection
-            title="My Applications"
+            title="My Jobs"
             description="Track your job applications"
             icon={<Briefcase className="h-6 w-6" style={{ color: extendedPalette.primaryBlue }} />}
             href="/applicant/jobs"
             stats={[
-              { label: "Total", value: String(stats.totalApplications) },
-              { label: "In Progress", value: "5" },
-              { label: "Completed", value: "3" }
+              { label: "Applied", value: String(jobStats.applied) },
+              { label: "Interviews", value: String(stats.activeInterviews) }
             ]}
             color={extendedPalette.primaryBlue}
-          />
-          
-          {/* Calendar Section */}
-          <DashboardSection
-            title="My Calendar"
-            description="View upcoming interviews and events"
-            icon={<Calendar className="h-6 w-6" style={{ color: extendedPalette.primaryGreen }} />}
-            href="/applicant/calendar"
-            stats={[
-              { label: "Interviews", value: String(stats.activeInterviews) },
-              { label: "This Week", value: "1" },
-              { label: "Next Week", value: "1" }
-            ]}
-            color={extendedPalette.primaryGreen}
           />
           
           {/* Profile Section */}
@@ -533,8 +625,8 @@ export default function ApplicantDashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
                 className="flex flex-col relative z-0"
-                onMouseEnter={() => setActiveColumn(column.id)}
-                onMouseLeave={() => setActiveColumn(null)}
+                onMouseEnter={() => {}}
+                onMouseLeave={() => {}}
                 data-column-id={column.id}
               >
                 <Card
@@ -566,10 +658,10 @@ export default function ApplicantDashboard() {
                           <DraggableJobCard
                             key={application.applicationId}
                             application={application}
-                            onDragStart={handleDragStart}
-                            onStatusChange={handleStatusChange}
-                            isColumnActive={activeColumn === column.id}
+                            onDragStart={() => handleDragStart(application.applicationId)}
+                            onStatusChange={(id, status) => handleStatusChange(id, status)}
                             isDragging={draggingJob === application.applicationId}
+                            columnRefs={columnRefs}
                           />
                         ),
                       )}
@@ -586,7 +678,7 @@ export default function ApplicantDashboard() {
           </div>
         </div>
 
-        {/* Two Column Layout: Recent Activity and Upcoming Interviews */}
+        {/* Two Column Layout: Recent Activity */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Recent Activity */}
           <Card className="border border-gray-200 shadow-sm">
@@ -627,16 +719,13 @@ export default function ApplicantDashboard() {
                   <Users className="h-5 w-5" style={{ color: extendedPalette.primaryGreen }} />
                   Upcoming Interviews
                 </CardTitle>
-                <Link href="/applicant/calendar">
-                  <Button variant="ghost" size="sm">View Calendar</Button>
-                </Link>
               </div>
               <CardDescription>Your scheduled interviews</CardDescription>
             </CardHeader>
             <CardContent className="p-4">
               {upcomingInterviews.length === 0 ? (
                 <div className="text-center py-8">
-                  <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                   <h3 className="text-sm font-medium text-gray-600 mb-1">No interviews scheduled</h3>
                   <p className="text-xs text-gray-500 max-w-xs mx-auto">
                     You don&apos;t have any upcoming interviews. Keep applying to jobs to get interviews!
@@ -661,15 +750,12 @@ export default function ApplicantDashboard() {
                       </div>
                       <div className="flex items-center text-sm text-gray-600 mt-3">
                         <div className="flex items-center mr-4">
-                          <Calendar className="h-4 w-4 mr-1 text-gray-500" />
+                          <MapPin className="h-4 w-4 mr-1 text-gray-500" />
                           {interview.date}
                         </div>
                         <div className="flex items-center">
                           <Clock className="h-4 w-4 mr-1 text-gray-500" />
                           {interview.time}
-                        </div>
-                        <div className="ml-auto">
-                          <Button size="sm" style={{ backgroundColor: extendedPalette.primaryGreen }}>Prepare</Button>
                         </div>
                       </div>
                     </div>
@@ -841,23 +927,24 @@ function formatRelativeTime(dateString: string): string {
 // Draggable Job Card Component
 interface DraggableJobCardProps {
   application: JobApplication;
-  onDragStart: (id: number) => void;
+  onDragStart: () => void;
   onStatusChange: (id: number, status: JobStatus) => void;
-  isColumnActive: boolean;
   isDragging: boolean;
+  columnRefs: React.MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
 }
 
 function DraggableJobCard({
   application,
   onDragStart,
   onStatusChange,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  isColumnActive,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isDragging,
+  columnRefs,
 }: DraggableJobCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isDraggingLocal, setIsDraggingLocal] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [initialPosition, setInitialPosition] = useState({ x: 0, y: 0 });
 
   // Get relative date from ISO string
   const getRelativeDate = (dateString: string) => {
@@ -880,58 +967,168 @@ function DraggableJobCard({
     return "";
   };
 
+  // Store card dimensions on mount
+  useEffect(() => {
+    if (cardRef.current) {
+      const rect = cardRef.current.getBoundingClientRect();
+      setDimensions({
+        width: rect.width,
+        height: rect.height
+      });
+      setInitialPosition({
+        x: rect.left,
+        y: rect.top
+      });
+    }
+  }, []);
+
+  // Find the closest column during drag
+  const findClosestColumn = (x: number, y: number) => {
+    return findClosestColumnElement(x, y, columnRefs);
+  };
+
+  // Create a drag overlay element
+  const createDragOverlay = () => {
+    if (!cardRef.current) return;
+    
+    // Get the current card's content
+    const rect = cardRef.current.getBoundingClientRect();
+    setPosition({
+      x: rect.left,
+      y: rect.top
+    });
+  };
+
   return (
     <MotionDiv
       ref={cardRef}
       drag
       dragSnapToOrigin
-      dragElastic={0.1}
+      dragElastic={0.2}
       dragMomentum={false}
       onDragStart={() => {
         setIsDraggingLocal(true);
-        onDragStart(application.applicationId);
+        onDragStart();
+        createDragOverlay();
+        
+        // Add a class to the body to prevent text selection during drag
+        document.body.classList.add('dragging-active');
       }}
-      onDragEnd={(event, 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        info
-      ) => {
-        setIsDraggingLocal(false);
-        const targetElement = document.elementFromPoint(
-          (event as MouseEvent).clientX,
-          (event as MouseEvent).clientY
-        );
-        if (targetElement) {
-          const columnElement = targetElement.closest('[data-column-id]');
-          if (columnElement) {
-            const newStatus = columnElement.getAttribute('data-column-id') as JobStatus;
-            if (newStatus && newStatus !== application.status) {
-              onStatusChange(application.applicationId, newStatus);
+      onDrag={(_, info) => {
+        // Update position state for the drag overlay
+        setPosition({
+          x: initialPosition.x + info.offset.x,
+          y: initialPosition.y + info.offset.y
+        });
+        
+        // Update visual feedback based on which column the card is over
+        const closestColumn = findClosestColumn(info.point.x, info.point.y);
+        
+        if (closestColumn) {
+          // Highlight the column being dragged over
+          document.querySelectorAll('[data-column-id]').forEach((col) => {
+            if (col === closestColumn) {
+              col.classList.add('bg-gray-50', 'border-2', 'border-blue-300');
+            } else {
+              col.classList.remove('bg-gray-50', 'border-2', 'border-blue-300');
             }
+          });
+        }
+      }}
+      onDragEnd={(_, info) => {
+        setIsDraggingLocal(false);
+        
+        // Remove body class
+        document.body.classList.remove('dragging-active');
+        
+        // Remove all column highlights
+        document.querySelectorAll('[data-column-id]').forEach((col) => {
+          col.classList.remove('bg-gray-50', 'border-2', 'border-blue-300');
+        });
+        
+        // Find the closest column to drop into
+        const closestColumn = findClosestColumn(info.point.x, info.point.y);
+        
+        if (closestColumn) {
+          const newStatus = closestColumn.getAttribute('data-column-id') as JobStatus;
+          if (newStatus && newStatus !== application.status) {
+            onStatusChange(application.applicationId, newStatus);
           }
         }
       }}
+      style={{
+        zIndex: isDraggingLocal ? 1000 : 'auto',
+        position: isDraggingLocal ? 'relative' : 'static',
+        opacity: isDragging && !isDraggingLocal ? 0.4 : 1,
+      }}
       whileDrag={{
-        scale: 1.02,
-        boxShadow: "0 8px 20px -5px rgba(0, 0, 0, 0.1)",
-        zIndex: 9999,
-        position: "fixed",
-        width: cardRef.current?.offsetWidth,
+        scale: 1.05,
+        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)",
+        zIndex: 100000,
+        position: "relative",
       }}
       initial={{ opacity: 0, y: 10 }}
-      animate={{ 
-        opacity: 1, 
-        y: 0,
-        position: isDraggingLocal ? "fixed" : "relative",
-        zIndex: isDraggingLocal ? 9999 : "auto"
-      }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
       transition={{
         type: "spring",
         damping: 25,
         stiffness: 300,
       }}
-      className={`cursor-grab active:cursor-grabbing ${isDraggingLocal ? "fixed z-[9999]" : "relative"}`}
+      className="cursor-grab active:cursor-grabbing"
     >
+      {/* Drag overlay - only visible during dragging */}
+      {isDraggingLocal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            zIndex: 10000,
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: position.y,
+              left: position.x,
+              width: dimensions.width,
+              height: dimensions.height,
+              zIndex: 10001,
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+              opacity: 0.9,
+              pointerEvents: 'none',
+              backgroundColor: 'white',
+              borderRadius: '0.5rem',
+              border: '2px solid #3b82f6',
+            }}
+          >
+            <div className="p-3">
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden">
+                    <LaunchpadImage
+                      src={application.job.logo || "/placeholder-logo.png"}
+                      alt={application.job.company}
+                      width={24}
+                      height={24}
+                      className="object-contain"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm">{application.job.title}</h3>
+                    <p className="text-xs text-gray-500">{application.job.company}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Card className="border shadow-sm hover:shadow-md transition-all duration-200">
         <CardContent className="p-3">
           <div className="flex justify-between items-start mb-2">

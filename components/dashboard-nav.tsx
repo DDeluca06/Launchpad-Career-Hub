@@ -13,7 +13,6 @@ import {
   BarChart2,
   Users,
   MessageSquare,
-  Calendar,
   LogOut,
   Settings,
   HelpCircle,
@@ -182,13 +181,7 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
 
   const utilityItems: NavItem[] = [
     {
-      title: "Calendar",
-      href: `${baseUrl}/calendar`,
-      icon: <Calendar />,
-      color: extendedPalette.primaryGreen,
-    },
-    {
-      title: "Settings",
+      title: "Profile",
       href: `${baseUrl}/settings`,
       icon: <Settings />,
       color: extendedPalette.darkGray,

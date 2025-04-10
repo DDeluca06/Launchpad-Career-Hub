@@ -8,19 +8,10 @@ import { Input } from "@/components/ui/form/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs"
 import { Label } from "@/components/ui/basic/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
-import { Check, Save, RefreshCw, UserCircle, FileText, Upload, Trash2, Camera } from "lucide-react"
+import { Check, Save, UserCircle, FileText, Upload, Trash2, Camera } from "lucide-react"
 import { extendedPalette } from "@/lib/colors"
-import { userService, User } from "@/lib/local-storage"
+import { userService, resumeService, User, Resume } from "@/lib/local-storage"
 
-// Simulate resume interface based on DB schema
-interface Resume {
-  resume_id: number;
-  user_id: number;
-  file_path: string;
-  file_name: string;
-  isDefault: boolean;
-  created_at: string;
-}
 
 export default function ApplicantSettingsPage() {
   const [activeTab, setActiveTab] = useState("profile")
@@ -43,133 +34,149 @@ export default function ApplicantSettingsPage() {
 
   useEffect(() => {
     const loadUserData = async () => {
-      // For demo, we'll use user with ID 2 (a non-admin)
-      const userData = userService.getById(2)
+      // Get current user or default to user with ID 2 (a non-admin)
+      const currentUser = userService.getCurrentUser() || userService.getById(2);
       
-      if (userData) {
-        setUser(userData)
+      if (currentUser) {
+        setUser(currentUser);
         
         // Pre-fill form with user data
         setUserSettings(prev => ({
           ...prev,
-          username: userData.username || "",
-          status: userData.status || "active",
-          program: userData.program || "foundations"
-        }))
+          username: currentUser.username || "",
+          status: currentUser.status || "active",
+          program: currentUser.program || "foundations"
+        }));
         
-        // Load mock resumes
-        const mockResumes: Resume[] = [
-          {
-            resume_id: 1,
-            user_id: userData.user_id,
-            file_path: "/uploads/resumes/resume-2023.pdf",
-            file_name: "my_resume_2023.pdf",
-            isDefault: true,
-            created_at: new Date().toISOString()
-          },
-          {
-            resume_id: 2,
-            user_id: userData.user_id,
-            file_path: "/uploads/resumes/resume-for-tech.pdf",
-            file_name: "resume_for_tech_roles.pdf",
-            isDefault: false,
-            created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-          }
-        ]
-        
-        setResumes(mockResumes)
+        // Load user's resumes from local storage
+        const userResumes = resumeService.getByUserId(currentUser.user_id);
+        setResumes(userResumes);
       }
     }
     
-    loadUserData()
-  }, [])
+    loadUserData();
+  }, []);
   
   // Handle setting change
   const handleSettingChange = (key: string, value: string | boolean) => {
     setUserSettings(prev => ({
       ...prev,
       [key]: value
-    }))
+    }));
   }
   
   const handleSave = () => {
-    // In a real app, this would save to backend/localStorage
+    // Save to localStorage
     if (user) {
       const updatedUser = { 
         ...user, 
         username: userSettings.username,
         status: userSettings.status,
         program: userSettings.program
+      };
+      
+      // Update user in local storage
+      const result = userService.update(updatedUser);
+      
+      if (result) {
+        setUser(updatedUser);
+        
+        // If this is the current logged-in user, update the current user in local storage
+        const currentUser = userService.getCurrentUser();
+        if (currentUser && currentUser.user_id === user.user_id) {
+          userService.logout(); // Clear current user
+          userService.login(updatedUser.username, updatedUser.password); // Log back in with updated user
+        }
+        
+        // Show saved indicator
+        setSavedIndicator(true);
+        setTimeout(() => setSavedIndicator(false), 2000);
       }
-      
-      userService.update(updatedUser)
-      setUser(updatedUser)
-      
-      // Show saved indicator
-      setSavedIndicator(true)
-      setTimeout(() => setSavedIndicator(false), 2000)
     }
   }
   
   // Handle profile image upload
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
     
     // In a real app, you would upload to a server
     // For demo, we'll use a local URL
-    const imageUrl = URL.createObjectURL(file)
-    setProfileImage(imageUrl)
+    const imageUrl = URL.createObjectURL(file);
+    setProfileImage(imageUrl);
   }
   
   // Click handler for profile image upload button
   const handleProfileImageClick = () => {
-    fileInputRef.current?.click()
+    fileInputRef.current?.click();
   }
   
   // Handle resume file upload
   const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
     
-    setNewResumeFile(file)
+    setNewResumeFile(file);
   }
   
   // Upload resume
   const handleResumeUpload = () => {
-    if (!newResumeFile || !user) return
+    if (!newResumeFile || !user) return;
     
-    // In a real app, you would upload to a server
-    // For demo, we'll add to the local state
-    const newResume: Resume = {
-      resume_id: resumes.length + 1,
+    // Create a new resume in local storage
+    const newResume = resumeService.create({
       user_id: user.user_id,
       file_path: `/uploads/resumes/${newResumeFile.name}`,
       file_name: newResumeFile.name,
-      isDefault: false,
-      created_at: new Date().toISOString()
-    }
+      isDefault: resumes.length === 0 // Make default if it's the first resume
+    });
     
-    setResumes([...resumes, newResume])
-    setNewResumeFile(null)
-    
-    // Clear the file input
-    if (resumeInputRef.current) {
-      resumeInputRef.current.value = ''
+    if (newResume) {
+      // Update the UI
+      setResumes(prev => [...prev, newResume]);
+      setNewResumeFile(null);
+      
+      // Clear the file input
+      if (resumeInputRef.current) {
+        resumeInputRef.current.value = '';
+      }
     }
   }
   
   // Set default resume
   const setDefaultResume = (resumeId: number) => {
-    setResumes(resumes.map(resume => ({
+    // Update all resumes in local storage
+    resumes.forEach(resume => {
+      const isDefault = resume.resume_id === resumeId;
+      
+      if (isDefault !== resume.isDefault) {
+        const updatedResume = { ...resume, isDefault };
+        resumeService.update(updatedResume);
+      }
+    });
+    
+    // Update UI
+    setResumes(prev => prev.map(resume => ({
       ...resume,
       isDefault: resume.resume_id === resumeId
-    })))
+    })));
   }
   
   // Delete resume
   const deleteResume = (resumeId: number) => {
-    setResumes(resumes.filter(resume => resume.resume_id !== resumeId))
+    // Delete from local storage
+    resumeService.delete(resumeId);
+    
+    // Update UI
+    const updatedResumes = resumes.filter(resume => resume.resume_id !== resumeId);
+    setResumes(updatedResumes);
+    
+    // If we deleted the default resume and have other resumes, set a new default
+    const deletedDefault = resumes.find(r => r.resume_id === resumeId)?.isDefault;
+    if (deletedDefault && updatedResumes.length > 0) {
+      const newDefault = updatedResumes[0];
+      setDefaultResume(newDefault.resume_id);
+    }
   }
   
   return (
@@ -177,7 +184,7 @@ export default function ApplicantSettingsPage() {
       <div className="container py-6 px-4 mx-auto">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
             <p className="text-gray-500 mt-1">Manage your profile information and resumes</p>
           </div>
           
@@ -203,307 +210,242 @@ export default function ApplicantSettingsPage() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="md:col-span-4">
-            <CardHeader className="pb-3">
-              <CardTitle>User Settings</CardTitle>
-              <CardDescription>
-                Manage your account information and resumes
-              </CardDescription>
-            </CardHeader>
-            
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <div className="px-6">
-                <TabsList className="w-full max-w-md">
-                  <TabsTrigger value="profile" className="flex-1">
-                    <UserCircle className="h-4 w-4 mr-2" />
-                    Profile
-                  </TabsTrigger>
-                  <TabsTrigger value="resumes" className="flex-1">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Resumes
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-              
-              <TabsContent value="profile" className="p-6 pt-3">
-                <div className="space-y-6 max-w-3xl">
+        <Tabs defaultValue="profile" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="bg-gray-100 p-1">
+            <TabsTrigger value="profile" className="data-[state=active]:bg-white">
+              <UserCircle className="h-4 w-4 mr-2" />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value="resumes" className="data-[state=active]:bg-white">
+              <FileText className="h-4 w-4 mr-2" />
+              Resumes
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="profile" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Personal Information</CardTitle>
+                <CardDescription>Update your personal details</CardDescription>
+              </CardHeader>
+              <div className="p-6 border-t">
+                <div className="flex flex-col md:flex-row gap-8">
                   {/* Profile Image */}
-                  <div className="flex items-center gap-6">
-                    <div className="relative group">
-                      <Avatar className="h-24 w-24 border-2 border-gray-200">
-                        <AvatarFallback className="text-xl bg-gray-100">
-                          {user?.username.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                  <div className="flex flex-col items-center gap-3">
+                    <Avatar className="h-32 w-32 cursor-pointer" onClick={handleProfileImageClick}>
+                      {profileImage ? (
+                        <AvatarImage src={profileImage} alt="Profile" />
+                      ) : (
+                        <AvatarFallback className="bg-gray-100 text-gray-400 text-2xl">
+                          {user?.username?.substring(0, 2).toUpperCase() || "U"}
                         </AvatarFallback>
-                        {profileImage && <AvatarImage src={profileImage} alt={user?.username || 'User'} />}
-                      </Avatar>
-                      <div 
-                        className="absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                        onClick={handleProfileImageClick}
-                      >
-                        <Camera className="h-6 w-6 text-white" />
-                      </div>
-                      <input 
-                        type="file" 
-                        ref={fileInputRef}
-                        className="hidden" 
-                        accept="image/*" 
-                        onChange={handleProfileImageChange}
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium">{user?.username || 'User'}</h3>
-                      <p className="text-gray-500 text-sm">Update your profile picture</p>
-                      <Button variant="outline" size="sm" className="mt-2" onClick={handleProfileImageClick}>
-                        Change Photo
-                      </Button>
-                    </div>
+                      )}
+                    </Avatar>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleProfileImageClick}
+                      className="flex items-center gap-1"
+                    >
+                      <Camera className="h-4 w-4" />
+                      Change Photo
+                    </Button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleProfileImageChange} 
+                      className="hidden" 
+                      accept="image/*"
+                    />
                   </div>
                   
-                  {/* Basic Info */}
-                  <div className="space-y-4">
-                    <h3 className="text-base font-medium">Account Information</h3>
-                    
+                  {/* Form Fields */}
+                  <div className="flex-1 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="username">Username</Label>
                         <Input 
                           id="username" 
-                          value={userSettings.username}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSettingChange("username", e.target.value)}
-                          placeholder="Your username"
+                          value={userSettings.username} 
+                          onChange={(e) => handleSettingChange('username', e.target.value)}
                         />
                       </div>
-                      
                       <div className="space-y-2">
-                        <Label htmlFor="status">Account Status</Label>
-                        <div className="flex items-center h-10 space-x-4">
-                          <div className="flex items-center">
-                            <input
-                              type="radio"
-                              id="status-active"
-                              name="status"
-                              className="mr-2"
-                              checked={userSettings.status === "active"}
-                              onChange={() => handleSettingChange("status", "active")}
-                            />
-                            <Label htmlFor="status-active">Active</Label>
-                          </div>
-                          
-                          <div className="flex items-center">
-                            <input
-                              type="radio"
-                              id="status-inactive"
-                              name="status"
-                              className="mr-2"
-                              checked={userSettings.status === "inactive"}
-                              onChange={() => handleSettingChange("status", "inactive")}
-                            />
-                            <Label htmlFor="status-inactive">Inactive</Label>
-                          </div>
-                        </div>
+                        <Label htmlFor="program">Program</Label>
+                        <select 
+                          id="program"
+                          className="w-full p-2 border rounded-md"
+                          value={userSettings.program}
+                          onChange={(e) => handleSettingChange('program', e.target.value)}
+                        >
+                          <option value="foundations">Foundations</option>
+                          <option value="web_development">Web Development</option>
+                          <option value="data_science">Data Science</option>
+                          <option value="ux_design">UX Design</option>
+                        </select>
                       </div>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="program">Program</Label>
+                      <Label htmlFor="status">Status</Label>
                       <select 
-                        id="program"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        value={userSettings.program}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSettingChange("program", e.target.value)}
+                        id="status"
+                        className="w-full p-2 border rounded-md"
+                        value={userSettings.status}
+                        onChange={(e) => handleSettingChange('status', e.target.value)}
                       >
-                        <option value="foundations">Foundations</option>
-                        <option value="101">101</option>
-                        <option value="liftoff">Liftoff</option>
-                        <option value="alumni">Alumni</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
                       </select>
                     </div>
                   </div>
-                  
-                  {/* Password Change */}
-                  <div className="space-y-4 pt-4 border-t">
-                    <h3 className="text-base font-medium">Change Password</h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="password">New Password</Label>
-                        <Input 
-                          id="password" 
-                          type="password"
-                          value={userSettings.password}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSettingChange("password", e.target.value)}
-                          placeholder="Enter new password"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirm Password</Label>
-                        <Input 
-                          id="confirmPassword" 
-                          type="password"
-                          value={userSettings.confirmPassword}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSettingChange("confirmPassword", e.target.value)}
-                          placeholder="Confirm new password"
-                        />
-                      </div>
+                </div>
+              </div>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Password</CardTitle>
+                <CardDescription>Update your password</CardDescription>
+              </CardHeader>
+              <div className="p-6 border-t">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="current-password">Current Password</Label>
+                    <Input id="current-password" type="password" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-password">New Password</Label>
+                      <Input 
+                        id="new-password" 
+                        type="password" 
+                        value={userSettings.password}
+                        onChange={(e) => handleSettingChange('password', e.target.value)}
+                      />
                     </div>
-                    
-                    <Button 
-                      variant="outline" 
-                      disabled={!userSettings.password || userSettings.password !== userSettings.confirmPassword}
-                    >
-                      Update Password
-                    </Button>
-                    {userSettings.password && userSettings.password !== userSettings.confirmPassword && (
-                      <p className="text-sm text-red-500">Passwords do not match</p>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-password">Confirm New Password</Label>
+                      <Input 
+                        id="confirm-password" 
+                        type="password" 
+                        value={userSettings.confirmPassword}
+                        onChange={(e) => handleSettingChange('confirmPassword', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <CardFooter className="bg-gray-50 border-t">
+                <Button variant="outline" size="sm">Update Password</Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="resumes" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>My Resumes</CardTitle>
+                <CardDescription>Upload and manage your resumes</CardDescription>
+              </CardHeader>
+              <div className="p-6 border-t">
+                <div className="space-y-4">
+                  {/* Upload new resume */}
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="h-8 w-8 text-gray-400" />
+                      <h3 className="font-medium">Upload a new resume</h3>
+                      <p className="text-sm text-gray-500 mb-2">Drag and drop or click to browse</p>
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="file" 
+                          ref={resumeInputRef} 
+                          onChange={handleResumeChange} 
+                          className="hidden" 
+                          accept=".pdf,.doc,.docx"
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => resumeInputRef.current?.click()}
+                        >
+                          Browse Files
+                        </Button>
+                        {newResumeFile && (
+                          <Button 
+                            size="sm"
+                            onClick={handleResumeUpload}
+                            style={{ backgroundColor: extendedPalette.primaryBlue }}
+                          >
+                            Upload Resume
+                          </Button>
+                        )}
+                      </div>
+                      {newResumeFile && (
+                        <p className="text-sm text-gray-600 mt-2">
+                          Selected: {newResumeFile.name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Existing resumes */}
+                  <div className="space-y-3">
+                    {resumes.length === 0 ? (
+                      <div className="text-center py-8">
+                        <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <h3 className="text-sm font-medium text-gray-600 mb-1">No resumes uploaded yet</h3>
+                        <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                          You don&apos;t have any resumes uploaded. Add a resume to apply for jobs more quickly.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y">
+                        {resumes.map((resume) => (
+                          <div key={resume.resume_id} className="py-3 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <FileText className="h-8 w-8 text-gray-400" />
+                              <div>
+                                <p className="font-medium">{resume.file_name}</p>
+                                <p className="text-xs text-gray-500">
+                                  Uploaded on {new Date(resume.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                              {resume.isDefault && (
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {!resume.isDefault && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setDefaultResume(resume.resume_id)}
+                                >
+                                  Set as Default
+                                </Button>
+                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => deleteResume(resume.resume_id)}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
-              </TabsContent>
-              
-              <TabsContent value="resumes" className="p-6 pt-3">
-                <div className="space-y-6 max-w-3xl">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium">Your Resumes</h3>
-                    <Button 
-                      onClick={() => resumeInputRef.current?.click()}
-                      className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-black"
-                    >
-                      <Upload className="h-4 w-4" />
-                      Upload Resume
-                    </Button>
-                    <input
-                      type="file"
-                      ref={resumeInputRef}
-                      className="hidden"
-                      accept=".pdf,.doc,.docx"
-                      onChange={handleResumeChange}
-                    />
-                  </div>
-                  
-                  {newResumeFile && (
-                    <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                      <h4 className="text-sm font-medium mb-2">Ready to upload:</h4>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <FileText className="h-5 w-5 text-blue-500 mr-2" />
-                          <span>{newResumeFile.name}</span>
-                        </div>
-                        <Button size="sm" onClick={handleResumeUpload}>
-                          Upload
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {resumes.length === 0 ? (
-                    <div className="text-center py-12">
-                      <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                      <h3 className="text-xl font-medium text-gray-700 mb-2">No resumes uploaded</h3>
-                      <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                        Upload your first resume to start applying for jobs
-                      </p>
-                      <Button 
-                        onClick={() => resumeInputRef.current?.click()}
-                        className="flex items-center mx-auto gap-2 bg-blue-500"
-                      >
-                        <Upload className="h-5 w-5" />
-                        Upload Resume
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4 mt-6">
-                      {resumes.map(resume => (
-                        <div 
-                          key={resume.resume_id} 
-                          className="border rounded-lg px-4 py-3 flex items-center justify-between"
-                        >
-                          <div className="flex items-center">
-                            <FileText className="h-5 w-5 mr-3 text-gray-400" /> 
-                            <div>
-                              <div className="flex items-center">
-                                <h4 className="font-medium">{resume.file_name}</h4>
-                                {resume.isDefault && (
-                                  <span className="ml-3 text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
-                                    Default
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-xs text-gray-500">
-                                Uploaded {new Date(resume.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            {!resume.isDefault && (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-xs h-8"
-                                onClick={() => setDefaultResume(resume.resume_id)}
-                              >
-                                Set as Default
-                              </Button>
-                            )}
-                            <button 
-                              className="text-gray-400 hover:text-red-500 transition-colors"
-                              onClick={() => deleteResume(resume.resume_id)}
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <div className="bg-gray-50 rounded-lg p-5 mt-8">
-                    <h4 className="text-sm font-medium mb-2">Resume Tips</h4>
-                    <ul className="text-xs text-gray-600 space-y-2 list-disc pl-4">
-                      <li>Keep your resume to one page for most positions</li>
-                      <li>Highlight specific achievements rather than just responsibilities</li>
-                      <li>Tailor your resume for different types of positions</li>
-                      <li>Use keywords from the job descriptions</li>
-                      <li>PDF format is recommended for most applications</li>
-                    </ul>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-            
-            <CardFooter className="border-t flex justify-between items-center p-6">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => window.location.reload()}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Reset Changes
-              </Button>
-              
-              <Button 
-                size="sm"
-                onClick={handleSave}
-                style={{ backgroundColor: extendedPalette.primaryBlue }}
-                className={savedIndicator ? "bg-green-500" : ""}
-              >
-                {savedIndicator ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Saved
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   )

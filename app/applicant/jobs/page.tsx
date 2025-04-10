@@ -6,14 +6,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/basic/button";
 import { Input } from "@/components/ui/form/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/overlay/dialog";
-import { Search, RefreshCw, Briefcase, Globe, BookmarkPlus, Bookmark, MapPin, FilterX, Clock, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { 
+  Briefcase, 
+  Bookmark,
+  BookmarkPlus,
+  CheckCircle2,
+  Clock, 
+  FileText,
+  FilterX,
+  Globe, 
+  MapPin, 
+  RefreshCw,
+  Search, 
+  XCircle
+} from "lucide-react";
 import { Badge } from "@/components/ui/basic/badge";
 import { Label } from "@/components/ui/basic/label";
 import { Textarea } from "@/components/ui/form/textarea";
 import { Checkbox } from "@/components/ui/form/checkbox";
-import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
 import Image from "next/image";
+import { Skeleton } from "@/components/ui/data-display/skeleton";
+import { cn } from "@/lib/utils";
+import { jobService, applicationService, userService, resumeService, User } from "@/lib/local-storage";
 
 // Types
 interface Job {
@@ -62,208 +77,135 @@ interface Application {
   interviewDate?: string;
 }
 
-// Mock data
-const mockJobs: Job[] = [
-  {
-    id: "1",
-    title: "Software Engineer",
-    company: "TechCorp",
-    location: "San Francisco, CA",
-    jobType: "Full-time",
-    experienceLevel: "Mid-level",
-    salary: "$120,000 - $150,000",
-    description: "We are looking for a software engineer to join our team and help build innovative web applications using React, Node.js, and TypeScript.",
-    responsibilities: [
-      "Design and implement frontend and backend features",
-      "Write clean, maintainable, and efficient code",
-      "Collaborate with cross-functional teams to define and implement new features",
-      "Ensure the technical feasibility of UI/UX designs",
-      "Optimize applications for maximum speed and scalability"
-    ],
-    qualifications: [
-      "3+ years of experience in software development",
-      "Strong proficiency in JavaScript, TypeScript, and React",
-      "Experience with Node.js and Express",
-      "Familiarity with RESTful APIs and database design",
-      "Bachelor's degree in Computer Science or equivalent experience"
-    ],
-    benefits: [
-      "Competitive salary and equity",
-      "Health, dental, and vision insurance",
-      "Unlimited PTO",
-      "401(k) matching",
-      "Remote work options"
-    ],
-    postedDate: "2023-04-15",
-    applicationDeadline: "2023-05-15",
-    companyLogoUrl: "https://via.placeholder.com/150",
-    industry: "Technology",
-    isRemote: true
-  },
-  {
-    id: "2",
-    title: "Product Manager",
-    company: "InnovateCo",
-    location: "New York, NY",
-    jobType: "Full-time",
-    experienceLevel: "Senior",
-    salary: "$140,000 - $180,000",
-    description: "We're seeking an experienced Product Manager to lead the development and launch of our newest product line. You'll work closely with engineering, design, and marketing teams.",
-    responsibilities: [
-      "Define product vision, strategy, and roadmap",
-      "Gather and prioritize product requirements",
-      "Work closely with engineering and design teams",
-      "Analyze market data and customer feedback",
-      "Present product plans to stakeholders"
-    ],
-    qualifications: [
-      "5+ years of product management experience",
-      "Strong analytical and problem-solving skills",
-      "Excellent communication and presentation abilities",
-      "Experience with agile methodologies",
-      "MBA or relevant technical degree preferred"
-    ],
-    benefits: [
-      "Competitive compensation package",
-      "Comprehensive health benefits",
-      "Flexible work arrangements",
-      "Professional development budget",
-      "Parental leave"
-    ],
-    postedDate: "2023-04-10",
-    applicationDeadline: "2023-05-10",
-    companyLogoUrl: "https://via.placeholder.com/150",
-    industry: "Technology",
-    isRemote: false
-  },
-  {
-    id: "3",
-    title: "UX/UI Designer",
-    company: "DesignHub",
-    location: "Austin, TX",
-    jobType: "Contract",
-    experienceLevel: "Entry-level",
-    salary: "$70,000 - $90,000",
-    description: "Join our creative team as a UX/UI Designer to craft beautiful and functional interfaces for our web and mobile applications. You'll be responsible for the entire design process from wireframing to final implementation.",
-    responsibilities: [
-      "Create wireframes, prototypes, and high-fidelity mockups",
-      "Conduct user research and usability testing",
-      "Collaborate with developers to implement designs",
-      "Maintain design system and component library",
-      "Stay updated on latest design trends and best practices"
-    ],
-    qualifications: [
-      "1-2 years of experience in UX/UI design",
-      "Proficiency in design tools like Figma, Sketch, or Adobe XD",
-      "Basic understanding of HTML, CSS, and responsive design",
-      "Strong portfolio demonstrating design thinking",
-      "Excellent communication skills"
-    ],
-    benefits: [
-      "Competitive hourly rate",
-      "Flexible working hours",
-      "Portfolio development opportunities",
-      "Mentorship from senior designers",
-      "Potential for full-time conversion"
-    ],
-    postedDate: "2023-04-20",
-    applicationDeadline: "2023-05-20",
-    companyLogoUrl: "https://via.placeholder.com/150",
-    industry: "Design",
-    isRemote: true
-  }
-];
-
-// Mock applications data
-const mockApplications: Application[] = [
-  {
-    id: "app1",
-    jobId: "1",
-    jobTitle: "Software Engineer",
-    company: "TechCorp",
-    companyLogoUrl: "https://via.placeholder.com/150",
-    appliedDate: "2023-06-10",
-    status: "interviewing",
-    nextSteps: "Technical interview scheduled",
-    interviewDate: "2023-06-25"
-  },
-  {
-    id: "app2",
-    jobId: "2",
-    jobTitle: "Product Manager",
-    company: "InnovateCo",
-    companyLogoUrl: "https://via.placeholder.com/150",
-    appliedDate: "2023-06-05",
-    status: "reviewing",
-    notes: "Recruiter viewed application on June 8"
-  },
-  {
-    id: "app3",
-    jobId: "3",
-    jobTitle: "UX/UI Designer",
-    company: "DesignHub",
-    companyLogoUrl: "https://via.placeholder.com/150",
-    appliedDate: "2023-05-20",
-    status: "rejected",
-    notes: "Position was filled internally"
-  },
-  {
-    id: "app4",
-    jobId: "5",
-    jobTitle: "Frontend Developer",
-    company: "WebSolutions",
-    companyLogoUrl: "https://via.placeholder.com/150",
-    appliedDate: "2023-06-15",
-    status: "submitted"
-  },
-  {
-    id: "app5",
-    jobId: "4",
-    jobTitle: "Data Analyst",
-    company: "DataInsights",
-    companyLogoUrl: "https://via.placeholder.com/150",
-    appliedDate: "2023-05-30",
-    status: "offered",
-    notes: "Offer received: $85,000/year with benefits"
-  }
-];
-
-// Loading components
+// Skeleton loader for job listings
 function JobListSkeleton() {
   return (
     <div className="space-y-3">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <Card key={index} className="animate-pulse">
-          <CardContent className="p-3">
-            <div className="flex gap-3">
-              <div className="h-12 w-12 rounded bg-gray-200" />
-              <div className="flex-1 space-y-2">
-                <div className="h-5 bg-gray-200 rounded w-3/4" />
-                <div className="h-4 bg-gray-200 rounded w-1/2" />
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="p-3 border rounded-md">
+          <div className="flex items-start gap-3">
+            <Skeleton className="h-10 w-10 rounded-md" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+              <div className="flex items-center gap-2 mt-2">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-3 w-20" />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );
 }
 
+// Skeleton loader for job details
 function JobDetailsSkeleton() {
   return (
-    <div className="animate-pulse p-6 space-y-4">
-      <div className="h-8 bg-gray-200 rounded w-1/2 mb-6" />
-      <div className="flex gap-3 mb-6">
-        <div className="h-16 w-16 rounded bg-gray-200" />
-        <div className="flex-1 space-y-2">
-          <div className="h-5 bg-gray-200 rounded w-3/4" />
-          <div className="h-4 bg-gray-200 rounded w-1/2" />
+    <div className="p-6">
+      <div className="flex justify-between items-start mb-6">
+        <h2 className="text-2xl font-bold">
+          <Skeleton className="h-6 w-3/4" />
+        </h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-yellow-500"
+        >
+          <Bookmark className="h-5 w-5 fill-current" />
+        </Button>
+      </div>
+      
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
+          <Skeleton className="h-16 w-16 rounded-md" />
+        </div>
+        <div>
+          <h3 className="font-medium text-lg">
+            <Skeleton className="h-4 w-3/4" />
+          </h3>
+          <p className="text-gray-500">
+            <Skeleton className="h-3 w-1/2" />
+          </p>
         </div>
       </div>
-      <div className="space-y-2">
-        <div className="h-4 bg-gray-200 rounded w-full" />
-        <div className="h-4 bg-gray-200 rounded w-full" />
-        <div className="h-4 bg-gray-200 rounded w-3/4" />
+      
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-gray-50 p-3 rounded">
+          <p className="text-xs text-gray-500">Job Type</p>
+          <p className="font-medium">
+            <Skeleton className="h-4 w-3/4" />
+          </p>
+        </div>
+        <div className="bg-gray-50 p-3 rounded">
+          <p className="text-xs text-gray-500">Experience</p>
+          <p className="font-medium">
+            <Skeleton className="h-4 w-3/4" />
+          </p>
+        </div>
+        <div className="bg-gray-50 p-3 rounded">
+          <p className="text-xs text-gray-500">Salary Range</p>
+          <p className="font-medium">
+            <Skeleton className="h-4 w-3/4" />
+          </p>
+        </div>
+        <div className="bg-gray-50 p-3 rounded">
+          <p className="text-xs text-gray-500">Deadline</p>
+          <p className="font-medium">
+            <Skeleton className="h-4 w-3/4" />
+          </p>
+        </div>
+      </div>
+      
+      <div className="mb-6">
+        <h3 className="font-medium mb-2">Job Description</h3>
+        <div className="text-gray-700">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full mt-2" />
+          <Skeleton className="h-4 w-full mt-2" />
+        </div>
+      </div>
+      
+      <div className="mb-6">
+        <h3 className="font-medium mb-2">Responsibilities</h3>
+        <ul className="list-disc pl-4 space-y-1">
+          {[...Array(5)].map((_, i) => (
+            <li key={i} className="text-gray-700">
+              <Skeleton className="h-4 w-full" />
+            </li>
+          ))}
+        </ul>
+      </div>
+      
+      <div className="mb-6">
+        <h3 className="font-medium mb-2">Qualifications</h3>
+        <ul className="list-disc pl-4 space-y-1">
+          {[...Array(5)].map((_, i) => (
+            <li key={i} className="text-gray-700">
+              <Skeleton className="h-4 w-full" />
+            </li>
+          ))}
+        </ul>
+      </div>
+      
+      <div className="mb-6">
+        <h3 className="font-medium mb-2">Benefits</h3>
+        <ul className="list-disc pl-4 space-y-1">
+          {[...Array(5)].map((_, i) => (
+            <li key={i} className="text-gray-700">
+              <Skeleton className="h-4 w-full" />
+            </li>
+          ))}
+        </ul>
+      </div>
+      
+      <div className="mt-8">
+        <Button 
+          className="w-full md:w-auto"
+        >
+          Apply Now
+        </Button>
       </div>
     </div>
   );
@@ -271,10 +213,10 @@ function JobDetailsSkeleton() {
 
 export default function JobsPage() {
   // State
-  const [jobs] = useState<Job[]>(mockJobs);
-  const [filteredJobs, setFilteredJobs] = useState<Job[]>(mockJobs);
-  const [_loading] = useState<boolean>(false);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(mockJobs[0] || null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     jobType: [],
     experienceLevel: [],
@@ -287,7 +229,7 @@ export default function JobsPage() {
   const [applyModalOpen, setApplyModalOpen] = useState<boolean>(false);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"jobs" | "applications">("jobs");
-  const [applications] = useState<Application[]>(mockApplications);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [applicationData, setApplicationData] = useState({
     firstName: "",
@@ -297,10 +239,127 @@ export default function JobsPage() {
     resume: null as File | null,
     coverLetter: "",
   });
-
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userResumes, setUserResumes] = useState<Array<{resume_id: number, file_name: string, is_default: boolean | null}>>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
   const [isLoadingResumes, setIsLoadingResumes] = useState(false);
+
+  // Load data from local storage
+  useEffect(() => {
+    const loadData = async () => {
+      if (typeof window === 'undefined') return;
+      
+      setLoading(true);
+      
+      // Get current user
+      const user = userService.getCurrentUser() || userService.getById(2) || null;
+      setCurrentUser(user);
+      
+      // Load jobs from local storage
+      const storageJobs = jobService.getAll();
+      
+      // Transform jobs to match the UI format
+      const transformedJobs: Job[] = storageJobs.map(job => ({
+        id: job.job_id.toString(),
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        jobType: job.job_type,
+        experienceLevel: job.tags?.includes("Senior") ? "Senior" : 
+                         job.tags?.includes("Mid-level") ? "Mid-level" : "Entry-level",
+        salary: "$80,000 - $150,000", // Mock salary since it's not in the storage schema
+        description: job.description,
+        responsibilities: [
+          "Design and implement features",
+          "Write clean, maintainable code",
+          "Collaborate with cross-functional teams",
+          "Ensure technical feasibility of designs",
+          "Optimize for performance"
+        ],
+        qualifications: job.tags || ["JavaScript", "React", "TypeScript"],
+        benefits: [
+          "Competitive salary",
+          "Health insurance",
+          "Flexible work hours",
+          "Professional development",
+          "Remote work options"
+        ],
+        postedDate: job.created_at,
+        applicationDeadline: new Date(new Date(job.created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        companyLogoUrl: job.companyLogo || "https://via.placeholder.com/150",
+        industry: job.tags?.[0] || "Technology",
+        isRemote: job.location.toLowerCase().includes("remote")
+      }));
+      
+      setJobs(transformedJobs);
+      setFilteredJobs(transformedJobs);
+      
+      if (transformedJobs.length > 0) {
+        setSelectedJob(transformedJobs[0]);
+      }
+      
+      // Load user's applications
+      const userApplications = applicationService.getByUserId(user?.user_id || 2);
+      
+      // Transform applications to match UI format
+      const transformedApplications: Application[] = userApplications.map(app => {
+        const relatedJob = storageJobs.find(j => j.job_id === app.job_id);
+        
+        return {
+          id: app.application_id.toString(),
+          jobId: app.job_id.toString(),
+          jobTitle: relatedJob?.title || "Unknown Job",
+          company: relatedJob?.company || "Unknown Company",
+          companyLogoUrl: relatedJob?.companyLogo || "https://via.placeholder.com/150",
+          appliedDate: app.applied_at,
+          status: mapStatusToUI(app.status),
+          notes: "",
+          nextSteps: app.status === "interview" ? "Interview scheduled" : "",
+          interviewDate: app.status === "interview" ? 
+            new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
+        };
+      });
+      
+      setApplications(transformedApplications);
+      
+      // Load user's saved jobs (we'll use a convention where "interested" status means saved)
+      const savedJobIds = userApplications
+        .filter(app => app.status === "interested")
+        .map(app => app.job_id.toString());
+      
+      setSavedJobs(savedJobIds);
+      
+      // Load user's resumes
+      const userResumesData = resumeService.getByUserId(user?.user_id || 2);
+      
+      setUserResumes(userResumesData.map(resume => ({
+        resume_id: resume.resume_id,
+        file_name: resume.file_name,
+        is_default: resume.isDefault
+      })));
+      
+      if (userResumesData.length > 0) {
+        const defaultResume = userResumesData.find(r => r.isDefault) || userResumesData[0];
+        setSelectedResumeId(defaultResume.resume_id);
+      }
+      
+      setLoading(false);
+    };
+    
+    loadData();
+  }, []);
+
+  // Map backend status to UI status
+  const mapStatusToUI = (status: string): Application['status'] => {
+    switch (status) {
+      case "applied": return "submitted";
+      case "interview": return "interviewing";
+      case "rejected": return "rejected";
+      case "offer": return "offered";
+      case "accepted": return "accepted";
+      default: return "submitted";
+    }
+  };
 
   // Handler functions
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -376,10 +435,40 @@ export default function JobsPage() {
   };
 
   const toggleSaveJob = (jobId: string) => {
+    if (!currentUser) return;
+    
+    const numericJobId = parseInt(jobId);
+    
+    // Update local state
     setSavedJobs(prevSavedJobs => {
       if (prevSavedJobs.includes(jobId)) {
+        // Remove from saved jobs
+        
+        // Find and delete the "interested" application in local storage
+        const existingApp = applicationService.getByUserId(currentUser.user_id)
+          .find(app => app.job_id === numericJobId && app.status === "interested");
+        
+        if (existingApp) {
+          applicationService.delete(existingApp.application_id);
+        }
+        
         return prevSavedJobs.filter(id => id !== jobId);
       } else {
+        // Add to saved jobs
+        
+        // Create a new "interested" application in local storage
+        const job = jobService.getById(numericJobId);
+        
+        if (job) {
+          applicationService.create({
+            user_id: currentUser.user_id,
+            job_id: numericJobId,
+            status: "interested",
+            resume_id: selectedResumeId || 0,
+            position: job.title
+          });
+        }
+        
         return [...prevSavedJobs, jobId];
       }
     });
@@ -404,6 +493,52 @@ export default function JobsPage() {
     });
     setSearchTerm("");
     setFilteredJobs(jobs);
+  };
+
+  // Submit job application
+  const handleSubmitApplication = () => {
+    if (!selectedJob || !currentUser) return;
+    
+    // Create application in local storage
+    const jobId = parseInt(selectedJob.id);
+    
+    const newApplication = applicationService.create({
+      user_id: currentUser.user_id,
+      job_id: jobId,
+      status: "applied",
+      resume_id: selectedResumeId || 0,
+      position: selectedJob.title
+    });
+    
+    if (newApplication) {
+      // Add to UI applications list
+      const newUIApplication: Application = {
+        id: newApplication.application_id.toString(),
+        jobId: selectedJob.id,
+        jobTitle: selectedJob.title,
+        company: selectedJob.company,
+        companyLogoUrl: selectedJob.companyLogoUrl,
+        appliedDate: newApplication.applied_at,
+        status: "submitted",
+        notes: applicationData.coverLetter
+      };
+      
+      setApplications(prev => [...prev, newUIApplication]);
+      
+      // Close modal and reset form
+      setApplyModalOpen(false);
+      setApplicationData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        resume: null,
+        coverLetter: ""
+      });
+      
+      // Switch to applications tab
+      setActiveTab("applications");
+    }
   };
 
   // Job Detail View Component
@@ -719,8 +854,7 @@ export default function JobsPage() {
       const fetchUserResumes = async () => {
         setIsLoadingResumes(true);
         try {
-          // In a real application, you would get the current user's ID from authentication
-          // For this example, we'll use a placeholder user ID of 1
+          // For now, we'll use a placeholder user ID of 1
           const userId = 1; // Replace with actual user ID from authentication
           const response = await fetch(`/api/resumes?userId=${userId}`);
           if (response.ok) {
@@ -879,7 +1013,7 @@ export default function JobsPage() {
                 
                 <CardContent className="flex-1 overflow-auto p-3">
                   <Suspense fallback={<JobListSkeleton />}>
-                    {_loading ? (
+                    {loading ? (
                       <JobListSkeleton />
                     ) : filteredJobs.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
@@ -936,7 +1070,7 @@ export default function JobsPage() {
               {/* Job Details Column */}
               <Card className="lg:col-span-2 max-h-[calc(100vh-320px)] overflow-auto">
                 <Suspense fallback={<JobDetailsSkeleton />}>
-                  {_loading ? <JobDetailsSkeleton /> : <JobDetails job={selectedJob} />}
+                  {loading ? <JobDetailsSkeleton /> : <JobDetails job={selectedJob} />}
                 </Suspense>
               </Card>
             </div>
@@ -1044,7 +1178,9 @@ export default function JobsPage() {
                 <Button variant="outline" onClick={() => setApplyModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">Submit Application</Button>
+                <Button type="submit" onClick={handleSubmitApplication}>
+                  Submit Application
+                </Button>
               </DialogFooter>
             </>
           )}
