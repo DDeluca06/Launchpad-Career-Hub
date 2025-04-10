@@ -263,16 +263,16 @@ export function JobDetailsAdmin({
                           style={{
                             backgroundColor: app.status === 'APPLIED' 
                               ? `${extendedPalette.primaryBlue}15`
-                              : app.status === 'INTERVIEWING'
+                              : app.status === 'INTERVIEW_STAGE' || app.status === 'PHONE_SCREENING' || app.status === 'FINAL_INTERVIEW_STAGE'
                               ? `${extendedPalette.primaryGreen}15`
-                              : app.status === 'ACCEPTED'
+                              : app.status === 'OFFER_ACCEPTED'
                               ? `${extendedPalette.darkGreen}15`
                               : `${extendedPalette.darkGray}15`,
                             color: app.status === 'APPLIED' 
                               ? extendedPalette.primaryBlue
-                              : app.status === 'INTERVIEWING'
+                              : app.status === 'INTERVIEW_STAGE' || app.status === 'PHONE_SCREENING' || app.status === 'FINAL_INTERVIEW_STAGE'
                               ? extendedPalette.primaryGreen
-                              : app.status === 'ACCEPTED'
+                              : app.status === 'OFFER_ACCEPTED'
                               ? extendedPalette.darkGreen
                               : extendedPalette.darkGray
                           }}

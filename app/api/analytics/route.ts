@@ -9,6 +9,13 @@ interface Application {
   users?: {
     program?: string | null;
   };
+  jobs?: {
+    company: string;
+    partner_id?: number | null;
+    partners?: {
+      name: string;
+    } | null;
+  };
 }
 
 interface Job {
@@ -27,13 +34,16 @@ type JobTag =
   | "BUSINESS_ANALYSIS" | "SOCIAL_MEDIA";
 
 type ApplicationStatus = 
-  | "INTERESTED" | "APPLIED" | "REJECTED" 
-  | "INTERVIEWING" | "NEGOTIATING" | "ACCEPTED";
+  | "INTERESTED" | "APPLIED" | "PHONE_SCREENING" 
+  | "INTERVIEW_STAGE" | "FINAL_INTERVIEW_STAGE" 
+  | "OFFER_EXTENDED" | "NEGOTIATION" 
+  | "OFFER_ACCEPTED" | "REJECTED";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const dateRange = searchParams.get("dateRange") || "last12Months";
+    const programFilters = searchParams.get("programs")?.split(",") || [];
 
     // Apply date filtering based on the dateRange parameter
     const dateFilter = getDateFilter(dateRange);
@@ -42,16 +52,34 @@ export async function GET(request: Request) {
     const [users, applications, jobs, applicationsHistory] = await Promise.all([
       prisma.users.findMany({
         where: {
-          is_active: true
+          is_active: true,
+          // Apply program filter if specified
+          ...(programFilters.length > 0 ? {
+            program: {
+              in: programFilters as any[]
+            }
+          } : {})
         }
       }),
       prisma.applications.findMany({
         where: {
-          applied_at: dateFilter
+          applied_at: dateFilter,
+          // Apply program filter if specified
+          ...(programFilters.length > 0 ? {
+            users: {
+              program: {
+                in: programFilters as any[]
+              }
+            }
+          } : {})
         },
         include: {
           users: true,
-          jobs: true
+          jobs: {
+            include: {
+              partners: true
+            }
+          }
         }
       }),
       prisma.jobs.findMany(),
@@ -85,24 +113,48 @@ export async function GET(request: Request) {
       applications
     }));
 
-    // Count application statuses
-    const statusCounts = {
-      APPLIED: applications.filter((app: Application) => app.status === "APPLIED").length,
+    // Count raw application statuses
+    const rawStatusCounts = {
       INTERESTED: applications.filter((app: Application) => app.status === "INTERESTED").length,
-      INTERVIEWING: applications.filter((app: Application) => app.status === "INTERVIEWING").length,
-      NEGOTIATING: applications.filter((app: Application) => app.status === "NEGOTIATING").length,
-      ACCEPTED: applications.filter((app: Application) => app.status === "ACCEPTED").length,
+      APPLIED: applications.filter((app: Application) => app.status === "APPLIED").length,
+      PHONE_SCREENING: applications.filter((app: Application) => app.status === "PHONE_SCREENING").length,
+      INTERVIEW_STAGE: applications.filter((app: Application) => app.status === "INTERVIEW_STAGE").length,
+      FINAL_INTERVIEW_STAGE: applications.filter((app: Application) => app.status === "FINAL_INTERVIEW_STAGE").length,
+      OFFER_EXTENDED: applications.filter((app: Application) => app.status === "OFFER_EXTENDED").length,
+      NEGOTIATION: applications.filter((app: Application) => app.status === "NEGOTIATION").length,
+      OFFER_ACCEPTED: applications.filter((app: Application) => app.status === "OFFER_ACCEPTED").length,
       REJECTED: applications.filter((app: Application) => app.status === "REJECTED").length,
     };
 
-    // Format status distribution
+    // Format status distribution for the pie chart - combining statuses as specified
     const statusDistribution = [
-      { status: "Applied", count: statusCounts.APPLIED },
-      { status: "Interested", count: statusCounts.INTERESTED },
-      { status: "Interviewing", count: statusCounts.INTERVIEWING },
-      { status: "Negotiating", count: statusCounts.NEGOTIATING },
-      { status: "Accepted", count: statusCounts.ACCEPTED },
-      { status: "Rejected", count: statusCounts.REJECTED },
+      { 
+        status: "Interested",
+        count: rawStatusCounts.INTERESTED
+      },
+      { 
+        status: "Applied", 
+        count: rawStatusCounts.APPLIED
+      },
+      { 
+        status: "Interview Stage", 
+        count: rawStatusCounts.PHONE_SCREENING + 
+               rawStatusCounts.INTERVIEW_STAGE + 
+               rawStatusCounts.FINAL_INTERVIEW_STAGE
+      },
+      { 
+        status: "Negotiation", 
+        count: rawStatusCounts.NEGOTIATION + 
+               rawStatusCounts.OFFER_EXTENDED
+      },
+      { 
+        status: "Accepted", 
+        count: rawStatusCounts.OFFER_ACCEPTED
+      },
+      { 
+        status: "Rejected", 
+        count: rawStatusCounts.REJECTED
+      },
     ];
 
     // Process job categories
@@ -145,37 +197,36 @@ export async function GET(request: Request) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5); // Top 5 categories
 
-    // Calculate program placements
-    const programPlacements = new Map<string, number>();
-    const acceptedApps = applications.filter((app: Application) => app.status === "ACCEPTED" as ApplicationStatus);
+    // Calculate placements by partner instead of by program
+    const partnerPlacements = new Map<string, number>();
+    const acceptedApps = applications.filter((app: Application) => app.status === "OFFER_ACCEPTED");
     
-    // Count placements by program
+    // Count placements by partner
     acceptedApps.forEach((app: Application) => {
-      if (app.users?.program) {
-        const program = app.users.program;
-        const programName = getProgramName(program);
-        programPlacements.set(programName, (programPlacements.get(programName) || 0) + 1);
+      if (app.jobs) {
+        let partnerName = "Unknown";
+        
+        // Use partner name if available, otherwise use company name
+        if (app.jobs.partners && app.jobs.partners.name) {
+          partnerName = app.jobs.partners.name;
+        } else if (app.jobs.company) {
+          partnerName = app.jobs.company;
+        }
+        
+        partnerPlacements.set(partnerName, (partnerPlacements.get(partnerName) || 0) + 1);
       }
     });
     
-    const placementsByProgram = Array.from(programPlacements.entries())
-      .map(([program, placements]) => ({ program, placements }))
-      .sort((a, b) => b.placements - a.placements);
+    const placementsByPartner = Array.from(partnerPlacements.entries())
+      .map(([partner, placements]) => ({ partner, placements }))
+      .sort((a, b) => b.placements - a.placements)
+      .slice(0, 5); // Explicitly limit to top 5 partners
 
-    // Calculate acceptance metrics
-    const acceptedApplications = statusCounts.ACCEPTED;
-    
-    // Build the overview metrics
+    // Build the overview metrics - remove acceptance rate and placement rate
     const overview = {
       totalApplicants: users.length,
       totalJobs: jobs.length,
       totalApplications: applications.length,
-      acceptanceRate: applications.length
-        ? Math.round((acceptedApplications / applications.length) * 100)
-        : 0,
-      placementRate: users.length
-        ? Math.round((acceptedApplications / users.length) * 100)
-        : 0,
     };
 
     // Fill in dummy data for any empty arrays
@@ -195,18 +246,18 @@ export async function GET(request: Request) {
       }
     }
 
-    if (placementsByProgram.length < 5) {
+    if (placementsByPartner.length < 5) {
       const dummyPlacements = [
-        { program: "Coding Bootcamp", placements: 36 },
-        { program: "Data Science Track", placements: 22 },
-        { program: "UX Design", placements: 18 },
-        { program: "Cybersecurity", placements: 14 },
-        { program: "Cloud Computing", placements: 12 },
+        { partner: "TechCorp", placements: 36 },
+        { partner: "Data Inc.", placements: 22 },
+        { partner: "Web Solutions", placements: 18 },
+        { partner: "AI Labs", placements: 14 },
+        { partner: "Cloud Computing Inc.", placements: 12 },
       ];
       
       for (const dummy of dummyPlacements) {
-        if (!placementsByProgram.find(p => p.program === dummy.program) && placementsByProgram.length < 5) {
-          placementsByProgram.push(dummy);
+        if (!placementsByPartner.find(p => p.partner === dummy.partner) && placementsByPartner.length < 5) {
+          placementsByPartner.push(dummy);
         }
       }
     }
@@ -218,7 +269,7 @@ export async function GET(request: Request) {
         applicationsOverTime,
         statusDistribution,
         topJobCategories,
-        placementsByProgram,
+        placementsByPartner,
       }
     });
   } catch (error) {
@@ -230,22 +281,6 @@ export async function GET(request: Request) {
       }, 
       { status: 500 }
     );
-  }
-}
-
-// Helper to get program name from enum
-function getProgramName(program: string): string {
-  switch (program) {
-    case "FOUNDATIONS":
-      return "Foundations";
-    case "ONE_ZERO_ONE":
-      return "Programming 101";
-    case "LIFTOFF":
-      return "Liftoff Program";
-    case "ALUMNI":
-      return "Alumni Program";
-    default:
-      return "Unknown Program";
   }
 }
 

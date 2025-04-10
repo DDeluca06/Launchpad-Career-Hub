@@ -16,7 +16,7 @@ import { CustomTooltip } from "./common/custom-tooltip";
 
 interface PlacementsByProgramChartProps {
   data: Array<{
-    program: string;
+    partner: string;
     placements: number;
   }>;
   barColor: string;
@@ -27,9 +27,9 @@ export function PlacementsByProgramChart({ data, barColor, isLoading }: Placemen
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Placements by Program</CardTitle>
+        <CardTitle className="text-lg">Placements by Partner</CardTitle>
         <CardDescription>
-          Job placement success rate by program
+          Successful job placements with partnering companies
         </CardDescription>
       </CardHeader>
       <CardContent className="h-96">
@@ -44,7 +44,7 @@ export function PlacementsByProgramChart({ data, barColor, isLoading }: Placemen
               margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="program" />
+              <XAxis dataKey="partner" />
               <YAxis />
               <Tooltip content={<CustomTooltip />} />
               <Legend />

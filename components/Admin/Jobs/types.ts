@@ -52,6 +52,7 @@ export interface JobFilterInterface {
   experienceLevel: string;
   keywords: string;
   tags: string[];
+  programs: string[];
 }
 
 // Job list component props

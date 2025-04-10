@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-type ApplicationStatus = 'INTERESTED' | 'APPLIED' | 'REJECTED' | 'INTERVIEWING' | 'NEGOTIATING' | 'ACCEPTED';
+type ApplicationStatus = 
+  | 'INTERESTED' 
+  | 'APPLIED' 
+  | 'PHONE_SCREENING' 
+  | 'INTERVIEW_STAGE' 
+  | 'FINAL_INTERVIEW_STAGE' 
+  | 'OFFER_EXTENDED' 
+  | 'NEGOTIATION'
+  | 'OFFER_ACCEPTED' 
+  | 'REJECTED';
 
 /**
  * GET request handler to fetch a single application by ID
@@ -93,7 +102,18 @@ export async function PUT(
     const newStatus = body.status?.toUpperCase() as ApplicationStatus;
     
     // Validate status
-    const validStatuses: ApplicationStatus[] = ['INTERESTED', 'APPLIED', 'REJECTED', 'INTERVIEWING', 'NEGOTIATING', 'ACCEPTED'];
+    const validStatuses: ApplicationStatus[] = [
+      'INTERESTED', 
+      'APPLIED', 
+      'PHONE_SCREENING', 
+      'INTERVIEW_STAGE', 
+      'FINAL_INTERVIEW_STAGE', 
+      'OFFER_EXTENDED', 
+      'NEGOTIATION',
+      'OFFER_ACCEPTED', 
+      'REJECTED'
+    ];
+    
     if (newStatus && !validStatuses.includes(newStatus)) {
       return NextResponse.json(
         { success: false, error: 'Invalid application status' },

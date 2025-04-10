@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
  * 
  * This route queries the database for:
  * - Number of unplaced applicants (students who have applied but aren't hired yet)
- * - Number of placed applicants (students with ACCEPTED status)
+ * - Number of placed applicants (students with OFFER_ACCEPTED status)
  * 
  * @returns A JSON response with internship statistics or error message
  */
@@ -17,22 +17,22 @@ export async function GET() {
       unplacedApplicants,
       placedApplicants
     ] = await Promise.all([
-      // Count unplaced applicants (all applications except those that are ACCEPTED)
+      // Count unplaced applicants (all applications except those that are OFFER_ACCEPTED)
       // Exclude admin users from the count
       prisma.$queryRaw<{ count: bigint }[]>`
         SELECT COUNT(DISTINCT a.user_id) as count
         FROM applications a
         JOIN users u ON a.user_id = u.user_id
-        WHERE a.status != 'ACCEPTED' AND u.is_admin = false
+        WHERE a.status != 'OFFER_ACCEPTED' AND u.is_admin = false
       `,
       
-      // Count placed applicants (unique users with ACCEPTED status)
+      // Count placed applicants (unique users with OFFER_ACCEPTED status)
       // Exclude admin users from the count
       prisma.$queryRaw<{ count: bigint }[]>`
         SELECT COUNT(DISTINCT a.user_id) as count
         FROM applications a
         JOIN users u ON a.user_id = u.user_id
-        WHERE a.status = 'ACCEPTED' AND u.is_admin = false
+        WHERE a.status = 'OFFER_ACCEPTED' AND u.is_admin = false
       `
     ]);
 

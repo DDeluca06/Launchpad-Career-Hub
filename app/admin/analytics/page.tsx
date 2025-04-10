@@ -8,7 +8,14 @@ import { BarChart2, Download, FileText, Filter, PieChart, TrendingUp, Users } fr
 import { extendedPalette } from "@/lib/colors";
 import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
 import { JobFilters } from "@/components/Admin/Jobs/job-filters";
-import { prisma } from "@/lib/prisma";
+
+// Import modular components
+import { OverviewCard } from "@/components/Admin/Analytics/overview-card";
+import { ApplicationsOverTimeChart } from "@/components/Admin/Analytics/applications-over-time-chart";
+import { StatusDistributionChart } from "@/components/Admin/Analytics/status-distribution-chart";
+import { JobCategoriesChart } from "@/components/Admin/Analytics/job-categories-chart";
+import { ApplicationFunnelChart } from "@/components/Admin/Analytics/application-funnel-chart";
+import { PlacementsByProgramChart } from "@/components/Admin/Analytics/placements-by-program-chart";
 
 // Define the job tags using string literals to match schema
 type JobTagType = 
@@ -25,10 +32,13 @@ type JobTagType =
 enum ApplicationStatus {
   INTERESTED = "INTERESTED",
   APPLIED = "APPLIED",
-  REJECTED = "REJECTED",
-  INTERVIEWING = "INTERVIEWING",
-  NEGOTIATING = "NEGOTIATING",
-  ACCEPTED = "ACCEPTED"
+  PHONE_SCREENING = "PHONE_SCREENING",
+  INTERVIEW_STAGE = "INTERVIEW_STAGE",
+  FINAL_INTERVIEW_STAGE = "FINAL_INTERVIEW_STAGE",
+  OFFER_EXTENDED = "OFFER_EXTENDED",
+  NEGOTIATION = "NEGOTIATION",
+  OFFER_ACCEPTED = "OFFER_ACCEPTED",
+  REJECTED = "REJECTED"
 }
 
 // Define ProgramType locally using values from schema
@@ -39,37 +49,11 @@ enum ProgramType {
   ALUMNI = "ALUMNI"
 }
 
-// Import modular components
-import { OverviewCard } from "@/components/Admin/Analytics/overview-card";
-import { ApplicationsOverTimeChart } from "@/components/Admin/Analytics/applications-over-time-chart";
-import { StatusDistributionChart } from "@/components/Admin/Analytics/status-distribution-chart";
-import { JobCategoriesChart } from "@/components/Admin/Analytics/job-categories-chart";
-import { ApplicationFunnelChart } from "@/components/Admin/Analytics/application-funnel-chart";
-import { PlacementsByProgramChart } from "@/components/Admin/Analytics/placements-by-program-chart";
-
-// Interface for application with users
-interface Application {
-  application_id: number;
-  status: string;
-  applied_at?: Date | null;
-  users?: {
-    program?: ProgramType | null;
-  };
-}
-
-// Interface for job
-interface Job {
-  job_id: number;
-  tags: JobTagType[];
-}
-
 // Define interfaces for analytics data
 interface OverviewMetrics {
   totalApplicants: number;
   totalJobs: number;
   totalApplications: number;
-  acceptanceRate: number;
-  placementRate: number;
 }
 
 interface ApplicationOverTime {
@@ -88,7 +72,7 @@ interface JobCategory {
 }
 
 interface ProgramPlacement {
-  program: string;
+  partner: string;
   placements: number;
 }
 
@@ -97,7 +81,7 @@ interface AnalyticsData {
   applicationsOverTime: ApplicationOverTime[];
   statusDistribution: StatusDistribution[];
   topJobCategories: JobCategory[];
-  placementsByProgram: ProgramPlacement[];
+  placementsByPartner: ProgramPlacement[];
 }
 
 // Define the matching JobFilter interface
@@ -109,6 +93,7 @@ interface JobFilter {
   experienceLevel: string;
   keywords: string;
   tags: string[];
+  programs: string[];
 }
 
 // Update defaultFilters
@@ -120,6 +105,7 @@ const defaultFilters: JobFilter = {
   experienceLevel: "any",
   keywords: "",
   tags: [],
+  programs: [],
 };
 
 // Colors for charts - using our design system colors
@@ -133,19 +119,11 @@ const CHART_COLORS = [
 ];
 
 /**
- * Helper to count applications by status
- */
-const getStatusCount = (applications: Application[], status: ApplicationStatus): number => {
-  return applications.filter(app => app.status === status).length;
-};
-
-/**
  * Renders the admin analytics dashboard.
  *
  * This component initializes state for loading, filtering, and analytics data, and fetches
- * user, application, and job data from the Prisma database. It calculates key metrics—such as total applicants,
- * available jobs, total applications, acceptance rate, and placement rate—and prepares datasets for various charts
- * displaying applications over time, status distribution, top job categories, and placements by program.
+ * data from the analytics API endpoint. It displays key metrics and various charts
+ * showing applications over time, status distribution, top job categories, and placements by program.
  *
  * User interactions with filter options and date range selections update the dashboard view accordingly.
  */
@@ -158,13 +136,11 @@ export default function AdminAnalytics() {
       totalApplicants: 0,
       totalJobs: 0,
       totalApplications: 0,
-      acceptanceRate: 0,
-      placementRate: 0,
     },
     applicationsOverTime: [],
     statusDistribution: [],
     topJobCategories: [],
-    placementsByProgram: [],
+    placementsByPartner: [],
   });
   const [dateRange, setDateRange] = useState("last12Months");
 
@@ -173,191 +149,29 @@ export default function AdminAnalytics() {
       setIsLoading(true);
 
       try {
-        // Get data from Prisma database
-        const [users, applications, jobs, applicationsHistory] = await Promise.all([
-          prisma.users.findMany({
-            where: {
-              is_active: true
-            }
-          }),
-          prisma.applications.findMany({
-            include: {
-              users: true,
-              jobs: true
-            }
-          }),
-          prisma.jobs.findMany(),
-          prisma.app_status_history.findMany({
-            orderBy: {
-              changed_at: 'asc'
-            }
-          })
-        ]);
-
-        // Calculate acceptance metrics
-        const acceptedApplications = getStatusCount(applications as Application[], ApplicationStatus.ACCEPTED);
+        // Build query parameters
+        const queryParams = new URLSearchParams();
+        queryParams.append("dateRange", dateRange);
         
-        // Basic metrics calculation
-        const overview = {
-          totalApplicants: users.length,
-          totalJobs: jobs.length,
-          totalApplications: applications.length,
-          acceptanceRate: applications.length
-            ? Math.round((acceptedApplications / applications.length) * 100)
-            : 0,
-          placementRate: users.length
-            ? Math.round((acceptedApplications / users.length) * 100)
-            : 0,
-        };
-
-        // Group applications by month for the time chart
-        const appsByMonth = new Map<string, number>();
-        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        
-        // Initialize with empty data
-        months.forEach(month => appsByMonth.set(month, 0));
-        
-        // Fill in actual data from applications
-        (applications as Application[]).forEach((app: Application) => {
-          if (app.applied_at) {
-            const month = months[new Date(app.applied_at).getMonth()];
-            appsByMonth.set(month, (appsByMonth.get(month) || 0) + 1);
-          }
-        });
-        
-        const applicationsOverTime = Array.from(appsByMonth.entries()).map(([month, applications]) => ({
-          month,
-          applications
-        }));
-
-        // Status distribution calculation
-        const statusDistribution = [
-          {
-            status: "Applied",
-            count: getStatusCount(applications as Application[], ApplicationStatus.APPLIED)
-          },
-          {
-            status: "Interested",
-            count: getStatusCount(applications as Application[], ApplicationStatus.INTERESTED)
-          },
-          {
-            status: "Interviewing",
-            count: getStatusCount(applications as Application[], ApplicationStatus.INTERVIEWING)
-          },
-          {
-            status: "Negotiating",
-            count: getStatusCount(applications as Application[], ApplicationStatus.NEGOTIATING)
-          },
-          {
-            status: "Accepted",
-            count: getStatusCount(applications as Application[], ApplicationStatus.ACCEPTED)
-          },
-          {
-            status: "Rejected",
-            count: getStatusCount(applications as Application[], ApplicationStatus.REJECTED)
-          },
-        ];
-
-        // Define the category tags to look for
-        const categoryTags: JobTagType[] = [
-          "FRONT_END",
-          "BACK_END", 
-          "FULL_STACK",
-          "DATA_SCIENCE",
-          "UX_UI_DESIGN",
-          "CYBERSECURITY",
-          "CLOUD_COMPUTING",
-          "AI_ML",
-          "DEVOPS",
-          "PRODUCT_MANAGEMENT"
-        ];
-        
-        // Calculate job categories from tags
-        const categoryMap = new Map<string, number>();
-        
-        (jobs as Job[]).forEach((job: Job) => {
-          if (job.tags && job.tags.length > 0) {
-            // Count job under each relevant category tag
-            job.tags.forEach((tag: JobTagType) => {
-              if (categoryTags.includes(tag)) {
-                // Format tag for display (convert FRONT_END to "Front End")
-                const formattedTag = tag.replace(/_/g, ' ')
-                  .split(' ')
-                  .map((word: string) => word.charAt(0) + word.slice(1).toLowerCase())
-                  .join(' ');
-                
-                categoryMap.set(formattedTag, (categoryMap.get(formattedTag) || 0) + 1);
-              }
-            });
-          }
-        });
-        
-        // Convert to array and sort by count descending
-        const topJobCategories = Array.from(categoryMap.entries())
-          .map(([category, count]) => ({ category, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5); // Top 5 categories
-        
-        // If we don't have enough categories, add dummy data
-        if (topJobCategories.length < 5) {
-          const dummyCategories = [
-            { category: "Software Development", count: 45 },
-            { category: "Data Science", count: 25 },
-            { category: "UX/UI Design", count: 15 },
-            { category: "Project Management", count: 10 },
-            { category: "QA Testing", count: 5 },
-          ];
-          
-          // Add dummy categories that aren't already in our data
-          for (const dummy of dummyCategories) {
-            if (!topJobCategories.find(c => c.category === dummy.category) && topJobCategories.length < 5) {
-              topJobCategories.push(dummy);
-            }
-          }
+        // Add program filters if any are selected
+        if (filters.programs && filters.programs.length > 0) {
+          queryParams.append("programs", filters.programs.join(","));
         }
-
-        // Calculate program placements
-        const programPlacements = new Map<string, number>();
-        const acceptedApps = (applications as Application[]).filter((app: Application) => app.status === ApplicationStatus.ACCEPTED);
         
-        // Count placements by program
-        acceptedApps.forEach((app: Application) => {
-          if (app.users?.program) {
-            const program = app.users.program;
-            const programName = getProgramName(program);
-            programPlacements.set(programName, (programPlacements.get(programName) || 0) + 1);
-          }
-        });
+        // Fetch data from our analytics API endpoint
+        const response = await fetch(`/api/analytics?${queryParams.toString()}`);
         
-        const placementsByProgram = Array.from(programPlacements.entries())
-          .map(([program, placements]) => ({ program, placements }))
-          .sort((a, b) => b.placements - a.placements);
-        
-        // If we don't have enough data, add dummy data
-        if (placementsByProgram.length < 5) {
-          const dummyPlacements = [
-            { program: "Coding Bootcamp", placements: 36 },
-            { program: "Data Science Track", placements: 22 },
-            { program: "UX Design", placements: 18 },
-            { program: "Cybersecurity", placements: 14 },
-            { program: "Cloud Computing", placements: 12 },
-          ];
-          
-          // Add dummy programs that aren't already in our data
-          for (const dummy of dummyPlacements) {
-            if (!placementsByProgram.find(p => p.program === dummy.program) && placementsByProgram.length < 5) {
-              placementsByProgram.push(dummy);
-            }
-          }
+        if (!response.ok) {
+          throw new Error(`API responded with status: ${response.status}`);
         }
-
-        setData({
-          overview,
-          applicationsOverTime,
-          statusDistribution,
-          topJobCategories,
-          placementsByProgram,
-        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setData(result.data);
+        } else {
+          throw new Error("API returned unsuccessful response");
+        }
       } catch (error) {
         console.error("Error loading analytics data:", error);
         // Set some dummy data in case of errors
@@ -366,8 +180,6 @@ export default function AdminAnalytics() {
             totalApplicants: 150,
             totalJobs: 45,
             totalApplications: 278,
-            acceptanceRate: 32,
-            placementRate: 28,
           },
           applicationsOverTime: [
             { month: "Jan", applications: 12 },
@@ -386,8 +198,8 @@ export default function AdminAnalytics() {
           statusDistribution: [
             { status: "Applied", count: 95 },
             { status: "Interested", count: 45 },
-            { status: "Interviewing", count: 65 },
-            { status: "Negotiating", count: 25 },
+            { status: "Interview Stage", count: 65 },
+            { status: "Negotiation", count: 25 },
             { status: "Accepted", count: 33 },
             { status: "Rejected", count: 15 },
           ],
@@ -398,12 +210,12 @@ export default function AdminAnalytics() {
             { category: "Project Management", count: 10 },
             { category: "QA Testing", count: 5 },
           ],
-          placementsByProgram: [
-            { program: "Coding Bootcamp", placements: 36 },
-            { program: "Data Science Track", placements: 22 },
-            { program: "UX Design", placements: 18 },
-            { program: "Cybersecurity", placements: 14 },
-            { program: "Cloud Computing", placements: 12 },
+          placementsByPartner: [
+            { partner: "TechCorp", placements: 36 },
+            { partner: "Data Inc.", placements: 22 },
+            { partner: "Web Solutions", placements: 18 },
+            { partner: "AI Labs", placements: 14 },
+            { partner: "Cloud Computing Inc.", placements: 12 },
           ],
         });
       } finally {
@@ -414,22 +226,6 @@ export default function AdminAnalytics() {
 
     loadAnalyticsData();
   }, [dateRange, filters]);
-
-  // Helper to get program name from enum
-  function getProgramName(program: ProgramType): string {
-    switch (program) {
-      case ProgramType.FOUNDATIONS:
-        return "Foundations";
-      case ProgramType.ONE_ZERO_ONE:
-        return "Programming 101";
-      case ProgramType.LIFTOFF:
-        return "Liftoff Program";
-      case ProgramType.ALUMNI:
-        return "Alumni Program";
-      default:
-        return "Unknown Program";
-    }
-  }
 
   // Filter application handler
   const handleApplyFilters = (newFilters: JobFilter) => {
@@ -511,7 +307,7 @@ export default function AdminAnalytics() {
         </div>
 
         {/* Overview Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <OverviewCard
             title="Total Applicants"
             value={data.overview.totalApplicants}
@@ -548,30 +344,6 @@ export default function AdminAnalytics() {
             trend={{ value: "+15%", isPositive: true }}
             isLoading={isLoading}
           />
-          <OverviewCard
-            title="Acceptance Rate"
-            value={`${data.overview.acceptanceRate}%`}
-            icon={
-              <PieChart
-                className="h-5 w-5"
-                style={{ color: extendedPalette.primaryOrange }}
-              />
-            }
-            trend={{ value: "-3%", isPositive: false }}
-            isLoading={isLoading}
-          />
-          <OverviewCard
-            title="Placement Rate"
-            value={`${data.overview.placementRate}%`}
-            icon={
-              <TrendingUp
-                className="h-5 w-5"
-                style={{ color: extendedPalette.brown }}
-              />
-            }
-            trend={{ value: "+5%", isPositive: true }}
-            isLoading={isLoading}
-          />
         </div>
 
         {/* Analytics Tabs */}
@@ -605,6 +377,13 @@ export default function AdminAnalytics() {
               colors={CHART_COLORS}
               isLoading={isLoading}
             />
+
+            {/* Add Placements by Program to Overview tab for more prominence */}
+            <PlacementsByProgramChart 
+              data={data.placementsByPartner}
+              barColor={extendedPalette.primaryBlue}
+              isLoading={isLoading}
+            />
           </TabsContent>
 
           {/* Applications Tab */}
@@ -619,7 +398,7 @@ export default function AdminAnalytics() {
           {/* Placements Tab */}
           <TabsContent value="placements" className="space-y-6">
             <PlacementsByProgramChart 
-              data={data.placementsByProgram}
+              data={data.placementsByPartner}
               barColor={extendedPalette.primaryBlue}
               isLoading={isLoading}
             />
@@ -632,7 +411,6 @@ export default function AdminAnalytics() {
         open={filterModalOpen}
         onOpenChange={setFilterModalOpen}
         title="Filter Analytics Data"
-        description="Refine the analytics view by specific criteria"
         size="md"
         showFooter={true}
         primaryActionText="Apply Filters"

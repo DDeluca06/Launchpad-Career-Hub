@@ -73,6 +73,7 @@ export default function AdminJobListings() {
     experienceLevel: "any",
     keywords: "",
     tags: [],
+    programs: [],
   });
 
   // Add ref for job filters
@@ -252,6 +253,7 @@ export default function AdminJobListings() {
       experienceLevel: "any",
       keywords: "",
       tags: [],
+      programs: [],
     };
     setActiveFilters(defaultFilters);
     

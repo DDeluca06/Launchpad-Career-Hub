@@ -4,7 +4,7 @@ import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Label } from "@/components/ui/basic/label";
 import { Input } from "@/components/ui/form/input";
 import { Button } from "@/components/ui/basic/button";
-import { Search, Briefcase, MapPin, Tag } from "lucide-react";
+import { Search, Briefcase, MapPin, Tag, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/basic/badge";
 import { JobFilterInterface } from "./types";
 
@@ -29,6 +29,7 @@ const DEFAULT_FILTERS: JobFilterInterface = {
   experienceLevel: "any",
   keywords: "",
   tags: [],
+  programs: [],
 };
 
 const JOB_TYPES = [
@@ -42,6 +43,13 @@ const LOCATIONS = [
   { id: "remote", label: "Remote" },
   { id: "onsite", label: "On-site" },
   { id: "hybrid", label: "Hybrid" },
+];
+
+const PROGRAMS = [
+  { id: "FOUNDATIONS", label: "Foundations" },
+  { id: "ONE_ZERO_ONE", label: "101" },
+  { id: "LIFTOFF", label: "Liftoff" },
+  { id: "ALUMNI", label: "Alumni" },
 ];
 
 /**
@@ -58,6 +66,7 @@ export const JobFilters = forwardRef<JobFiltersRef, JobFiltersProps>(
     const [filters, setFilters] = useState<JobFilterInterface>({
       ...initialFilters,
       tags: initialFilters.tags || [],
+      programs: initialFilters.programs || [],
     });
 
     // Force update filters whenever initialFilters change
@@ -65,6 +74,7 @@ export const JobFilters = forwardRef<JobFiltersRef, JobFiltersProps>(
       setFilters({
         ...initialFilters,
         tags: initialFilters.tags || [],
+        programs: initialFilters.programs || [],
       });
     }, [initialFilters]);
 
@@ -116,8 +126,42 @@ export const JobFilters = forwardRef<JobFiltersRef, JobFiltersProps>(
       setFilters((prev) => ({ ...prev, tags: newTags }));
     };
 
+    const toggleProgram = (program: string) => {
+      const newPrograms = filters.programs.includes(program)
+        ? filters.programs.filter((p) => p !== program)
+        : [...filters.programs, program];
+        
+      console.log(`JobFilters - toggling program ${program}, new programs:`, newPrograms);
+      setFilters((prev) => ({ ...prev, programs: newPrograms }));
+    };
+
     return (
       <div className="space-y-6 py-2">
+        {/* Program Filter */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-5 w-5 text-gray-600" />
+            <Label className="text-base font-medium text-gray-800">
+              Program Type
+            </Label>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {PROGRAMS.map((program) => (
+              <Button
+                key={program.id}
+                variant={
+                  filters.programs.includes(program.id) ? "default" : "outline"
+                }
+                size="sm"
+                onClick={() => toggleProgram(program.id)}
+                className={`rounded-full ${filters.programs.includes(program.id) ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
+              >
+                {program.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
         {/* Job Type Filter */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">

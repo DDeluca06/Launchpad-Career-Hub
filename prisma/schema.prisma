@@ -54,10 +54,13 @@ enum JobTag {
 enum ApplicationStatus {
   INTERESTED
   APPLIED
+  PHONE_SCREENING
+  INTERVIEW_STAGE
+  FINAL_INTERVIEW_STAGE
+  OFFER_EXTENDED
+  NEGOTIATION
+  OFFER_ACCEPTED
   REJECTED
-  INTERVIEWING
-  NEGOTIATING
-  ACCEPTED
 }
 
 enum AppHistoryStatus {
@@ -160,6 +163,7 @@ model resumes {
 model users {
   user_id            Int                  @id @default(autoincrement())
   is_active          Boolean              @default(true)
+  is_archived        Boolean              @default(false)
   username           String               @db.VarChar
   first_name         String               @db.VarChar
   last_name          String               @db.VarChar
