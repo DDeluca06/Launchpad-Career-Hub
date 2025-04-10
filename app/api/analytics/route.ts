@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ProgramType, JobTag } from "@/lib/prisma-enums";
 
 // Define interfaces for the application and job types
 interface Application {
@@ -21,22 +22,16 @@ interface Job {
   tags: string[];
 }
 
-// Define the enum types based on the schema
-type JobTag = 
-  | "FULLY_REMOTE" | "HYBRID" | "IN_PERSON" 
-  | "FRONT_END" | "BACK_END" | "FULL_STACK" 
-  | "NON_PROFIT" | "START_UP" | "EDUCATION" 
-  | "HEALTHCARE" | "FINTECH" | "MARKETING" 
-  | "DATA_SCIENCE" | "CYBERSECURITY" | "UX_UI_DESIGN" 
-  | "IT" | "PRODUCT_MANAGEMENT" | "GAME_DEVELOPMENT" 
-  | "AI_ML" | "CLOUD_COMPUTING" | "DEVOPS" 
-  | "BUSINESS_ANALYSIS" | "SOCIAL_MEDIA";
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const dateRange = searchParams.get("dateRange") || "last12Months";
     const programFilters = searchParams.get("programs")?.split(",") || [];
+
+    // Convert program filters to enum values for type safety
+    const programFiltersEnum = programFilters
+      .filter(p => Object.values(ProgramType).includes(p as ProgramType))
+      .map(p => p as ProgramType);
 
     // Apply date filtering based on the dateRange parameter
     const dateFilter = getDateFilter(dateRange);
@@ -47,9 +42,9 @@ export async function GET(request: Request) {
         where: {
           is_active: true,
           // Apply program filter if specified
-          ...(programFilters.length > 0 ? {
+          ...(programFiltersEnum.length > 0 ? {
             program: {
-              in: programFilters as string[]
+              in: programFiltersEnum
             }
           } : {})
         }
@@ -58,10 +53,10 @@ export async function GET(request: Request) {
         where: {
           applied_at: dateFilter,
           // Apply program filter if specified
-          ...(programFilters.length > 0 ? {
+          ...(programFiltersEnum.length > 0 ? {
             users: {
               program: {
-                in: programFilters as string[]
+                in: programFiltersEnum
               }
             }
           } : {})
@@ -145,18 +140,18 @@ export async function GET(request: Request) {
     // Process job categories
     const categoryMap = new Map<string, number>();
     
-    // Define category tags to look for
+    // Define category tags to look for using our enum
     const categoryTags: JobTag[] = [
-      "FRONT_END",
-      "BACK_END", 
-      "FULL_STACK",
-      "DATA_SCIENCE",
-      "UX_UI_DESIGN",
-      "CYBERSECURITY",
-      "CLOUD_COMPUTING",
-      "AI_ML",
-      "DEVOPS",
-      "PRODUCT_MANAGEMENT"
+      JobTag.FRONT_END,
+      JobTag.BACK_END, 
+      JobTag.FULL_STACK,
+      JobTag.DATA_SCIENCE,
+      JobTag.UX_UI_DESIGN,
+      JobTag.CYBERSECURITY,
+      JobTag.CLOUD_COMPUTING,
+      JobTag.AI_ML,
+      JobTag.DEVOPS,
+      JobTag.PRODUCT_MANAGEMENT
     ];
     
     jobs.forEach((job: Job) => {
