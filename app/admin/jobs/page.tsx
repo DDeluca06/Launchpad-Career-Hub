@@ -1,518 +1,701 @@
 "use client";
 
-import { Suspense } from "react";
-import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/dashboard-layout";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/basic/card";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/basic/button";
 import { Input } from "@/components/ui/form/input";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/basic/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/overlay/dialog";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { Suspense } from "react";
 import {
-  Search,
-  Plus,
   Filter,
-  Edit,
-  Trash2,
   FileSpreadsheet,
+  Plus,
+  Archive,
+  Search,
 } from "lucide-react";
-import { jobService } from "@/lib/local-storage";
-import type { Job } from "@/lib/local-storage";
-import { Badge } from "@/components/ui/basic/badge";
-import { CompanyLogo } from "@/components/ui/basic/company-logo";
-import { cn } from "@/lib/utils";
-import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
-import { JobFilters } from "@/components/job-filters";
 
-// Define JobFiltersType with proper types to resolve errors
-interface JobFiltersType {
-  jobTypes: string[];
-  locations: string[];
-  remoteOnly: boolean;
-  salary: [number, number]; // Fixed to tuple type
-  experienceLevel: string;
-  keywords: string;
-}
+// Import our custom components
+import { JobList } from "@/components/Admin/Jobs/job-list";
+import { JobDetailsAdmin } from "@/components/Admin/Jobs/job-details-admin";
+import { JobModals } from "@/components/Admin/Jobs/job-modals";
+import { JobFilters, JobFiltersRef } from "@/components/Admin/Jobs/job-filters";
 
-/**
- * Renders an animated skeleton placeholder for the job list.
- *
- * Displays six placeholder cards with a pulsing animation to simulate the loading state
- * of job cards while data is being fetched.
- *
- * @returns A JSX element containing six animated loading cards.
- */
-function JobListSkeleton() {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <Card key={index} className="animate-pulse">
-          <CardContent className="p-3">
-            <div className="flex gap-3">
-              <div className="h-12 w-12 rounded bg-gray-200" />
-              <div className="flex-1 space-y-2">
-                <div className="h-5 bg-gray-200 rounded w-3/4" />
-                <div className="h-4 bg-gray-200 rounded w-1/2" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
+// Import types and services
+import { ExtendedJob, JobFilterInterface, JobType, JobTag, JOB_TAGS, NewJob } from "@/components/Admin/Jobs/types";
+import { 
+  createJob, 
+  updateJob, 
+  fetchJobsByArchiveStatus, 
+  toggleJobArchive 
+} from "@/components/Admin/Jobs/job-service";
 
-/**
- * Renders a loading skeleton for the job details view.
- *
- * This component displays animated placeholders mimicking the layout of job details, including a header, image, and text blocks, while the actual data is being loaded.
- */
-function JobDetailsSkeleton() {
-  return (
-    <div className="animate-pulse p-6 space-y-4">
-      <div className="h-8 bg-gray-200 rounded w-1/2 mb-6" />
-      <div className="flex gap-3 mb-6">
-        <div className="h-16 w-16 rounded bg-gray-200" />
-        <div className="flex-1 space-y-2">
-          <div className="h-5 bg-gray-200 rounded w-3/4" />
-          <div className="h-4 bg-gray-200 rounded w-1/2" />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <div className="h-4 bg-gray-200 rounded w-full" />
-        <div className="h-4 bg-gray-200 rounded w-full" />
-        <div className="h-4 bg-gray-200 rounded w-3/4" />
-      </div>
-    </div>
-  );
-}
-
-// Props interfaces
-interface JobListProps {
-  jobs: Job[];
-  selectedJob: Job | null;
-  onSelectJob: (job: Job) => void;
-  applicationsCount: Record<string, number>;
-  isLoading: boolean;
-  searchQuery: string;
-}
-
-interface JobDetailsProps {
-  job: Job | null;
-  applicationsCount: Record<string, number>;
-  isLoading: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
-/**
- * Renders a list of job cards with filtering and loading support.
- *
- * When in a loading state, the component displays a skeleton placeholder. After data is loaded, it applies a case-insensitive
- * search filter across job title, company, description, and location. Each job is presented as a clickable card styled by
- * its type, with a visual highlight for the currently selected job. Clicking a card invokes the provided selection callback.
- *
- * @param jobs - Array of job objects to display.
- * @param selectedJob - The job currently selected, used to visually highlight its card.
- * @param onSelectJob - Callback invoked when a job card is clicked.
- * @param applicationsCount - Mapping of job IDs to their applicant counts.
- * @param isLoading - Indicator for whether job data is being loaded.
- * @param searchQuery - String used to filter job listings.
- * @returns JSX element representing either the loading skeleton or the filtered list of job cards.
- */
-function JobList({
-  jobs,
-  selectedJob,
-  onSelectJob,
-  applicationsCount,
-  isLoading,
-  searchQuery,
-}: JobListProps) {
-  if (isLoading) return <JobListSkeleton />;
-
-  const filteredJobs = jobs.filter((job) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      job.title.toLowerCase().includes(query) ||
-      job.company.toLowerCase().includes(query) ||
-      job.description?.toLowerCase().includes(query) ||
-      job.location?.toLowerCase().includes(query)
-    );
-  });
-
-  return (
-    <div className="space-y-3">
-      {filteredJobs.map((job) => (
-        <Card
-          key={`job-${job.job_id || Math.random()}`}
-          className={cn(
-            "cursor-pointer hover:shadow transition-shadow",
-            selectedJob?.job_id === job.job_id
-              ? "ring-2 ring-blue-400 border-l-4"
-              : "border-l-4",
-            job.job_type === "internship"
-              ? "border-blue-400"
-              : job.job_type === "part_time"
-                ? "border-green-400"
-                : "border-orange-400",
-          )}
-          onClick={() => onSelectJob(job)}
-        >
-          <CardContent className="p-3">
-            <div className="flex gap-3">
-              <CompanyLogo company={job.company} size="sm" />
-              <div className="flex-1">
-                <h3 className="font-medium text-foreground line-clamp-1">
-                  {job.title}
-                </h3>
-                <p className="text-sm text-muted-foreground line-clamp-1">
-                  {job.company}
-                </p>
-                <div className="flex justify-between items-center mt-1">
-                  <span className="text-xs text-muted-foreground">
-                    {job.location}
-                  </span>
-                  <Badge
-                    className={cn(
-                      "text-xs",
-                      job.job_type === "internship"
-                        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
-                        : job.job_type === "part_time"
-                          ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                          : "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400",
-                    )}
-                  >
-                    {applicationsCount[job.job_id] || 0} applicants
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-      {filteredJobs.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          No jobs found matching your criteria
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Renders detailed information about a selected job listing.
- *
- * Displays a loading skeleton during data fetches and shows an informational prompt when no job is selected.
- * For a provided job, it presents job details—including title, company information, location, job type,
- * description, requirements, and the number of applications—along with buttons to edit or delete the job.
- *
- * @param job - The current job to display. If absent, a prompt to select a job is rendered.
- * @param applicationsCount - An object mapping job IDs to their corresponding application counts.
- * @param isLoading - Indicates whether the job details are currently loading.
- * @param onEdit - Callback function triggered when the edit action is selected.
- * @param onDelete - Callback function triggered when the delete action is selected.
- *
- * @returns A React element representing the job details view.
- */
-function JobDetails({
-  job,
-  applicationsCount,
-  isLoading,
-  onEdit,
-  onDelete,
-}: JobDetailsProps) {
-  if (isLoading) return <JobDetailsSkeleton />;
-
-  if (!job) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-        <div className="rounded-full bg-gray-100 p-4 mb-4">
-          <Search className="h-10 w-10 text-gray-400" />
-        </div>
-        <h3 className="text-xl font-medium mb-2">No Job Selected</h3>
-        <p className="text-gray-500 max-w-sm mb-4">
-          Please select a job from the list to view its details
-        </p>
-        <Button className="bg-launchpad-blue hover:bg-launchpad-teal text-white">
-          <Plus className="h-4 w-4 mr-2" /> Add New Job
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-start mb-6">
-        <h2 className="text-2xl font-bold">{job.title}</h2>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1"
-            onClick={onEdit}
-          >
-            <Edit className="h-4 w-4" /> Edit
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            className="gap-1 bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-            onClick={onDelete}
-          >
-            <Trash2 className="h-4 w-4" /> Delete
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-4 mb-6">
-        <CompanyLogo company={job.company} size="md" />
-        <div>
-          <h3 className="font-medium text-lg text-foreground">{job.company}</h3>
-          <p className="text-muted-foreground">{job.location}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-muted p-3 rounded">
-          <p className="text-xs text-muted-foreground">Job Type</p>
-          <p className="font-medium text-foreground">{job.job_type}</p>
-        </div>
-        <div className="bg-muted p-3 rounded">
-          <p className="text-xs text-muted-foreground">Experience</p>
-          <p className="font-medium text-foreground">Not specified</p>
-        </div>
-        <div className="bg-muted p-3 rounded">
-          <p className="text-xs text-muted-foreground">Salary Range</p>
-          <p className="font-medium text-foreground">Not specified</p>
-        </div>
-        <div className="bg-muted p-3 rounded">
-          <p className="text-xs text-muted-foreground">Applications</p>
-          <p className="font-medium text-foreground">
-            {applicationsCount[job.job_id] || 0}
-          </p>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <h3 className="font-medium mb-2 text-foreground">Job Description</h3>
-        <div className="text-muted-foreground whitespace-pre-line">
-          {job.description || "No description provided"}
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <h3 className="font-medium mb-2 text-foreground">Requirements</h3>
-        <div className="text-muted-foreground">
-          {Array.isArray(job.tags) ? (
-            <ul className="list-disc pl-4 space-y-1">
-              {job.tags.map((tag: string, index: number) => (
-                <li key={`req-${index}`}>{tag}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>No requirements specified</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Renders the admin job listings interface.
- *
- * This React component manages the UI and state for displaying job listings and their details, along with functionalities
- * for searching, filtering, editing, deleting, and importing jobs. It loads dummy data to simulate backend responses and
- * uses modals to handle user interactions for applying filters, confirming deletions, editing job details, and importing CSV files.
- *
- * @returns The JSX element representing the admin job listings page.
- */
 export default function AdminJobListings() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  // State Management
+  const [jobs, setJobs] = useState<ExtendedJob[]>([]);
+  const [selectedJob, setSelectedJob] = useState<ExtendedJob | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [applicationsCount, setApplicationsCount] = useState<Record<string, number>>({});
+  const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<JobFiltersType>({
+
+  // Modal states
+  const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isScrapingModalOpen, setIsScrapingModalOpen] = useState(false);
+  const [isScrapingInProgress, setIsScrapingInProgress] = useState(false);
+
+  // Form states
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [scrapingUrl, setScrapingUrl] = useState("");
+  const [editingJob, setEditingJob] = useState<ExtendedJob | null>(null);
+  const [newJob, setNewJob] = useState<NewJob>({
+    title: "",
+    company: "",
+    location: "",
+    job_type: "FULL_TIME",
+    description: "",
+    website: "",
+    tags: [],
+    partner_id: null
+  });
+
+  // Filter state
+  const [activeFilters, setActiveFilters] = useState<JobFilterInterface>({
     jobTypes: [],
     locations: [],
     remoteOnly: false,
     salary: [0, 200],
     experienceLevel: "any",
     keywords: "",
+    tags: [],
+    programs: [],
   });
-  const [applicationsCount, setApplicationsCount] = useState<
-    Record<string, number>
-  >({});
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  useEffect(() => {
-    const loadJobs = async () => {
-      try {
-        setIsLoading(true);
+  // Add ref for job filters
+  const jobFiltersRef = useRef<JobFiltersRef>(null);
 
-        // DUMMY DATA - In a real app, this would come from a backend API
-        // Philadelphia-specific tech internships for high school students
-        const dummyJobs: Job[] = [
-          {
-            job_id: 1,
-            job_type: "internship",
-            title: "Web Development Intern",
-            description:
-              "Join our team to learn modern web development skills including HTML, CSS, JavaScript, and React. Perfect for high school students interested in coding.",
-            company: "Philly Tech Forward",
-            website: "https://phillytechforward.org",
-            location: "Philadelphia, PA (Center City)",
-            partner_id: 1,
-            created_at: new Date().toISOString(),
-            tags: ["HTML", "CSS", "JavaScript", "React", "High School"],
-          },
-          {
-            job_id: 2,
-            job_type: "part_time",
-            title: "Junior UX Designer",
-            description:
-              "Work with our UX team to design user interfaces for educational apps. We'll teach you design principles and tools like Figma.",
-            company: "EduTech Solutions",
-            website: "https://edutechsolutions.org",
-            location: "Philadelphia, PA (University City)",
-            partner_id: 2,
-            created_at: new Date().toISOString(),
-            tags: ["UI/UX", "Figma", "Design", "Educational Apps"],
-          },
-          {
-            job_id: 3,
-            job_type: "internship",
-            title: "Data Science Explorer",
-            description:
-              "Learn the basics of data analysis and visualization. Great opportunity for math-inclined students to explore tech careers.",
-            company: "Data Insights Philly",
-            website: "https://datainsightsphilly.org",
-            location: "Remote (Philadelphia based)",
-            partner_id: 3,
-            created_at: new Date().toISOString(),
-            tags: ["Data Analysis", "Python", "Math", "Remote"],
-          },
-          {
-            job_id: 4,
-            job_type: "internship",
-            title: "IT Support Assistant",
-            description:
-              "Get hands-on experience with hardware, networking, and troubleshooting in our tech lab.",
-            company: "PhillyTech Nonprofit",
-            website: "https://phillytechnonprofit.org",
-            location: "Philadelphia, PA (North Philly)",
-            partner_id: 4,
-            created_at: new Date().toISOString(),
-            tags: ["Hardware", "Networking", "Technical Support"],
-          },
-          {
-            job_id: 5,
-            job_type: "part_time",
-            title: "Digital Marketing Assistant",
-            description:
-              "Learn social media marketing, content creation, and basic analytics for tech-focused campaigns.",
-            company: "Tech Outreach Philly",
-            website: "https://techoutreachphilly.org",
-            location: "Hybrid (Philadelphia)",
-            partner_id: 5,
-            created_at: new Date().toISOString(),
-            tags: ["Social Media", "Content Creation", "Analytics"],
-          },
-        ];
-
-        // Count applications per job (dummy data)
-        const dummyApplicationCounts: Record<string, number> = {
-          "1": 8,
-          "2": 5,
-          "3": 10,
-          "4": 3,
-          "5": 6,
-        };
-
-        setJobs(dummyJobs);
-        setApplicationsCount(dummyApplicationCounts);
-
-        // Set initial selected job if none selected
-        if (dummyJobs.length > 0 && !selectedJob) {
-          setSelectedJob(dummyJobs[0]);
-        }
-      } catch (error) {
-        console.error("Error loading jobs:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadJobs();
-  }, [selectedJob]);
-
-  const handleDeleteJob = () => {
-    if (selectedJob) {
-      jobService.delete(selectedJob.job_id);
-      setJobs((prevJobs) =>
-        prevJobs.filter((job) => job.job_id !== selectedJob.job_id),
-      );
-      setSelectedJob(null);
-      setIsDeleteModalOpen(false);
+  /**
+   * Loads jobs from API
+   */
+  const loadJobs = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Fetch jobs based on archived status
+      const jobsData = await fetchJobsByArchiveStatus(activeTab === "archived");
+      
+      // Format jobs for consistency
+      const formattedJobs = jobsData.map((job: ExtendedJob) => ({
+        ...job,
+        created_at: job.created_at ? new Date(job.created_at) : null
+      }));
+      
+      setJobs(formattedJobs);
+    } catch (error) {
+      console.error("Error loading jobs:", error);
+      alert("Failed to load jobs. Please try again later.");
+    } finally {
+      setIsLoading(false);
     }
+  }, [activeTab]);
+
+  // Load jobs on initial render and when activeTab changes
+  useEffect(() => {
+    loadJobs();
+  }, [loadJobs]);
+
+  // Effect to get application counts when jobs change
+  useEffect(() => {
+    const counts: Record<string, number> = {};
+    jobs.forEach(job => {
+      counts[job.job_id] = job._count?.applications || 0;
+    });
+    setApplicationsCount(counts);
+  }, [jobs]);
+
+  // Filter jobs based on current tab and filters
+  const filteredJobs = useMemo(() => {
+    // First filter by active/archived tab
+    const jobsByStatus = jobs.filter(job => 
+      activeTab === "active" ? !job.archived : job.archived
+    );
+    
+    // Check if we have any active filters
+    const hasActiveFilters = activeFilters.jobTypes.length > 0 || 
+                            activeFilters.locations.length > 0 || 
+                            activeFilters.remoteOnly || 
+                            activeFilters.keywords.trim() !== "" || 
+                            activeFilters.tags.length > 0;
+    
+    if (!hasActiveFilters) return jobsByStatus;
+    
+    // Apply filters to jobs
+    return jobsByStatus.filter(job => {
+      // For each filter type, check if the job matches
+      // Only apply filters that are actually active (have values)
+      
+      // 1. Job Type filter
+      if (activeFilters.jobTypes.length > 0) {
+        const matchesJobType = activeFilters.jobTypes.some(filterType => {
+          // Allow case-insensitive matching
+          const normalizedFilterType = filterType.toUpperCase();
+          const normalizedJobType = job.job_type.toUpperCase();
+          
+          // Check direct match or match after removing underscores
+          return normalizedJobType === normalizedFilterType || 
+                 normalizedJobType === normalizedFilterType.replace(/_/g, '') ||
+                 normalizedJobType.replace(/_/g, '') === normalizedFilterType;
+        });
+        
+        if (!matchesJobType) {
+          return false;
+        }
+      }
+      
+      // 2. Location filter
+      if (activeFilters.locations.length > 0) {
+        const jobLocationLower = (job.location || "").toLowerCase();
+        const matchesLocation = activeFilters.locations.some(loc => {
+          // Move the switch into a function to avoid the lexical declaration in case block error
+          function getIsMatch(locationType: string): boolean {
+            switch(locationType) {
+              case "remote":
+                return jobLocationLower.includes("remote");
+              case "onsite":
+                return jobLocationLower.includes("onsite") || 
+                    jobLocationLower.includes("on-site") || 
+                    jobLocationLower.includes("on site") ||
+                    (!jobLocationLower.includes("remote") && !jobLocationLower.includes("hybrid"));
+              case "hybrid":
+                return jobLocationLower.includes("hybrid");
+              default:
+                return false;
+            }
+          }
+          
+          return getIsMatch(loc);
+        });
+        
+        if (!matchesLocation) {
+          return false;
+        }
+      }
+      
+      // 3. Remote-only filter
+      if (activeFilters.remoteOnly) {
+        const isRemote = (job.location || "").toLowerCase().includes("remote");
+        if (!isRemote) {
+          return false;
+        }
+      }
+      
+      // 4. Keyword filter
+      if (activeFilters.keywords.trim() !== "") {
+        const keywordsLower = activeFilters.keywords.toLowerCase();
+        const matchesKeyword = 
+          job.title.toLowerCase().includes(keywordsLower) ||
+          job.company.toLowerCase().includes(keywordsLower) ||
+          (job.description || "").toLowerCase().includes(keywordsLower) ||
+          (job.location || "").toLowerCase().includes(keywordsLower) ||
+          job.tags?.some(tag => tag.toLowerCase().includes(keywordsLower));
+        
+        if (!matchesKeyword) {
+          return false;
+        }
+      }
+      
+      // 5. Tags filter
+      if (activeFilters.tags.length > 0) {
+        // Need to check if the job has any of the selected tags
+        if (!job.tags || job.tags.length === 0) {
+          return false;
+        }
+        
+        // Normalize tags for case-insensitive matching
+        const normalizedJobTags = job.tags.map(tag => tag.toLowerCase());
+        const normalizedFilterTags = activeFilters.tags.map(tag => tag.toLowerCase());
+        
+        // Check if any filter tag matches any job tag
+        const hasMatchingTag = normalizedFilterTags.some(filterTag => 
+          normalizedJobTags.some(jobTag => 
+            jobTag === filterTag || 
+            jobTag.includes(filterTag) || 
+            filterTag.includes(jobTag)
+          )
+        );
+        
+        if (!hasMatchingTag) {
+          return false;
+        }
+      }
+      
+      // If we get here, the job passed all active filters
+      return true;
+    });
+  }, [jobs, activeTab, activeFilters]);
+
+  // Apply filters function with debugging
+  const applyFilters = (filters: JobFilterInterface) => {
+    console.error("Applying filters:", filters);
+    setActiveFilters(filters);
+    setFilterModalOpen(false);
+  };
+
+  // Filter reset function with feedback
+  const resetFilters = () => {
+    console.error("Resetting filters");
+    const defaultFilters: JobFilterInterface = {
+      jobTypes: [],
+      locations: [],
+      remoteOnly: false,
+      salary: [0, 200],
+      experienceLevel: "any",
+      keywords: "",
+      tags: [],
+      programs: [],
+    };
+    setActiveFilters(defaultFilters);
+    
+    // Reset filter ref state if it exists
+    if (jobFiltersRef.current) {
+      jobFiltersRef.current.resetFilters();
+    }
+  };
+
+  // Track active filter count for UI feedback
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    count += activeFilters.jobTypes.length;
+    count += activeFilters.locations.length;
+    if (activeFilters.remoteOnly) count += 1;
+    if (activeFilters.keywords.trim() !== "") count += 1;
+    count += activeFilters.tags.length;
+    return count;
+  }, [activeFilters]);
+
+  const handleArchiveJob = async () => {
+    if (selectedJob) {
+      try {
+        // Update the job in the database with archive status toggled
+        await toggleJobArchive(selectedJob.job_id, !selectedJob.archived);
+        
+        // Update the UI state
+        setJobs(prevJobs => 
+          prevJobs.map(job => 
+            job.job_id === selectedJob.job_id 
+              ? { ...job, archived: !selectedJob.archived } 
+              : job
+          )
+        );
+        
+        if (selectedJob.archived) {
+          setSelectedJob({...selectedJob, archived: false});
+        } else {
+          setSelectedJob(null);
+        }
+        
+        setIsArchiveModalOpen(false);
+      } catch (error) {
+        console.error("Error updating job archive status:", error);
+        alert("Failed to update job");
+      }
+    }
+  };
+
+  const handleAddJob = async () => {
+    // Validate required fields
+    if (!newJob.title || !newJob.company || !newJob.location) {
+      alert("Please fill in all required fields");
+      return;
+    }
+    
+    try {
+      // Create job via API
+      const result = await createJob(newJob);
+      const createdJob = result.job;
+      
+      // Add the new job to the UI state with proper type handling
+      const extendedJob: ExtendedJob = {
+        ...createdJob,
+        created_at: createdJob.created_at ? new Date(createdJob.created_at) : null,
+      };
+      
+      setJobs(prevJobs => [...prevJobs, extendedJob]);
+      
+      // Update application counts
+      setApplicationsCount(prev => ({
+        ...prev,
+        [createdJob.job_id.toString()]: 0
+      }));
+      
+      setIsAddJobModalOpen(false);
+      
+      // Reset form
+      setNewJob({
+        title: "",
+        company: "",
+        location: "",
+        job_type: "FULL_TIME",
+        description: "",
+        website: "",
+        tags: [],
+        partner_id: null
+      });
+      
+      // Select the newly created job
+      setSelectedJob(extendedJob);
+    } catch (error) {
+      console.error("Error adding job:", error);
+      alert("Failed to add job: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  };
+  
+  const handleEditJob = async () => {
+    if (!editingJob) {
+      console.error("No job data available for editing");
+      return;
+    }
+    
+    try {
+      // Update job via API
+      const result = await updateJob(editingJob.job_id, {
+        title: editingJob.title,
+        company: editingJob.company,
+        location: editingJob.location || undefined,
+        job_type: editingJob.job_type,
+        description: editingJob.description || undefined,
+        website: editingJob.website || undefined,
+        tags: editingJob.tags,
+      });
+      
+      const updatedJob = result.job;
+      
+      // Update UI with the edited job
+      const extendedUpdatedJob: ExtendedJob = {
+        ...updatedJob,
+        archived: editingJob.archived || false,
+        created_at: updatedJob.created_at ? new Date(updatedJob.created_at) : null,
+      };
+      
+      setJobs(prevJobs => 
+        prevJobs.map(job => 
+          job.job_id === editingJob.job_id 
+            ? extendedUpdatedJob
+            : job
+        )
+      );
+      
+      // Update selected job if it's the one being edited
+      if (selectedJob?.job_id === editingJob.job_id) {
+        setSelectedJob(extendedUpdatedJob);
+      }
+      
+      setIsEditModalOpen(false);
+      
+      // Success message
+      alert("Job updated successfully!");
+    } catch (error) {
+      console.error("Error updating job:", error);
+      alert("Failed to update job: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  };
+  
+  const handleImportCSV = async () => {
+    if (!csvFile) {
+      alert("Please select a CSV file first");
+      return;
+    }
+    
+    try {
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split('\n');
+        const headers = lines[0].split(',');
+        
+        // Validate headers
+        const requiredHeaders = ['Title', 'Company', 'Location'];
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+        
+        if (missingHeaders.length > 0) {
+          alert(`Missing required headers: ${missingHeaders.join(', ')}`);
+          return;
+        }
+        
+        const importedJobs: ExtendedJob[] = [];
+        let importCount = 0;
+        let failures = 0;
+        
+        // Process each line (skip header)
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue; // Skip empty lines
+          
+          const values = lines[i].split(',');
+          const job: Partial<NewJob> = {};
+          
+          // Map CSV columns to job properties
+          headers.forEach((header, index) => {
+            const value = values[index]?.trim();
+            if (value) {
+              switch(header.toLowerCase()) {
+                case 'title': job.title = value; break;
+                case 'company': job.company = value; break;
+                case 'location': job.location = value; break;
+                case 'type': job.job_type = value as JobType; break;
+                case 'description': job.description = value; break;
+                case 'website': job.website = value; break;
+                case 'tags': job.tags = value.split(';') as JobTag[]; break;
+                case 'partnerid': {
+                  const partnerId = parseInt(value);
+                  job.partner_id = isNaN(partnerId) ? undefined : partnerId; 
+                  break;
+                }
+              }
+            }
+          });
+          
+          // Validate required fields
+          if (job.title && job.company && job.location) {
+            try {
+              // Create job via API
+              const result = await createJob(job as NewJob);
+              const createdJob = result.job;
+              
+              importedJobs.push(createdJob);
+              importCount++;
+            } catch (error) {
+              console.error(`Failed to import job #${i}:`, error);
+              failures++;
+            }
+          }
+        }
+        
+        // Update UI with the new jobs
+        if (importedJobs.length > 0) {
+          setJobs(prevJobs => [...prevJobs, ...importedJobs]);
+        }
+        
+        setIsImportModalOpen(false);
+        setCsvFile(null);
+        
+        if (failures > 0) {
+          alert(`${importCount} jobs have been imported successfully! (${failures} failed)`);
+        } else {
+          alert(`${importCount} jobs have been imported successfully!`);
+        }
+      };
+      
+      reader.readAsText(csvFile);
+    } catch (error) {
+      console.error("Error importing CSV:", error);
+      alert("Failed to import CSV file");
+    }
+  };
+  
+  const handleTagChange = (tag: JobTag) => {
+    setNewJob(prev => {
+      // If tag already exists, remove it; otherwise add it
+      const updatedTags = prev.tags.includes(tag)
+        ? prev.tags.filter(t => t !== tag)
+        : [...prev.tags, tag];
+      
+      return {
+        ...prev,
+        tags: updatedTags
+      };
+    });
+  };
+  
+  const handleEditTagChange = (tag: JobTag) => {
+    if (!editingJob) return;
+    
+    setEditingJob(prev => {
+      if (!prev) return prev;
+      
+      // If tag already exists, remove it; otherwise add it
+      const updatedTags = prev.tags?.includes(tag)
+        ? prev.tags.filter(t => t !== tag)
+        : [...(prev.tags || []), tag];
+      
+      return {
+        ...prev,
+        tags: updatedTags
+      };
+    });
+  };
+
+  const downloadCsvTemplate = () => {
+    const headers = "Title,Company,Location,Type,Description,Website,Tags,PartnerId\n";
+    const exampleRow = "Frontend Developer,Example Company,Philadelphia PA,FULL_TIME,Job description goes here,https://example.com,FRONT_END;FULLY_REMOTE,1\n";
+    
+    const csvContent = headers + exampleRow;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'job_import_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleWebScraping = async () => {
+    if (!scrapingUrl) {
+      alert("Please enter a job listing URL");
+      return;
+    }
+    
+    // Check if scraping is already in progress
+    if (isScrapingInProgress) {
+      return;
+    }
+    
+    // Basic URL validation
+    try {
+      new URL(scrapingUrl);
+    } catch {
+      alert("Please enter a valid URL");
+      return;
+    }
+    
+    setIsScrapingInProgress(true);
+    
+    // Simulate web scraping with a timeout
+    setTimeout(async () => {
+      try {
+        // Create a demo job from "scraping"
+        const jobData = {
+          title: "Web Developer (Scraped)",
+          company: new URL(scrapingUrl).hostname.replace('www.', ''),
+          location: "Philadelphia, PA",
+          job_type: "FULL_TIME" as JobType,
+          description: "This is a simulated job scraped from " + scrapingUrl,
+          website: scrapingUrl,
+          tags: ["FRONT_END", "FULLY_REMOTE"] as JobTag[],
+          partner_id: newJob.partner_id // Use the partner ID from the form
+        };
+        
+        // Create the job via API
+        const result = await createJob(jobData);
+        const createdJob = result.job;
+        
+        // Update UI
+        setJobs(prevJobs => [...prevJobs, createdJob]);
+        setSelectedJob(createdJob);
+        
+        alert("Job successfully scraped and added!");
+      } catch (err) {
+        console.error("Error scraping job:", err);
+        alert("Failed to scrape job from the provided URL");
+      } finally {
+        setScrapingUrl("");
+        setIsScrapingInProgress(false);
+        setIsScrapingModalOpen(false);
+      }
+    }, 2000);
+  };
+
+  // Update the openEditModal function to properly handle the job data
+  const openEditModal = (job: ExtendedJob) => {
+    // Create a deep copy of the job to avoid reference issues
+    const jobCopy = {
+      ...job,
+      // Ensure job_type is one of the expected values
+      job_type: ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP", "APPRENTICESHIP"].includes(job.job_type) ?
+                job.job_type as JobType : "FULL_TIME"
+    };
+    
+    setEditingJob(jobCopy);
+    setIsEditModalOpen(true);
   };
 
   return (
     <DashboardLayout isAdmin>
-      <div className="container py-6 px-4 mx-auto">
-        <div className="mb-8">
+      <div className="container mx-auto px-4">
+        <div className="mb-3">
           <h1 className="text-2xl font-bold text-gray-900">
-            Philly Tech Internships
+            Jobs
           </h1>
           <p className="text-gray-500 mt-1">
             Connect high school students with local tech opportunities
           </p>
         </div>
 
-        {/* Quick Import Panel */}
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        {/* Consolidated Action Bar */}
+        <div className="mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div>
-                <h3 className="font-medium text-base mb-1">Quick Job Import</h3>
-                <p className="text-sm text-gray-500">
-                  Scrape job listings from external sites or upload in bulk from
-                  CSV files
+            <h3 className="font-medium text-base mb-1">Manage Job Listings</h3>
+            <p className="text-sm text-gray-600">
+              Create or import job opportunities for students
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+            <Button
+              className="text-sm gap-1 bg-launchpad-blue hover:bg-launchpad-teal text-white"
+              onClick={() => setIsAddJobModalOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Add New Job
+            </Button>
                 <Button
                   variant="outline"
                   className="text-sm gap-1"
                   onClick={() => setIsImportModalOpen(true)}
                 >
                   <FileSpreadsheet className="h-4 w-4" />
-                  Upload CSV
+              Import Jobs
                 </Button>
                 <Button
-                  className="text-sm gap-1 bg-launchpad-blue hover:bg-launchpad-teal text-white"
-                  onClick={() =>
-                    (window.location.href = "/admin/dashboard?tab=import")
-                  }
+              variant="outline" 
+              className="text-sm gap-1"
+              onClick={() => setIsScrapingModalOpen(true)}
                 >
                   <Search className="h-4 w-4" />
                   Web Scraping
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+
+        {/* Tab Navigation for Active/Archived */}
+        <div className="mb-3 border-b border-gray-200">
+          <div className="flex space-x-4">
+            <button
+              className={`py-1.5 px-1 -mb-px text-sm font-medium ${
+                activeTab === "active"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+              onClick={() => {
+                setActiveTab("active");
+                setSelectedJob(null);
+              }}
+            >
+              Active Jobs
+            </button>
+            <button
+              className={`py-1.5 px-1 -mb-px text-sm font-medium flex items-center gap-1 ${
+                activeTab === "archived"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+              onClick={() => {
+                setActiveTab("archived");
+                setSelectedJob(null);
+              }}
+            >
+              <Archive className="h-4 w-4" />
+              Archived Jobs
+            </button>
+          </div>
+        </div>
 
         {/* Search and Actions */}
-        <div className="flex flex-wrap gap-3 mb-6">
+        <div className="flex flex-wrap gap-3 mb-4">
           <div className="relative flex-1 min-w-[260px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
             <Input
@@ -529,26 +712,22 @@ export default function AdminJobListings() {
               onClick={() => setFilterModalOpen(true)}
             >
               <Filter className="h-4 w-4" />
-              Filter
-            </Button>
-            <Button className="gap-1 bg-launchpad-blue hover:bg-launchpad-teal text-white">
-              <Plus className="h-4 w-4" />
-              Add Job
+              Filter {activeFilterCount > 0 && `(${activeFilterCount})`}
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Job Listings Column */}
-          <Card className="lg:col-span-1 max-h-[calc(100vh-220px)] overflow-hidden flex flex-col">
-            <CardHeader className="pb-2">
-              <CardTitle>Job Listings</CardTitle>
-              <CardDescription>{jobs.length} jobs found</CardDescription>
+          <Card className="lg:col-span-1 max-h-[calc(100vh-250px)] overflow-hidden flex flex-col">
+            <CardHeader className="py-3">
+              <CardTitle>{activeTab === "active" ? "Job Listings" : "Archived Jobs"}</CardTitle>
+              <CardDescription>{filteredJobs.length} jobs found</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 overflow-auto p-3">
-              <Suspense fallback={<JobListSkeleton />}>
+              <Suspense fallback={<p>Loading...</p>}>
                 <JobList
-                  jobs={jobs}
+                  jobs={filteredJobs}
                   selectedJob={selectedJob}
                   onSelectJob={setSelectedJob}
                   applicationsCount={applicationsCount}
@@ -560,144 +739,97 @@ export default function AdminJobListings() {
           </Card>
 
           {/* Job Details Column */}
-          <Card className="lg:col-span-2 max-h-[calc(100vh-220px)] overflow-auto">
-            <Suspense fallback={<JobDetailsSkeleton />}>
-              <JobDetails
-                job={selectedJob}
-                applicationsCount={applicationsCount}
-                isLoading={isLoading}
-                onEdit={() => setIsEditModalOpen(true)}
-                onDelete={() => setIsDeleteModalOpen(true)}
-              />
-            </Suspense>
+          <Card className="lg:col-span-2 max-h-[calc(100vh-250px)] overflow-hidden flex flex-col">
+            <CardContent className="p-0 flex-1 overflow-auto">
+              <Suspense fallback={<p>Loading...</p>}>
+                <JobDetailsAdmin
+                  job={selectedJob}
+                  applicationsCount={applicationsCount}
+                  isLoading={isLoading}
+                  onEdit={openEditModal}
+                  onArchive={() => setIsArchiveModalOpen(true)}
+                />
+              </Suspense>
+            </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Filter Modal */}
-      <MultiPurposeModal
-        open={filterModalOpen}
-        onOpenChange={setFilterModalOpen}
-        title="Filter Jobs"
-        description="Find specific jobs by criteria"
-        size="md"
-        showFooter={true}
-        primaryActionText="Apply Filters"
-        onPrimaryAction={() => {
-          setFilterModalOpen(false);
-          // Apply filters logic here
-        }}
-        secondaryActionText="Reset"
-        onSecondaryAction={() =>
-          setActiveFilters({
-            jobTypes: [],
-            locations: [],
-            remoteOnly: false,
-            salary: [0, 200],
-            experienceLevel: "any",
-            keywords: "",
-          })
-        }
-      >
-        <JobFilters
-          onApply={(filters) => {
-            setActiveFilters(filters);
-            setFilterModalOpen(false);
-          }}
-          initialFilters={activeFilters}
-        />
-      </MultiPurposeModal>
+      {/* Modals */}
+      <JobModals
+        // Add Job Modal
+        isAddJobModalOpen={isAddJobModalOpen}
+        setIsAddJobModalOpen={setIsAddJobModalOpen}
+        newJob={newJob}
+        setNewJob={setNewJob}
+        handleAddJob={handleAddJob}
+        handleTagChange={handleTagChange}
+        
+        // Edit Job Modal
+        isEditModalOpen={isEditModalOpen}
+        setIsEditModalOpen={setIsEditModalOpen}
+        editingJob={editingJob}
+        setEditingJob={setEditingJob}
+        handleEditJob={handleEditJob}
+        handleEditTagChange={handleEditTagChange}
+        
+        // Archive Job Modal
+        isArchiveModalOpen={isArchiveModalOpen}
+        setIsArchiveModalOpen={setIsArchiveModalOpen}
+        selectedJob={selectedJob}
+        handleArchiveJob={handleArchiveJob}
+        
+        // Import CSV Modal
+        isImportModalOpen={isImportModalOpen}
+        setIsImportModalOpen={setIsImportModalOpen}
+        csvFile={csvFile}
+        setCsvFile={setCsvFile}
+        handleImportCSV={handleImportCSV}
+        downloadCsvTemplate={downloadCsvTemplate}
+        
+        // Web Scraping Modal
+        isScrapingModalOpen={isScrapingModalOpen}
+        setIsScrapingModalOpen={setIsScrapingModalOpen}
+        scrapingUrl={scrapingUrl}
+        setScrapingUrl={setScrapingUrl}
+        isScrapingInProgress={isScrapingInProgress}
+        handleWebScraping={handleWebScraping}
+      />
 
-      {/* Delete Confirmation Modal */}
-      <MultiPurposeModal
-        open={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-        title="Delete Job Listing"
-        description="Are you sure you want to delete this job listing? This action cannot be undone."
-        size="sm"
-        showFooter={true}
-        primaryActionText="Delete"
-        onPrimaryAction={handleDeleteJob}
-        secondaryActionText="Cancel"
-        onSecondaryAction={() => setIsDeleteModalOpen(false)}
-      >
-        <div className="text-muted-foreground">
-          This will permanently remove the job listing and all associated data.
-        </div>
-      </MultiPurposeModal>
-
-      <MultiPurposeModal
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        title="Edit Job"
-        description="Update job posting details"
-        size="lg"
-        showFooter={true}
-        primaryActionText="Save Changes"
-        onPrimaryAction={() => setIsEditModalOpen(false)}
-        secondaryActionText="Cancel"
-        onSecondaryAction={() => setIsEditModalOpen(false)}
-      >
-        <div className="py-4">
-          <p className="text-center text-gray-500">
-            Job edit form would go here
-          </p>
-        </div>
-      </MultiPurposeModal>
-
-      <MultiPurposeModal
-        open={isImportModalOpen}
-        onOpenChange={setIsImportModalOpen}
-        title="Import Jobs from CSV"
-        description="Upload multiple job listings at once"
-        size="md"
-        showFooter={true}
-        primaryActionText="Import Jobs"
-        onPrimaryAction={() => {
-          alert("5 jobs have been imported successfully!");
-          setIsImportModalOpen(false);
-        }}
-        secondaryActionText="Cancel"
-        onSecondaryAction={() => setIsImportModalOpen(false)}
-      >
-        <div className="py-4 space-y-4">
-          <div className="border-2 border-dashed border-gray-200 rounded-md p-6 text-center">
-            <div className="flex flex-col items-center justify-center">
-              <FileSpreadsheet className="h-10 w-10 text-gray-300 mb-2" />
-              <h4 className="font-medium mb-1">Drop your CSV file here</h4>
-              <p className="text-sm text-gray-500 mb-4">
-                Make sure to follow the required format
-              </p>
-              <Button variant="outline" size="sm">
-                Browse Files
-              </Button>
-            </div>
+      {/* Filter Dialog */}
+      <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Filter Jobs</DialogTitle>
+            <DialogDescription>
+              Filter job listings by type, location, and keywords
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <JobFilters 
+              ref={jobFiltersRef}
+              onApply={applyFilters}
+              initialFilters={activeFilters}
+              availableTags={JOB_TAGS}
+            />
           </div>
-
-          <div className="bg-launchpad-blue/5 p-4 rounded-md">
-            <h4 className="font-medium mb-2 text-sm">
-              CSV Format Requirements
-            </h4>
-            <ul className="text-xs text-gray-600 space-y-1 list-disc pl-4">
-              <li>
-                First row must contain headers: Title, Company, Location, Type,
-                Description
-              </li>
-              <li>All jobs must have at least Title, Company and Location</li>
-              <li>
-                Valid job types: full_time, part_time, contract, internship
-              </li>
-              <li>Maximum 100 jobs per import</li>
-            </ul>
-          </div>
-
-          <div className="text-center">
-            <Button variant="link" size="sm" className="text-xs">
-              Download Template
+          
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={resetFilters}>
+              Reset Filters
             </Button>
-          </div>
-        </div>
-      </MultiPurposeModal>
+            <Button onClick={() => {
+              if (jobFiltersRef.current) {
+                const currentFilters = jobFiltersRef.current.getCurrentFilters();
+                applyFilters(currentFilters);
+              }
+            }}>
+              Apply Filters
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

@@ -67,7 +67,7 @@ export function DashboardLayout({
   }, [username]);
 
   return (
-    <div className="flex min-h-screen max-h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Enhanced Navbar with gradient, better transitions, and mobile optimization */}
       <header
         className={cn(
@@ -186,7 +186,7 @@ export function DashboardLayout({
         </aside>
 
         {/* Main content area - with appropriate margin to account for sidebar */}
-        <main className="flex-1 min-h-[calc(100vh-4rem)] w-full md:ml-64 overflow-auto bg-gray-50 dark:bg-gray-900">
+        <main className="flex-1 w-full md:ml-64 bg-gray-50 dark:bg-gray-900">
           <AnimatePresence mode="wait">
             <motion.div
               key={isAdmin ? "admin" : "student"}

@@ -38,15 +38,11 @@ export interface Resume {
 
 export interface Job {
   job_id: number;
-  job_type: string;
   title: string;
-  description: string;
   company: string;
-  website: string;
-  location: string;
-  partner_id: number;
-  created_at: string;
-  tags: string[];
+  location?: string;
+  job_type?: JobType;
+  description?: string;
   companyLogo?: string;
 }
 
@@ -309,339 +305,79 @@ export const jobService = {
   update: (job: Job) => {
     const jobs = getItem<Job[]>(STORAGE_KEYS.JOBS, []);
     const index = jobs.findIndex(j => j.job_id === job.job_id);
-    if (index !== -1) {
+    if (index >= 0) {
       jobs[index] = job;
-      setItem(STORAGE_KEYS.JOBS, jobs);
-      return job;
-    }
-    return null;
-  },
-  delete: (id: number) => {
-    const jobs = getItem<Job[]>(STORAGE_KEYS.JOBS, []);
-    const filtered = jobs.filter(job => job.job_id !== id);
-    setItem(STORAGE_KEYS.JOBS, filtered);
-  },
-};
-
-// Application operations
-export const applicationService = {
-  getAll: () => getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []),
-  getById: (id: number) => getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []).find(app => app.application_id === id),
-  getByUserId: (userId: number) => getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []).filter(app => app.user_id === userId),
-  getByJobId: (jobId: number) => getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []).filter(app => app.job_id === jobId),
-  create: (application: Omit<Application, 'application_id' | 'applied_at' | 'status_updated_at'>) => {
-    const applications = getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []);
-    const now = new Date().toISOString();
-    const newApplication: Application = {
-      ...application,
-      application_id: applications.length > 0 ? Math.max(...applications.map(a => a.application_id)) + 1 : 1,
-      applied_at: now,
-      status_updated_at: now,
-    };
-    applications.push(newApplication);
-    setItem(STORAGE_KEYS.APPLICATIONS, applications);
-    
-    // Create initial status history entry
-    const statusHistories = getItem<ApplicationStatusHistory[]>(STORAGE_KEYS.APP_STATUS_HISTORY, []);
-    const newStatusHistory: ApplicationStatusHistory = {
-      app_history_id: statusHistories.length > 0 ? Math.max(...statusHistories.map(h => h.app_history_id)) + 1 : 1,
-      application_id: newApplication.application_id,
-      status: newApplication.status,
-      changed_at: now,
-    };
-    statusHistories.push(newStatusHistory);
-    setItem(STORAGE_KEYS.APP_STATUS_HISTORY, statusHistories);
-    
-    return newApplication;
-  },
-  updateStatus: (id: number, newStatus: string) => {
-    const applications = getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []);
-    const index = applications.findIndex(app => app.application_id === id);
-    if (index !== -1) {
-      const now = new Date().toISOString();
-      const oldStatus = applications[index].status;
-      
-      // Don't update if status hasn't changed
-      if (oldStatus === newStatus) return applications[index];
-      
-      // Update application status
-      applications[index].status = newStatus;
-      applications[index].status_updated_at = now;
-      setItem(STORAGE_KEYS.APPLICATIONS, applications);
-      
-      // Create status history entry
-      const statusHistories = getItem<ApplicationStatusHistory[]>(STORAGE_KEYS.APP_STATUS_HISTORY, []);
-      const newStatusHistory: ApplicationStatusHistory = {
-        app_history_id: statusHistories.length > 0 ? Math.max(...statusHistories.map(h => h.app_history_id)) + 1 : 1,
-        application_id: id,
-        status: newStatus,
-        changed_at: now,
-      };
-      statusHistories.push(newStatusHistory);
-      setItem(STORAGE_KEYS.APP_STATUS_HISTORY, statusHistories);
-      
-      return applications[index];
-    }
-    return null;
-  },
-  update: (application: Application) => {
-    const applications = getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []);
-    const index = applications.findIndex(app => app.application_id === application.application_id);
-    if (index !== -1) {
-      // Check if status changed
-      const oldStatus = applications[index].status;
-      const newStatus = application.status;
-      const now = new Date().toISOString();
-      
-      // Update application
-      applications[index] = {
-        ...application,
-        status_updated_at: oldStatus !== newStatus ? now : applications[index].status_updated_at
-      };
-      setItem(STORAGE_KEYS.APPLICATIONS, applications);
-      
-      // Create status history entry if status changed
-      if (oldStatus !== newStatus) {
-        const statusHistories = getItem<ApplicationStatusHistory[]>(STORAGE_KEYS.APP_STATUS_HISTORY, []);
-        const newStatusHistory: ApplicationStatusHistory = {
-          app_history_id: statusHistories.length > 0 ? Math.max(...statusHistories.map(h => h.app_history_id)) + 1 : 1,
-          application_id: application.application_id,
-          status: newStatus,
-          changed_at: now,
-        };
-        statusHistories.push(newStatusHistory);
-        setItem(STORAGE_KEYS.APP_STATUS_HISTORY, statusHistories);
+    } else {
+      // Generate a new ID if none exists
+      if (!job.job_id) {
+        job.job_id = Math.max(0, ...jobs.map(j => j.job_id)) + 1;
       }
-      
-      return applications[index];
+      jobs.push(job);
     }
-    return null;
-  },
-  delete: (id: number) => {
-    const applications = getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []);
-    const filtered = applications.filter(app => app.application_id !== id);
-    setItem(STORAGE_KEYS.APPLICATIONS, filtered);
     
-    // Also delete associated status history
-    const statusHistories = getItem<ApplicationStatusHistory[]>(STORAGE_KEYS.APP_STATUS_HISTORY, []);
-    const filteredHistories = statusHistories.filter(history => history.application_id !== id);
-    setItem(STORAGE_KEYS.APP_STATUS_HISTORY, filteredHistories);
-  },
-  getStatusHistory: (applicationId: number) => {
-    return getItem<ApplicationStatusHistory[]>(STORAGE_KEYS.APP_STATUS_HISTORY, [])
-      .filter(history => history.application_id === applicationId)
-      .sort((a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime());
-  },
-};
+    localStorage.setItem(this.storageKey, JSON.stringify(jobs));
+    return job;
+  }
 
-// Partner operations
-export const partnerService = {
-  getAll: () => getItem<Partner[]>(STORAGE_KEYS.PARTNERS, []),
-  getById: (id: number) => getItem<Partner[]>(STORAGE_KEYS.PARTNERS, []).find(partner => partner.partner_id === id),
-  create: (partner: Omit<Partner, 'partner_id'>) => {
-    const partners = getItem<Partner[]>(STORAGE_KEYS.PARTNERS, []);
-    const newPartner: Partner = {
-      ...partner,
-      partner_id: partners.length > 0 ? Math.max(...partners.map(p => p.partner_id)) + 1 : 1,
-    };
-    partners.push(newPartner);
-    setItem(STORAGE_KEYS.PARTNERS, partners);
-    return newPartner;
-  },
-  update: (partner: Partner) => {
-    const partners = getItem<Partner[]>(STORAGE_KEYS.PARTNERS, []);
-    const index = partners.findIndex(p => p.partner_id === partner.partner_id);
-    if (index !== -1) {
-      partners[index] = partner;
-      setItem(STORAGE_KEYS.PARTNERS, partners);
-      return partner;
-    }
-    return null;
-  },
-  delete: (id: number) => {
-    const partners = getItem<Partner[]>(STORAGE_KEYS.PARTNERS, []);
-    const filtered = partners.filter(partner => partner.partner_id !== id);
-    setItem(STORAGE_KEYS.PARTNERS, filtered);
-  },
-};
+  // Delete a job
+  delete(id: number): void {
+    const jobs = this.getAll();
+    const filtered = jobs.filter(job => job.job_id !== id);
+    localStorage.setItem(this.storageKey, JSON.stringify(filtered));
+  }
 
-// Event operations
-export const eventService = {
-  getAll: () => getItem<Event[]>(STORAGE_KEYS.EVENTS, []),
-  getById: (id: number) => getItem<Event[]>(STORAGE_KEYS.EVENTS, []).find(event => event.event_id === id),
-  getUpcoming: () => {
-    const events = getItem<Event[]>(STORAGE_KEYS.EVENTS, []);
-    const now = new Date();
-    return events
-      .filter(event => new Date(event.event_date) > now)
-      .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
-  },
-  create: (event: Omit<Event, 'event_id' | 'created_at'>) => {
-    const events = getItem<Event[]>(STORAGE_KEYS.EVENTS, []);
-    const newEvent: Event = {
-      ...event,
-      event_id: events.length > 0 ? Math.max(...events.map(e => e.event_id)) + 1 : 1,
-      created_at: new Date().toISOString(),
-    };
-    events.push(newEvent);
-    setItem(STORAGE_KEYS.EVENTS, events);
-    return newEvent;
-  },
-  update: (event: Event) => {
-    const events = getItem<Event[]>(STORAGE_KEYS.EVENTS, []);
-    const index = events.findIndex(e => e.event_id === event.event_id);
-    if (index !== -1) {
-      events[index] = event;
-      setItem(STORAGE_KEYS.EVENTS, events);
-      return event;
-    }
-    return null;
-  },
-  delete: (id: number) => {
-    const events = getItem<Event[]>(STORAGE_KEYS.EVENTS, []);
-    const filtered = events.filter(event => event.event_id !== id);
-    setItem(STORAGE_KEYS.EVENTS, filtered);
-  },
-};
+  // Initialize with mock data for demonstration
+  private initMockData(): void {
+    const mockJobs: Job[] = [
+      {
+        job_id: 1,
+        title: "Frontend Developer",
+        company: "TechCorp",
+        location: "Philadelphia, PA (Remote)",
+        job_type: "FULL_TIME",
+        description: "Building modern web applications using React and Next.js",
+        tags: ["FRONT_END", "FULLY_REMOTE"],
+        salary: "$80,000 - $100,000",
+        created_at: new Date().toISOString()
+      },
+      {
+        job_id: 2,
+        title: "UX Designer",
+        company: "Design Studio",
+        location: "Boston, MA (On-site)",
+        job_type: "FULL_TIME",
+        description: "Design user interfaces and experiences for web and mobile applications",
+        tags: ["UX_UI_DESIGN", "IN_PERSON"],
+        salary: "$75,000 - $95,000",
+        created_at: new Date().toISOString()
+      },
+      {
+        job_id: 3,
+        title: "Backend Engineer",
+        company: "Data Inc.",
+        location: "New York, NY (Hybrid)",
+        job_type: "FULL_TIME",
+        description: "Develop and maintain server-side applications and databases",
+        tags: ["BACK_END", "HYBRID"],
+        salary: "$90,000 - $120,000",
+        created_at: new Date().toISOString()
+      },
+      {
+        job_id: 4,
+        title: "Product Manager",
+        company: "Web Solutions",
+        location: "Philadelphia, PA (On-site)",
+        job_type: "FULL_TIME",
+        description: "Lead product development and roadmap planning",
+        tags: ["PRODUCT_MANAGEMENT", "IN_PERSON"],
+        salary: "$95,000 - $115,000",
+        created_at: new Date().toISOString()
+      }
+    ];
 
-// Dashboard activity operations
-export const dashboardActivityService = {
-  getAll: () => getItem<DashboardActivity[]>(STORAGE_KEYS.DASHBOARD_ACTIVITY, []),
-  getByAdminId: (adminId: number) => {
-    return getItem<DashboardActivity[]>(STORAGE_KEYS.DASHBOARD_ACTIVITY, [])
-      .filter(activity => activity.admin_id === adminId)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  },
-  getRecent: (limit = 10) => {
-    return getItem<DashboardActivity[]>(STORAGE_KEYS.DASHBOARD_ACTIVITY, [])
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, limit);
-  },
-  create: (activity: Omit<DashboardActivity, 'activity_id' | 'timestamp'>) => {
-    const activities = getItem<DashboardActivity[]>(STORAGE_KEYS.DASHBOARD_ACTIVITY, []);
-    const newActivity: DashboardActivity = {
-      ...activity,
-      activity_id: activities.length > 0 ? Math.max(...activities.map(a => a.activity_id)) + 1 : 1,
-      timestamp: new Date().toISOString(),
-    };
-    activities.push(newActivity);
-    setItem(STORAGE_KEYS.DASHBOARD_ACTIVITY, activities);
-    return newActivity;
-  },
-};
+    localStorage.setItem(this.storageKey, JSON.stringify(mockJobs));
+  }
+}
 
-// Initialize with sample data if needed
-export function initializeSampleData() {
-  // Check if we already have data
-  const hasUsers = getItem<User[]>(STORAGE_KEYS.USERS, []).length > 0;
-  if (hasUsers) return;
-  
-  // Sample users
-  const users: User[] = [
-    {
-      user_id: 1,
-      status: "active",
-      username: "admin",
-      password: "admin123", // In a real app, never store plain text passwords
-      isAdmin: true,
-      program: "admin",
-      created_at: new Date().toISOString(),
-    },
-    {
-      user_id: 2,
-      status: "active",
-      username: "applicant",
-      password: "applicant123", // In a real app, never store plain text passwords
-      isAdmin: false,
-      program: "web_development",
-      created_at: new Date().toISOString(),
-    },
-  ];
-  setItem(STORAGE_KEYS.USERS, users);
-  
-  // Sample partners
-  const partners: Partner[] = [
-    {
-      partner_id: 1,
-      name: "Tech Innovators",
-      description: "A leading tech company focused on innovation and growth.",
-      industry: "Technology",
-      location: "Remote",
-      jobs_available: 3,
-      applicants: 0,
-      applicants_hired: 0,
-    },
-    {
-      partner_id: 2,
-      name: "Creative Solutions",
-      description: "Design and creative agency with a focus on user experience.",
-      industry: "Design",
-      location: "Philadelphia, PA",
-      jobs_available: 2,
-      applicants: 0,
-      applicants_hired: 0,
-    },
-  ];
-  setItem(STORAGE_KEYS.PARTNERS, partners);
-  
-  // Sample jobs
-  const jobs: Job[] = [
-    {
-      job_id: 1,
-      job_type: "full_time",
-      title: "Frontend Developer",
-      description: "We're looking for a skilled frontend developer experienced in React and TypeScript.",
-      company: "Tech Innovators",
-      website: "https://techinnovators.example.com",
-      location: "Remote",
-      partner_id: 1,
-      created_at: new Date().toISOString(),
-      tags: ["React", "TypeScript", "Frontend", "Remote"],
-    },
-    {
-      job_id: 2,
-      job_type: "full_time",
-      title: "UX Designer",
-      description: "Join our design team to create beautiful user experiences.",
-      company: "Creative Solutions",
-      website: "https://creativesolutions.example.com",
-      location: "Philadelphia, PA",
-      partner_id: 2,
-      created_at: new Date().toISOString(),
-      tags: ["UX", "UI", "Design", "Figma"],
-    },
-    {
-      job_id: 3,
-      job_type: "part_time",
-      title: "Backend Engineer",
-      description: "Part-time role helping build our scalable backend infrastructure.",
-      company: "Tech Innovators",
-      website: "https://techinnovators.example.com",
-      location: "Remote",
-      partner_id: 1,
-      created_at: new Date().toISOString(),
-      tags: ["Node.js", "Express", "MongoDB", "Backend", "Remote"],
-    },
-  ];
-  setItem(STORAGE_KEYS.JOBS, jobs);
-  
-  // Sample events
-  const now = new Date();
-  const events: Event[] = [
-    {
-      event_id: 1,
-      title: "Resume Workshop",
-      description: "Learn how to craft a perfect resume for tech companies.",
-      event_date: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString(),
-      created_at: new Date().toISOString(),
-    },
-    {
-      event_id: 2,
-      title: "Tech Interview Prep",
-      description: "Practice technical interview questions and get feedback.",
-      event_date: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14).toISOString(),
-      created_at: new Date().toISOString(),
-    },
-  ];
-  setItem(STORAGE_KEYS.EVENTS, events);
-} 
+// Export a singleton instance
+export const jobService = new JobService(); 
