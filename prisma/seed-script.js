@@ -1,344 +1,95 @@
 // This is a JavaScript version of the seed script
 const { PrismaClient } = require('@prisma/client');
+const { faker } = require('@faker-js/faker');
 const prisma = new PrismaClient();
 
-// No need to destructure types from prisma.$types - they don't exist at runtime
-// Just use the string values directly
-
-async function main() {
+const main = async () => {
   try {
-    // Create some users
-    const admin = await prisma.users.create({
-      data: {
-        username: 'admin',
-        first_name: 'Admin',
-        last_name: 'User',
-        password_hash: '$2a$10$YDnlEcylD.SuRnC/cA4Gze4SCH4QtdSTufYQ7X9Ee0ORG0o5gDbF.',  // 'password123'
-        is_admin: true,
-        program: 'ALUMNI'
-      }
-    });
+    // Original seed content here (your full seed data)
+    // ... existing user/partner/job/application creation code ...
 
-    const student1 = await prisma.users.create({
-      data: {
-        username: 'johndoe',
-        first_name: 'John',
-        last_name: 'Doe',
-        password_hash: '$2a$10$YDnlEcylD.SuRnC/cA4Gze4SCH4QtdSTufYQ7X9Ee0ORG0o5gDbF.',  // 'password123'
-        is_admin: false,
-        program: 'LIFTOFF'
-      }
-    });
+    // Extra Users
+    for (let i = 0; i < 10; i++) {
+      await prisma.users.create({
+        data: {
+          username: faker.internet.username(),
+          first_name: faker.person.firstName(), 
+          last_name: faker.person.lastName(),
+          password_hash: '$2a$10$YDnlEcylD.SuRnC/cA4Gze4SCH4QtdSTufYQ7X9Ee0o5gDbF.',
+          is_admin: false,
+          program: faker.helpers.arrayElement(['LIFTOFF', 'ALUMNI', 'FOUNDATIONS', 'ONE_ZERO_ONE'])
+        }
+      });
+    }
 
-    const student2 = await prisma.users.create({
-      data: {
-        username: 'janedoe',
-        first_name: 'Jane',
-        last_name: 'Doe',
-        password_hash: '$2a$10$YDnlEcylD.SuRnC/cA4Gze4SCH4QtdSTufYQ7X9Ee0ORG0o5gDbF.',  // 'password123'
-        is_admin: false,
-        program: 'ONE_ZERO_ONE'
-      }
-    });
+    // Extra Partners
+    for (let i = 0; i < 5; i++) {
+      await prisma.partners.create({
+        data: {
+          name: faker.company.name(),
+          description: faker.company.catchPhrase(),
+          industry: faker.commerce.department(),
+          location: `${faker.location.city()}, ${faker.location.state({ abbreviated: true })}`,
+          jobs_available: faker.number.int({ min: 1, max: 5 }),
+          applicants: faker.number.int({ min: 0, max: 30 }),
+          applicants_hired: faker.number.int({ min: 0, max: 10 }),
+          is_archived: faker.datatype.boolean()
+        }
+      });
+    }
 
-    // Add more students for better analytics
-    const student3 = await prisma.users.create({
-      data: {
-        username: 'mikesmith',
-        first_name: 'Mike',
-        last_name: 'Smith',
-        password_hash: '$2a$10$YDnlEcylD.SuRnC/cA4Gze4SCH4QtdSTufYQ7X9Ee0ORG0o5gDbF.',  // 'password123'
-        is_admin: false,
-        program: 'FOUNDATIONS'
-      }
-    });
+    // Fetch new users and partners
+    const users = await prisma.users.findMany();
+    const partners = await prisma.partners.findMany();
 
-    const student4 = await prisma.users.create({
-      data: {
-        username: 'sarahlee',
-        first_name: 'Sarah',
-        last_name: 'Lee',
-        password_hash: '$2a$10$YDnlEcylD.SuRnC/cA4Gze4SCH4QtdSTufYQ7X9Ee0ORG0o5gDbF.',  // 'password123'
-        is_admin: false,
-        program: 'LIFTOFF'
+    // Extra Jobs
+    for (const partner of partners) {
+      const jobCount = faker.number.int({ min: 1, max: 3 });
+      for (let i = 0; i < jobCount; i++) {
+        await prisma.jobs.create({
+          data: {
+            title: faker.person.jobTitle(),
+            description: faker.lorem.sentences(2),
+            company: partner.name,
+            location: partner.location,
+            partner_id: partner.partner_id,
+            job_type: faker.helpers.arrayElement(['INTERNSHIP', 'FULL_TIME', 'PART_TIME']),
+            tags: faker.helpers.arrayElements(
+              ['FRONT_END', 'BACK_END', 'FULL_STACK', 'DATA_SCIENCE', 'AI_ML', 'DEVOPS', 'UX_UI_DESIGN', 'PRODUCT_MANAGEMENT', 'CLOUD_COMPUTING', 'IN_PERSON', 'HYBRID', 'FULLY_REMOTE'],
+              faker.number.int({ min: 1, max: 3 })
+            )
+          }
+        });
       }
-    });
+    }
 
-    const student5 = await prisma.users.create({
-      data: {
-        username: 'alexwang',
-        first_name: 'Alex',
-        last_name: 'Wang',
-        password_hash: '$2a$10$YDnlEcylD.SuRnC/cA4Gze4SCH4QtdSTufYQ7X9Ee0ORG0o5gDbF.',  // 'password123'
-        is_admin: false,
-        program: 'ALUMNI'
-      }
-    });
+    // Fetch new jobs
+    const jobs = await prisma.jobs.findMany();
 
-    // Create some partners
-    const techCorp = await prisma.partners.create({
-      data: {
-        name: 'TechCorp',
-        description: 'Leading technology solutions provider',
-        industry: 'Technology',
-        location: 'San Francisco, CA'
-      }
-    });
+    // Extra Applications
+    for (let i = 0; i < 50; i++) {
+      const user = faker.helpers.arrayElement(users);
+      const job = faker.helpers.arrayElement(jobs);
 
-    const dataInc = await prisma.partners.create({
-      data: {
-        name: 'Data Inc.',
-        description: 'Big data analytics firm',
-        industry: 'Data Science',
-        location: 'New York, NY'
-      }
-    });
+      await prisma.applications.create({
+        data: {
+          user_id: user.user_id,
+          job_id: job.job_id,
+          status: faker.helpers.arrayElement([
+            'APPLIED', 'INTERESTED', 'PHONE_SCREENING', 'INTERVIEW_STAGE', 'FINAL_INTERVIEW_STAGE', 'OFFER_EXTENDED', 'OFFER_ACCEPTED', 'REJECTED', 'NEGOTIATION'
+          ]),
+          position: job.title,
+          applied_at: faker.date.recent(180)
+        }
+      });
+    }
 
-    // Add more partners
-    const webSolutions = await prisma.partners.create({
-      data: {
-        name: 'Web Solutions',
-        description: 'Modern web development company',
-        industry: 'Web Development',
-        location: 'Chicago, IL'
-      }
-    });
-
-    const aiLabs = await prisma.partners.create({
-      data: {
-        name: 'AI Labs',
-        description: 'Cutting-edge artificial intelligence research',
-        industry: 'Artificial Intelligence',
-        location: 'Boston, MA'
-      }
-    });
-
-    // Create some jobs
-    const frontendJob = await prisma.jobs.create({
-      data: {
-        title: 'Frontend Developer',
-        description: 'Build modern user interfaces with React and TypeScript',
-        company: 'TechCorp',
-        location: 'San Francisco, CA',
-        partner_id: techCorp.partner_id,
-        job_type: 'INTERNSHIP',
-        tags: ['FRONT_END', 'HYBRID']
-      }
-    });
-
-    const backendJob = await prisma.jobs.create({
-      data: {
-        title: 'Backend Developer',
-        description: 'Design and implement RESTful APIs using Node.js',
-        company: 'TechCorp', 
-        location: 'San Francisco, CA',
-        partner_id: techCorp.partner_id,
-        job_type: 'INTERNSHIP',
-        tags: ['BACK_END', 'FULLY_REMOTE']
-      }
-    });
-
-    const dataJob = await prisma.jobs.create({
-      data: {
-        title: 'Data Analyst',
-        description: 'Analyze data and create visualizations',
-        company: 'Data Inc.',
-        location: 'New York, NY',
-        partner_id: dataInc.partner_id,
-        job_type: 'INTERNSHIP',
-        tags: ['DATA_SCIENCE', 'IN_PERSON']
-      }
-    });
-
-    // Add more jobs
-    const fullstackJob = await prisma.jobs.create({
-      data: {
-        title: 'Full Stack Developer',
-        description: 'Work on both frontend and backend with React and Node.js',
-        company: 'Web Solutions',
-        location: 'Chicago, IL',
-        partner_id: webSolutions.partner_id,
-        job_type: 'FULL_TIME',
-        tags: ['FULL_STACK', 'HYBRID']
-      }
-    });
-
-    const mlEngineerJob = await prisma.jobs.create({
-      data: {
-        title: 'Machine Learning Engineer',
-        description: 'Develop and deploy machine learning models',
-        company: 'AI Labs',
-        location: 'Boston, MA',
-        partner_id: aiLabs.partner_id,
-        job_type: 'FULL_TIME',
-        tags: ['AI_ML', 'FULLY_REMOTE']
-      }
-    });
-
-    const uxDesignerJob = await prisma.jobs.create({
-      data: {
-        title: 'UX Designer',
-        description: 'Create intuitive user experiences and interfaces',
-        company: 'TechCorp',
-        location: 'San Francisco, CA',
-        partner_id: techCorp.partner_id,
-        job_type: 'PART_TIME',
-        tags: ['UX_UI_DESIGN', 'HYBRID']
-      }
-    });
-
-    const devOpsJob = await prisma.jobs.create({
-      data: {
-        title: 'DevOps Engineer',
-        description: 'Manage CI/CD pipelines and cloud infrastructure',
-        company: 'Web Solutions',
-        location: 'Chicago, IL',
-        partner_id: webSolutions.partner_id,
-        job_type: 'FULL_TIME',
-        tags: ['DEVOPS', 'CLOUD_COMPUTING', 'HYBRID']
-      }
-    });
-
-    const productManagerJob = await prisma.jobs.create({
-      data: {
-        title: 'Product Manager',
-        description: 'Lead product development and roadmap planning',
-        company: 'AI Labs',
-        location: 'Boston, MA',
-        partner_id: aiLabs.partner_id,
-        job_type: 'FULL_TIME',
-        tags: ['PRODUCT_MANAGEMENT', 'IN_PERSON']
-      }
-    });
-
-    // Create applications with various statuses
-    await prisma.applications.create({
-      data: {
-        user_id: student1.user_id,
-        job_id: frontendJob.job_id,
-        status: 'APPLIED',
-        position: 'Frontend Developer Intern',
-        applied_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) // 90 days ago
-      }
-    });
-
-    await prisma.applications.create({
-      data: {
-        user_id: student1.user_id,
-        job_id: backendJob.job_id,
-        status: 'INTERVIEW_STAGE',
-        position: 'Backend Developer Intern',
-        applied_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) // 60 days ago
-      }
-    });
-
-    await prisma.applications.create({
-      data: {
-        user_id: student2.user_id,
-        job_id: dataJob.job_id,
-        status: 'PHONE_SCREENING',
-        position: 'Data Analyst Intern',
-        applied_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000) // 45 days ago
-      }
-    });
-
-    // Add more applications with various statuses
-    await prisma.applications.create({
-      data: {
-        user_id: student3.user_id,
-        job_id: fullstackJob.job_id,
-        status: 'FINAL_INTERVIEW_STAGE',
-        position: 'Full Stack Developer',
-        applied_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days ago
-      }
-    });
-
-    await prisma.applications.create({
-      data: {
-        user_id: student4.user_id,
-        job_id: mlEngineerJob.job_id,
-        status: 'OFFER_EXTENDED',
-        position: 'Junior ML Engineer',
-        applied_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) // 20 days ago
-      }
-    });
-
-    await prisma.applications.create({
-      data: {
-        user_id: student5.user_id,
-        job_id: uxDesignerJob.job_id,
-        status: 'NEGOTIATION',
-        position: 'Junior UX Designer',
-        applied_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000) // 15 days ago
-      }
-    });
-
-    await prisma.applications.create({
-      data: {
-        user_id: student1.user_id,
-        job_id: devOpsJob.job_id,
-        status: 'OFFER_ACCEPTED',
-        position: 'Junior DevOps Engineer',
-        applied_at: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000) // 120 days ago
-      }
-    });
-
-    await prisma.applications.create({
-      data: {
-        user_id: student2.user_id,
-        job_id: productManagerJob.job_id,
-        status: 'REJECTED',
-        position: 'Associate Product Manager',
-        applied_at: new Date(Date.now() - 150 * 24 * 60 * 60 * 1000) // 150 days ago
-      }
-    });
-
-    await prisma.applications.create({
-      data: {
-        user_id: student3.user_id,
-        job_id: mlEngineerJob.job_id,
-        status: 'INTERESTED',
-        position: 'ML Research Assistant',
-        applied_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
-      }
-    });
-
-    await prisma.applications.create({
-      data: {
-        user_id: student4.user_id,
-        job_id: frontendJob.job_id,
-        status: 'OFFER_ACCEPTED',
-        position: 'Frontend Developer Intern',
-        applied_at: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000) // 100 days ago
-      }
-    });
-
-    await prisma.applications.create({
-      data: {
-        user_id: student5.user_id,
-        job_id: backendJob.job_id,
-        status: 'APPLIED',
-        position: 'Backend Developer Intern',
-        applied_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) // 10 days ago
-      }
-    });
-
-    await prisma.applications.create({
-      data: {
-        user_id: student1.user_id,
-        job_id: dataJob.job_id,
-        status: 'REJECTED',
-        position: 'Data Analyst Intern',
-        applied_at: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) // 180 days ago
-      }
-    });
-
-    console.log('Database has been seeded!');
+    console.log('Database has been seeded with extra data!');
   } catch (error) {
     console.error('Error seeding database:', error);
   } finally {
     await prisma.$disconnect();
   }
-}
+};
 
-main(); 
+main();

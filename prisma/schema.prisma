@@ -141,7 +141,6 @@ model jobs {
 model partners {
   partner_id       Int     @id @default(autoincrement())
   name             String  @db.VarChar
-  isArchived       Boolean @default(false)
   description      String?
   industry         String? @db.VarChar
   location         String? @db.VarChar

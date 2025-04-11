@@ -34,7 +34,8 @@ import {
   ExternalLink,
   Building2,
   Edit2,
-  Separator,
+  PlusCircle,
+  Archive,
 } from "lucide-react";
 import {
   Avatar,
@@ -55,6 +56,7 @@ import {
 } from "@/components/ui/form/select";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/basic/button";
+import { Separator } from "@/components/ui/basic/separator";
 
 /**
  * Renders a stat card displaying a title, a statistic value, and an icon.
@@ -149,53 +151,55 @@ function PartnerCard({
 
   return (
     <Card
-      className={cn(
-        "cursor-pointer hover:bg-gray-50 transition-colors p-3 mb-3",
-        {
-          "bg-blue-50 border-blue-200": isSelected,
-        }
-      )}
+      className={cn("cursor-pointer hover:bg-gray-50 transition-colors p-3 mb-3", {
+        "bg-blue-50 border-blue-200": isSelected,
+      })}
       onClick={() => onSelect(partner)}
     >
-      <div className="flex items-start gap-3">
-        <Avatar className="h-12 w-12 rounded-md bg-gray-100">
-          {partner.logo_url ? (
-            <AvatarImage src={partner.logo_url} alt={partner.name} />
-          ) : (
-            <AvatarFallback
-              className="rounded-md"
-              style={{ backgroundColor: `${color}20`, color }}
-            >
-              {initials}
-            </AvatarFallback>
+      <div className="flex flex-col">
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1">
+            <h3 className="font-medium text-gray-900 line-clamp-2">{partner.name}</h3>
+            <div className="flex items-center text-sm text-gray-600">
+              <MapPin className="h-3 w-3 mr-1" />
+              {partner.location || "No location"}
+            </div>
+          </div>
+          {partner.is_archived && (
+            <Badge variant="outline" className="text-xs bg-gray-100">
+              Archived
+            </Badge>
           )}
-        </Avatar>
-        
-        <div className="flex-1">
-          <h3 className="font-medium text-gray-900">{partner.name}</h3>
-          <div className="flex items-center text-sm text-gray-500">
-            <MapPin className="h-3 w-3 mr-1" />
-            {partner.location}
+        </div>
+
+        <div className="flex flex-wrap mt-2 gap-x-4 gap-y-1 text-xs text-gray-500">
+          {partner.industry && (
+            <Badge 
+              variant="outline" 
+              className="px-1 py-0 text-xs font-normal"
+              style={{ 
+                borderColor: `${color}20`,
+                backgroundColor: `${color}10`,
+                color: color
+              }}
+            >
+              {partner.industry}
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex justify-between items-center mt-2">
+          <div className="flex flex-wrap gap-1">
+            <span className="text-xs text-gray-500">
+              {partner.jobs_available || 0} jobs
+            </span>
           </div>
-          
-          <div className="flex flex-wrap gap-2 mt-2">
-            {partner.industry && (
-              <Badge variant="outline" className="text-xs py-0 px-1.5">
-                {partner.industry}
-              </Badge>
-            )}
-            {partner.is_archived && (
-              <Badge variant="outline" className="text-xs py-0 px-1.5 bg-gray-100">
-                Archived
-              </Badge>
-            )}
-          </div>
-          
-          <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-            <span>{partner.jobs_available || 0} jobs</span>
-            <span>{partner.applicants || 0} applicants</span>
-            <span>{successRate}% success</span>
-          </div>
+          <Badge 
+            variant="outline" 
+            className="text-xs bg-blue-50 text-blue-600"
+          >
+            {partner.applicants || 0} applicants
+          </Badge>
         </div>
       </div>
     </Card>
@@ -235,32 +239,57 @@ function PartnerDetails({
     );
   }
 
-  const color = getPartnerColor(partner);
-
-  // Mock upcoming events
-  const events = [
-    {
-      id: 1,
-      title: "Recruiting Workshop",
-      date: new Date("2023-12-15"),
-      type: "recruitment_event",
-    },
-    {
-      id: 2,
-      title: "Technical Interview Panel",
-      date: new Date("2023-12-22"),
-      type: "informational_session",
-    },
-  ];
-
   return (
     <div className="space-y-6 p-4 md:p-6">
-      {/* Header with colored border based on partner type */}
-      <div 
-        className="relative border-l-4 pl-4 py-2" 
-        style={{ borderColor: color }}
-      >
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      {/* Header with title and company info */}
+      <div className="flex flex-col gap-2 relative">
+        {/* Edit and Archive buttons at top right */}
+        <div className="absolute top-0 right-0 flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onEdit}
+            className="h-8 w-8"
+            title="Edit"
+          >
+            <Edit2 className="h-4 w-4 text-blue-500" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onDelete}
+            className="h-8 w-8"
+            title={partner.is_archived ? "Restore" : "Archive"}
+          >
+            {partner.is_archived ? (
+              <PlusCircle className="h-4 w-4 text-amber-500" />
+            ) : (
+              <Archive className="h-4 w-4 text-amber-500" />
+            )}
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div 
+            className="h-16 w-16 shrink-0 rounded-md border border-gray-200 flex items-center justify-center bg-white overflow-hidden"
+            style={{ borderLeftColor: extendedPalette.primaryBlue }}
+          >
+            <Avatar className="h-full w-full rounded-md">
+              {partner.logo_url ? (
+                <AvatarImage src={partner.logo_url} alt={partner.name} />
+              ) : (
+                <AvatarFallback className="rounded-md" style={{ backgroundColor: `${extendedPalette.primaryBlue}20`, color: extendedPalette.primaryBlue }}>
+                  {partner.name
+                    .split(" ")
+                    .map((word) => word[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)}
+                </AvatarFallback>
+              )}
+            </Avatar>
+          </div>
+          
           <div>
             <h1 className="text-2xl font-bold">{partner.name}</h1>
             <div className="flex items-center gap-1 text-muted-foreground mt-1">
@@ -275,260 +304,148 @@ function PartnerDetails({
               )}
             </div>
           </div>
-          
-          <div className="flex flex-wrap gap-2">
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mt-2">
+          {partner.industry && (
             <Badge 
               variant="outline"
               className="px-2 py-1"
               style={{ 
-                backgroundColor: `${color}15`,
-                borderColor: `${color}30`,
-                color: color 
+                backgroundColor: `${extendedPalette.primaryBlue}15`,
+                borderColor: `${extendedPalette.primaryBlue}30`,
+                color: extendedPalette.primaryBlue
               }}
             >
-              {partner.industry || "Organization"}
+              {partner.industry}
             </Badge>
-            
-            {partner.jobs_available !== undefined && (
-              <Badge 
-                variant="outline" 
-                className="px-2 py-1"
-                style={{ 
-                  backgroundColor: `${extendedPalette.primaryBlue}10`,
-                  borderColor: `${extendedPalette.primaryBlue}20`,
-                  color: extendedPalette.primaryBlue
-                }}
-              >
-                <Briefcase className="mr-1 h-3 w-3" />
-                {partner.jobs_available} {partner.jobs_available === 1 ? 'job' : 'jobs'}
-              </Badge>
-            )}
-            
-            {partner.is_archived && (
-              <Badge 
-                variant="outline" 
-                className="px-2 py-1"
-                style={{ 
-                  backgroundColor: "#f1f1f1",
-                  borderColor: "#e0e0e0",
-                  color: "#666666"
-                }}
-              >
-                Archived
-              </Badge>
-            )}
-          </div>
-        </div>
-        
-        {/* Partner Logo and details */}
-        <div className="mt-4 flex flex-col sm:flex-row gap-4">
-          <div className="h-16 w-16 shrink-0 rounded-md border border-gray-200 flex items-center justify-center bg-white overflow-hidden">
-            <Avatar className="h-full w-full rounded-md">
-              {partner.logo_url ? (
-                <AvatarImage src={partner.logo_url} alt={partner.name} />
-              ) : (
-                <AvatarFallback className="rounded-md" style={{ backgroundColor: `${color}20`, color }}>
-                  {partner.name
-                    .split(" ")
-                    .map((word) => word[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2)}
-                </AvatarFallback>
-              )}
-            </Avatar>
-          </div>
+          )}
           
-          <div className="space-y-2 flex-1">
-            {partner.website && (
-              <div>
-                <a
-                  href={partner.website.startsWith("http") ? partner.website : `https://${partner.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-sm text-primary hover:underline"
-                >
-                  <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                  Visit company website
-                </a>
-              </div>
-            )}
-            
-            {partner.partnership_start && (
-              <div className="text-sm">
-                <span className="font-medium">Partner since:</span> {new Date(partner.partnership_start).toLocaleDateString()}
-              </div>
-            )}
-          </div>
+          {partner.jobs_available !== undefined && (
+            <Badge 
+              variant="outline" 
+              className="px-2 py-1"
+              style={{ 
+                backgroundColor: `${extendedPalette.teal}10`,
+                borderColor: `${extendedPalette.teal}20`,
+                color: extendedPalette.teal
+              }}
+            >
+              <Briefcase className="mr-1 h-3 w-3" />
+              {partner.jobs_available} {partner.jobs_available === 1 ? 'job' : 'jobs'}
+            </Badge>
+          )}
+          
+          {partner.is_archived && (
+            <Badge 
+              variant="outline" 
+              className="px-2 py-1"
+              style={{ 
+                backgroundColor: "#f1f1f1",
+                borderColor: "#e0e0e0",
+                color: "#666666"
+              }}
+            >
+              Archived
+            </Badge>
+          )}
+          
+          {partner.partnership_start && (
+            <Badge 
+              variant="outline" 
+              className="px-2 py-1"
+              style={{ 
+                backgroundColor: `${extendedPalette.lightGreen}50`,
+                borderColor: `${extendedPalette.primaryGreen}20`,
+                color: extendedPalette.darkGreen
+              }}
+            >
+              <Calendar className="mr-1 h-3 w-3" />
+              Partner since {new Date(partner.partnership_start).toLocaleDateString()}
+            </Badge>
+          )}
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-2 my-6">
-        <Button 
-          variant="outline"
-          size="sm"
-          className="gap-1"
-          onClick={onEdit}
-          style={{ borderColor: color, color }}
-        >
-          <Edit2 className="h-4 w-4" /> Edit
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-          onClick={onDelete}
-        >
-          <Trash2 className="h-4 w-4" /> Delete
-        </Button>
-        {partner.website && (
-          <a
-            href={partner.website.startsWith("http") ? partner.website : `https://${partner.website}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "flex items-center gap-1"
-            )}
-            style={{ borderColor: color, color }}
-          >
-            <ExternalLink className="h-4 w-4" /> Website
-          </a>
-        )}
+      <Separator style={{ backgroundColor: `${extendedPalette.primaryBlue}20` }} />
+      
+      {/* Partner Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div className="bg-gray-50 border border-gray-100 p-3 rounded">
+          <p className="text-xs text-gray-500">Available Jobs</p>
+          <p className="font-medium text-lg" style={{ color: extendedPalette.primaryBlue }}>{partner.jobs_available || 0}</p>
+        </div>
+        <div className="bg-gray-50 border border-gray-100 p-3 rounded">
+          <p className="text-xs text-gray-500">Applicants</p>
+          <p className="font-medium text-lg" style={{ color: extendedPalette.teal }}>{partner.applicants || 0}</p>
+        </div>
+        <div className="bg-gray-50 border border-gray-100 p-3 rounded">
+          <p className="text-xs text-gray-500">Hired</p>
+          <p className="font-medium text-lg" style={{ color: extendedPalette.primaryGreen }}>{partner.applicants_hired || 0}</p>
+        </div>
       </div>
-
-      <Separator style={{ backgroundColor: `${color}20` }} />
 
       {/* Partner Description */}
       {partner.description && (
-        <div>
-          <h2 className="text-lg font-semibold mb-2">About</h2>
-          <div className="text-sm text-muted-foreground whitespace-pre-line">
+        <div className="mt-6">
+          <h3 className="font-medium text-lg mb-2" style={{ color: extendedPalette.primaryBlue }}>About</h3>
+          <div className="text-gray-700 whitespace-pre-line">
             {partner.description}
           </div>
+          {partner.website && (
+            <div className="mt-4">
+              <a
+                href={partner.website.startsWith("http") ? partner.website : `https://${partner.website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-sm text-primary hover:underline"
+                style={{ color: extendedPalette.primaryBlue }}
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                Visit company website
+              </a>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Partner Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-gray-500 mb-1">Available Jobs</p>
-              <p className="text-2xl font-bold" style={{ color }}>
-                {partner.jobs_available || 0}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-gray-500 mb-1">Applicants</p>
-              <p className="text-2xl font-bold" style={{ color }}>
-                {partner.applicants || 0}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-gray-500 mb-1">Hired</p>
-              <p className="text-2xl font-bold" style={{ color }}>
-                {partner.applicants_hired || 0}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Contact Information */}
-      <div>
-        <h2 className="text-lg font-semibold mb-2">Contact Information</h2>
-        <Card>
-          <CardContent className="p-4">
-            {partner.contact_name ? (
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <User className="h-4 w-4 text-gray-500 mr-2" />
-                  <span>{partner.contact_name}</span>
-                </div>
-                {partner.contact_email && (
-                  <div className="flex items-center">
-                    <Mail className="h-4 w-4 text-gray-500 mr-2" />
-                    <a
-                      href={`mailto:${partner.contact_email}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {partner.contact_email}
-                    </a>
-                  </div>
-                )}
-                {partner.contact_phone && (
-                  <div className="flex items-center">
-                    <Phone className="h-4 w-4 text-gray-500 mr-2" />
-                    <span>{partner.contact_phone}</span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-gray-500">
-                <User className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-                <p>No contact information available</p>
-                <Button onClick={onEdit} variant="link" className="mt-1">
-                  Add contact
-                </Button>
+      <div className="mt-6">
+        <h3 className="font-medium text-lg mb-2" style={{ color: extendedPalette.primaryBlue }}>Contact Information</h3>
+        {partner.contact_name || partner.contact_email || partner.contact_phone ? (
+          <div className="space-y-3 bg-gray-50 border border-gray-100 p-4 rounded">
+            {partner.contact_name && (
+              <div className="flex items-center">
+                <User className="h-4 w-4 text-gray-500 mr-2" />
+                <span>{partner.contact_name}</span>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Upcoming Events */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Upcoming Events</h2>
-          <Button size="sm" variant="outline" style={{ borderColor: color, color }}>
-            View All
-          </Button>
-        </div>
-        {events.length > 0 ? (
-          <div className="space-y-3">
-            {events.map((event) => (
-              <Card key={event.id}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h4 className="font-medium">{event.title}</h4>
-                      <div className="flex items-center mt-1 text-gray-500 text-sm">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        <span>{event.date.toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className="ml-2"
-                      style={{ color, borderColor: color }}
-                    >
-                      {event.type.replace("_", " ")}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {partner.contact_email && (
+              <div className="flex items-center">
+                <Mail className="h-4 w-4 text-gray-500 mr-2" />
+                <a
+                  href={`mailto:${partner.contact_email}`}
+                  className="text-blue-600 hover:underline"
+                >
+                  {partner.contact_email}
+                </a>
+              </div>
+            )}
+            {partner.contact_phone && (
+              <div className="flex items-center">
+                <Phone className="h-4 w-4 text-gray-500 mr-2" />
+                <span>{partner.contact_phone}</span>
+              </div>
+            )}
           </div>
         ) : (
-          <Card>
-            <CardContent className="p-4 text-center text-gray-500">
-              <Calendar className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-              <p>No upcoming events</p>
-              <Button variant="link" className="mt-1">
-                Schedule an event
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="bg-gray-50 border border-gray-100 p-4 text-center rounded">
+            <User className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+            <p className="text-gray-500">No contact information available</p>
+            <Button onClick={onEdit} variant="link" className="mt-1" style={{ color: extendedPalette.primaryBlue }}>
+              Add contact details
+            </Button>
+          </div>
         )}
       </div>
     </div>
@@ -550,7 +467,7 @@ export default function PartnersPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [createPartnerModalOpen, setCreatePartnerModalOpen] = useState(false);
   const [editPartnerModalOpen, setEditPartnerModalOpen] = useState(false);
-  const [deletePartnerModalOpen, setDeletePartnerModalOpen] = useState(false);
+  const [archivePartnerModalOpen, setArchivePartnerModalOpen] = useState(false);
 
   // New partner state
   const [newPartner, setNewPartner] = useState<Partial<Partner>>({
@@ -745,16 +662,26 @@ export default function PartnersPage() {
           setPartners(loadedPartners);
         }
         
-        // Set the first partner as selected by default if none is selected
+        // Set the first active partner as selected by default if none is selected
         if (loadedPartners.length > 0 && !selectedPartner) {
-          setSelectedPartner(loadedPartners[0]);
+          const activePartners = loadedPartners.filter(p => !p.is_archived);
+          if (activePartners.length > 0) {
+            setSelectedPartner(activePartners[0]);
+          } else {
+            setSelectedPartner(loadedPartners[0]);
+          }
         }
       } catch (error) {
         console.error("Error loading partners:", error);
         // Use example data as fallback
         setPartners(examplePartners);
         if (examplePartners.length > 0 && !selectedPartner) {
-          setSelectedPartner(examplePartners[0]);
+          const activeExamplePartners = examplePartners.filter(p => p.status !== 'archived' && !p.is_archived);
+          if (activeExamplePartners.length > 0) {
+            setSelectedPartner(activeExamplePartners[0]);
+          } else {
+            setSelectedPartner(examplePartners[0]);
+          }
         }
       }
 
@@ -762,18 +689,24 @@ export default function PartnersPage() {
     };
 
     loadPartners();
-  }, [selectedPartner]);
+  }, []);
 
   // Filter partners based on search query and active tab
   const filteredPartners = partners.filter((partner: Partner) => {
-    // Apply tab filter
-    if (activeTab !== "all" && activeTab === "archived") {
-      return partner.is_archived === true;
-    } else if (activeTab !== "all" && activeTab === "active") {
-      return partner.is_archived !== true;
+    // Apply tab filter first
+    if (activeTab === "archived") {
+      // Only show archived partners in archived tab
+      if (!partner.is_archived) {
+        return false;
+      }
+    } else if (activeTab === "all") {
+      // In the "all" tab, show only non-archived partners
+      if (partner.is_archived) {
+        return false;
+      }
     }
 
-    // Apply search query filter
+    // Then apply search query filter to the remaining partners
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
@@ -891,32 +824,34 @@ export default function PartnersPage() {
     updatePartnerAsync();
   };
 
-  // Delete partner
-  const handleDeletePartner = () => {
+  // Archive/Restore partner
+  const handleArchivePartner = () => {
     if (!selectedPartner) return;
 
-    // Delete partner
-    const deletePartnerAsync = async () => {
+    // Archive/Restore partner
+    const archivePartnerAsync = async () => {
       try {
-        const success = await partnerService.delete(selectedPartner.partner_id);
+        // Use the new toggleArchiveStatus method
+        const updatedPartner = await partnerService.toggleArchiveStatus(selectedPartner.partner_id);
         
-        if (success) {
-          // Remove partner from list
+        if (updatedPartner) {
+          // Update partners list
           setPartners(prevPartners =>
-            prevPartners.filter(p => p.partner_id !== selectedPartner.partner_id)
+            prevPartners.map(p =>
+              p.partner_id === updatedPartner.partner_id ? updatedPartner : p
+            )
           );
           
-          // Select a different partner
-          const remainingPartner = partners.find(p => p.partner_id !== selectedPartner.partner_id);
-          setSelectedPartner(remainingPartner || null);
-          setDeletePartnerModalOpen(false);
+          // Update selected partner
+          setSelectedPartner(updatedPartner);
+          setArchivePartnerModalOpen(false);
         }
       } catch (error) {
-        console.error("Error deleting partner:", error);
+        console.error("Error archiving/restoring partner:", error);
       }
     };
     
-    deletePartnerAsync();
+    archivePartnerAsync();
   };
 
   // Open edit modal and initialize form with selected partner data
@@ -997,9 +932,8 @@ export default function PartnersPage() {
 
         {/* Tabs for filtering partners by status */}
         <Tabs defaultValue="all" onValueChange={setActiveTab} className="mb-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
             <TabsTrigger value="archived">Archived</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -1083,7 +1017,7 @@ export default function PartnersPage() {
             <PartnerDetails
               partner={selectedPartner}
               onEdit={openEditModal}
-              onDelete={() => setDeletePartnerModalOpen(true)}
+              onDelete={() => setArchivePartnerModalOpen(true)}
             />
           </Card>
         </div>
@@ -1451,30 +1385,37 @@ export default function PartnersPage() {
         </div>
       </MultiPurposeModal>
 
-      {/* Delete Confirmation Modal */}
+      {/* Archive Confirmation Modal */}
       <MultiPurposeModal
-        open={deletePartnerModalOpen}
-        onOpenChange={setDeletePartnerModalOpen}
-        title="Delete Partner"
-        description="Are you sure you want to delete this partner? This action cannot be undone."
+        open={archivePartnerModalOpen}
+        onOpenChange={setArchivePartnerModalOpen}
+        title={selectedPartner?.is_archived ? "Restore Partner" : "Archive Partner"}
+        description={selectedPartner?.is_archived 
+          ? "This will make the partner visible in the main partners list." 
+          : "This will hide the partner from the main list. Archived partners can be restored later."}
         size="sm"
       >
         {selectedPartner && (
           <div className="py-4">
             <p className="mb-4 text-gray-600">
-              This will remove <strong>{selectedPartner.name}</strong> and all
-              associated data from the system.
+              {selectedPartner.is_archived 
+                ? `This will restore ${selectedPartner.name} to active status.` 
+                : `This will archive ${selectedPartner.name}. It will only be visible in the archived tab.`}
             </p>
 
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
-                onClick={() => setDeletePartnerModalOpen(false)}
+                onClick={() => setArchivePartnerModalOpen(false)}
               >
                 Cancel
               </Button>
-              <Button variant="danger" onClick={handleDeletePartner}>
-                Delete Partner
+              <Button 
+                variant={selectedPartner.is_archived ? "default" : "outline"} 
+                onClick={handleArchivePartner}
+                className={selectedPartner.is_archived ? "" : "text-red-600 hover:text-red-700 hover:bg-red-50"}
+              >
+                {selectedPartner.is_archived ? "Restore Partner" : "Archive Partner"}
               </Button>
             </div>
           </div>

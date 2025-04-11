@@ -128,6 +128,27 @@ class PartnerService {
       return false;
     }
   }
+  
+  // Toggle archive status (archive or restore)
+  async toggleArchiveStatus(id: number): Promise<Partner | null> {
+    try {
+      // First get the current partner
+      const partner = await this.getById(id);
+      if (!partner) {
+        return null;
+      }
+      
+      // Toggle the archive status
+      const updatedPartner = await this.update(id, {
+        is_archived: !partner.is_archived
+      });
+      
+      return updatedPartner;
+    } catch (error) {
+      console.error('Error toggling archive status:', error);
+      return null;
+    }
+  }
 }
 
 // Export a singleton instance

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "seed": "node prisma/seed-script.js"
+    "seed": "node prisma/seed-script.js",
+    "prisma:seed": "node prisma/seed-script.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -51,6 +52,7 @@
     "cmdk": "1.0.4",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "8.5.1",
+    "faker-js": "^1.0.0",
     "framer-motion": "^11.0.3",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
@@ -71,6 +73,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@faker-js/faker": "^9.6.0",
     "@types/node": "^22",
     "@types/react": "^18.2.0",
     "@types/react-beautiful-dnd": "^13.1.8",
