@@ -72,7 +72,7 @@ export async function GET() {
       `;
       
       // Get upcoming events that may be interviews
-      const upcomingEvents = await prisma.internships.findMany({
+      const upcomingEvents = await prisma.interviews.findMany({
         where: {
           event_date: {
             gte: new Date()
@@ -112,13 +112,15 @@ export async function GET() {
 
       // Add additional interviews from events if available
       upcomingEvents.forEach((event: {
-        event_id: number;
+        user_id: number;
         title: string;
+        description: string | null;
+        created_at: Date | null;
+        interview_id: number;
         event_date: Date;
-        description?: string | null;
       }) => {
         interviews.push({
-          id: `event-${event.event_id}`,
+          id: `event-${event.interview_id}`,
           candidateName: 'Scheduled Candidate',
           position: event.title.replace(/interview/i, '').trim() || 'Candidate Interview',
           company: 'Launchpad Partner',
