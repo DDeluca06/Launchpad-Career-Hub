@@ -15,6 +15,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { userService } from "@/lib/local-storage";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -35,6 +36,7 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [username, setUsername] = useState("User");
 
   // Track scroll position to add shadow to navbar when scrolled
   useEffect(() => {
@@ -44,6 +46,25 @@ export function DashboardLayout({
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Get username from userService
+  useEffect(() => {
+    // For demo, we'll use user with ID 2 (a non-admin)
+    const userData = userService.getById(2);
+    if (userData && userData.username) {
+      setUsername(userData.username);
+    }
+
+    // Set up an interval to check for username changes
+    const intervalId = setInterval(() => {
+      const updatedUserData = userService.getById(2);
+      if (updatedUserData && updatedUserData.username !== username) {
+        setUsername(updatedUserData.username);
+      }
+    }, 1000); // Check every second
+
+    return () => clearInterval(intervalId);
+  }, [username]);
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -147,7 +168,7 @@ export function DashboardLayout({
               </div>
               <div className="hidden md:block">
                 <p className="font-medium text-gray-900 dark:text-gray-100">
-                  Welcome back!
+                  {isAdmin ? "Admin" : username}
                 </p>
                 <p className="text-sm text-gray-500">
                   {isAdmin ? "Administrator" : "Student"}
