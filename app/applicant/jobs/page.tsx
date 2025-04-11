@@ -31,19 +31,19 @@ import { cn } from "@/lib/utils";
 import { jobService, applicationService, userService, resumeService, User, userProfileService, UserProfile } from "@/lib/local-storage";
 
 // Types
-interface Job {
+interface UIJob {
   id: string;
   title: string;
   company: string;
-  location: string;
-  jobType: string;
+  location?: string;
+  jobType?: string;
   experienceLevel: string;
   salary: string;
-  description: string;
+  description?: string;
   responsibilities: string[];
   qualifications: string[];
   benefits: string[];
-  postedDate: string;
+  postedDate?: string;
   applicationDeadline: string;
   companyLogoUrl: string;
   industry: string;
@@ -213,10 +213,10 @@ function JobDetailsSkeleton() {
 
 export default function JobsPage() {
   // State
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<UIJob[]>([]);
+  const [filteredJobs, setFilteredJobs] = useState<UIJob[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [selectedJob, setSelectedJob] = useState<UIJob | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -277,7 +277,7 @@ export default function JobsPage() {
       const storageJobs = jobService.getAll();
       
       // Transform jobs to match the UI format
-      const transformedJobs: Job[] = storageJobs.map(job => ({
+      const transformedJobs: UIJob[] = storageJobs.map(job => ({
         id: job.job_id.toString(),
         title: job.title,
         company: job.company,
@@ -303,10 +303,12 @@ export default function JobsPage() {
           "Remote work options"
         ],
         postedDate: job.created_at,
-        applicationDeadline: new Date(new Date(job.created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        applicationDeadline: job.created_at 
+          ? new Date(new Date(job.created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         companyLogoUrl: job.companyLogo || "https://placehold.co/150",
         industry: job.tags?.[0] || "Technology",
-        isRemote: job.location.toLowerCase().includes("remote")
+        isRemote: job.location?.toLowerCase().includes("remote") || false
       }));
       
       setJobs(transformedJobs);
@@ -392,7 +394,7 @@ export default function JobsPage() {
     const searchResults = jobs.filter(job => 
       job.title.toLowerCase().includes(value.toLowerCase()) ||
       job.company.toLowerCase().includes(value.toLowerCase()) ||
-      job.description.toLowerCase().includes(value.toLowerCase())
+      job.description?.toLowerCase().includes(value.toLowerCase())
     );
     
     applyFilters(searchResults, filterOptions);
@@ -418,19 +420,19 @@ export default function JobsPage() {
     applyFilters(jobs, updatedFilters);
   };
 
-  const applyFilters = (jobsToFilter: Job[], filters: FilterOptions) => {
+  const applyFilters = (jobsToFilter: UIJob[], filters: FilterOptions) => {
     let results = [...jobsToFilter];
     
     if (searchTerm) {
       results = results.filter(job => 
         job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.description.toLowerCase().includes(searchTerm.toLowerCase())
+        job.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
     if (filters.jobType.length > 0) {
-      results = results.filter(job => filters.jobType.includes(job.jobType));
+      results = results.filter(job => filters.jobType.includes(job.jobType || ""));
     }
     
     if (filters.experienceLevel.length > 0) {
@@ -438,7 +440,7 @@ export default function JobsPage() {
     }
     
     if (filters.location.length > 0) {
-      results = results.filter(job => filters.location.includes(job.location));
+      results = results.filter(job => filters.location.includes(job.location || ""));
     }
     
     if (filters.industry.length > 0) {
@@ -496,7 +498,7 @@ export default function JobsPage() {
     return savedJobs.includes(jobId);
   };
 
-  const openApplyModal = (job: Job) => {
+  const openApplyModal = (job: UIJob) => {
     setSelectedJob(job);
     setApplyModalOpen(true);
   };
@@ -573,7 +575,7 @@ export default function JobsPage() {
   };
 
   // Job Detail View Component
-  function JobDetails({ job }: { job: Job | null }) {
+  function JobDetails({ job }: { job: UIJob | null }) {
     if (!job) {
       return (
         <div className="flex flex-col items-center justify-center h-full p-6 text-center">

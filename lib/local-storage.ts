@@ -36,6 +36,14 @@ export interface Resume {
   created_at: string;
 }
 
+export enum JobType {
+  FULL_TIME = 'Full-time',
+  PART_TIME = 'Part-time',
+  CONTRACT = 'Contract',
+  INTERNSHIP = 'Internship',
+  REMOTE = 'Remote'
+}
+
 export interface Job {
   job_id: number;
   title: string;
@@ -44,6 +52,10 @@ export interface Job {
   job_type?: JobType;
   description?: string;
   companyLogo?: string;
+  tags?: string[];
+  salary?: string;
+  created_at?: string;
+  partner_id?: number;
 }
 
 export interface Application {
@@ -286,7 +298,7 @@ export const jobService = {
     return jobs.filter(job => 
       job.title.toLowerCase().includes(lowercaseQuery) ||
       job.company.toLowerCase().includes(lowercaseQuery) ||
-      job.location.toLowerCase().includes(lowercaseQuery) ||
+      (job.location?.toLowerCase().includes(lowercaseQuery) || false) ||
       job.description?.toLowerCase().includes(lowercaseQuery) ||
       job.tags?.some(tag => tag.toLowerCase().includes(lowercaseQuery))
     );
@@ -307,34 +319,35 @@ export const jobService = {
     const index = jobs.findIndex(j => j.job_id === job.job_id);
     if (index >= 0) {
       jobs[index] = job;
+      setItem(STORAGE_KEYS.JOBS, jobs);
+      return job;
     } else {
       // Generate a new ID if none exists
       if (!job.job_id) {
         job.job_id = Math.max(0, ...jobs.map(j => j.job_id)) + 1;
       }
       jobs.push(job);
+      setItem(STORAGE_KEYS.JOBS, jobs);
+      return job;
     }
-    
-    localStorage.setItem(this.storageKey, JSON.stringify(jobs));
-    return job;
-  }
+  },
 
   // Delete a job
-  delete(id: number): void {
-    const jobs = this.getAll();
+  delete: (id: number): void => {
+    const jobs = getItem<Job[]>(STORAGE_KEYS.JOBS, []);
     const filtered = jobs.filter(job => job.job_id !== id);
-    localStorage.setItem(this.storageKey, JSON.stringify(filtered));
-  }
+    setItem(STORAGE_KEYS.JOBS, filtered);
+  },
 
   // Initialize with mock data for demonstration
-  private initMockData(): void {
+  initMockData: (): void => {
     const mockJobs: Job[] = [
       {
         job_id: 1,
         title: "Frontend Developer",
         company: "TechCorp",
         location: "Philadelphia, PA (Remote)",
-        job_type: "FULL_TIME",
+        job_type: JobType.FULL_TIME,
         description: "Building modern web applications using React and Next.js",
         tags: ["FRONT_END", "FULLY_REMOTE"],
         salary: "$80,000 - $100,000",
@@ -345,7 +358,7 @@ export const jobService = {
         title: "UX Designer",
         company: "Design Studio",
         location: "Boston, MA (On-site)",
-        job_type: "FULL_TIME",
+        job_type: JobType.FULL_TIME,
         description: "Design user interfaces and experiences for web and mobile applications",
         tags: ["UX_UI_DESIGN", "IN_PERSON"],
         salary: "$75,000 - $95,000",
@@ -356,7 +369,7 @@ export const jobService = {
         title: "Backend Engineer",
         company: "Data Inc.",
         location: "New York, NY (Hybrid)",
-        job_type: "FULL_TIME",
+        job_type: JobType.FULL_TIME,
         description: "Develop and maintain server-side applications and databases",
         tags: ["BACK_END", "HYBRID"],
         salary: "$90,000 - $120,000",
@@ -367,7 +380,7 @@ export const jobService = {
         title: "Product Manager",
         company: "Web Solutions",
         location: "Philadelphia, PA (On-site)",
-        job_type: "FULL_TIME",
+        job_type: JobType.FULL_TIME,
         description: "Lead product development and roadmap planning",
         tags: ["PRODUCT_MANAGEMENT", "IN_PERSON"],
         salary: "$95,000 - $115,000",
@@ -375,9 +388,58 @@ export const jobService = {
       }
     ];
 
-    localStorage.setItem(this.storageKey, JSON.stringify(mockJobs));
+    localStorage.setItem(STORAGE_KEYS.JOBS, JSON.stringify(mockJobs));
   }
-}
+};
 
-// Export a singleton instance
-export const jobService = new JobService(); 
+// Application operations
+export const applicationService = {
+  getAll: () => getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []),
+  getById: (id: number) => getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []).find(app => app.application_id === id),
+  getByUserId: (userId: number) => getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []).filter(app => app.user_id === userId),
+  getByJobId: (jobId: number) => getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []).filter(app => app.job_id === jobId),
+  create: (application: Omit<Application, 'application_id' | 'applied_at' | 'status_updated_at'>) => {
+    const applications = getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []);
+    const newApplication: Application = {
+      ...application,
+      application_id: applications.length > 0 ? Math.max(...applications.map(a => a.application_id)) + 1 : 1,
+      applied_at: new Date().toISOString(),
+      status_updated_at: new Date().toISOString()
+    };
+    applications.push(newApplication);
+    setItem(STORAGE_KEYS.APPLICATIONS, applications);
+    return newApplication;
+  },
+  update: (application: Application) => {
+    const applications = getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []);
+    const index = applications.findIndex(a => a.application_id === application.application_id);
+    if (index >= 0) {
+      applications[index] = {
+        ...application,
+        status_updated_at: new Date().toISOString()
+      };
+      setItem(STORAGE_KEYS.APPLICATIONS, applications);
+      return applications[index];
+    }
+    return null;
+  },
+  delete: (id: number): void => {
+    const applications = getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []);
+    const filtered = applications.filter(app => app.application_id !== id);
+    setItem(STORAGE_KEYS.APPLICATIONS, filtered);
+  },
+  updateStatus: (id: number, status: string) => {
+    const applications = getItem<Application[]>(STORAGE_KEYS.APPLICATIONS, []);
+    const index = applications.findIndex(a => a.application_id === id);
+    if (index >= 0) {
+      applications[index] = {
+        ...applications[index],
+        status,
+        status_updated_at: new Date().toISOString()
+      };
+      setItem(STORAGE_KEYS.APPLICATIONS, applications);
+      return applications[index];
+    }
+    return null;
+  }
+};
