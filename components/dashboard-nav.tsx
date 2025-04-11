@@ -180,7 +180,8 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
     },
   ] : [];
 
-  const utilityItems: NavItem[] = [
+  // Only show profile and resume pages for regular users, not for admins
+  const utilityItems: NavItem[] = isAdmin ? [] : [
     {
       title: "Profile",
       href: `${baseUrl}/profile`,
@@ -208,7 +209,9 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
           />
         )}
 
-        <NavSection title="Utilities" items={utilityItems} pathname={pathname} />
+        {!isAdmin && utilityItems.length > 0 && (
+          <NavSection title="Utilities" items={utilityItems} pathname={pathname} />
+        )}
       </div>
 
       <div className="mt-auto px-4 pt-4 pb-4 border-t border-gray-200 dark:border-gray-700">
