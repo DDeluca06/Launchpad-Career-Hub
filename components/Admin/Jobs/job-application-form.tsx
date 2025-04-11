@@ -1,22 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/basic/button";
 
-interface Job {
-  title: string;
-  company: string;
-  location: string;
-  type: string;
-  salary: string;
+/**
+ * Interface representing a user's resume from the database
+ */
+interface Resume {
+  resume_id: number;
+  file_name: string;
+  file_path: string;
+  is_default: boolean | null;
 }
 
+/**
+ * Interface for the job application form data
+ */
 interface JobApplicationData {
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  resume: File | null;
+  resumeId: number | null; // ID of the selected resume from the dropdown
   coverLetter: File | null;
   linkedin: string;
   github: string;
@@ -24,11 +29,17 @@ interface JobApplicationData {
   additionalInfo: string;
 }
 
+/**
+ * Props for the JobApplicationForm component
+ */
 interface JobApplicationFormProps {
-  job: Job;
-  onSubmit: (data: JobApplicationData) => void;
+  userId: number; // ID of the current user to fetch their resumes
+  onSubmit: (data: JobApplicationData) => void; // Callback function when form is submitted
 }
 
+/**
+ * Props for the reusable Input component
+ */
 interface InputProps {
   type: string;
   label: string;
@@ -38,6 +49,9 @@ interface InputProps {
   className?: string;
 }
 
+/**
+ * Props for the reusable Textarea component
+ */
 interface TextareaProps {
   label: string;
   value: string;
@@ -46,6 +60,9 @@ interface TextareaProps {
   className?: string;
 }
 
+/**
+ * Reusable Input component for form fields
+ */
 const Input: React.FC<InputProps> = ({
   type,
   label,
@@ -66,6 +83,9 @@ const Input: React.FC<InputProps> = ({
   </div>
 );
 
+/**
+ * Reusable Textarea component for form fields
+ */
 const Textarea: React.FC<TextareaProps> = ({
   label,
   value,
@@ -84,20 +104,72 @@ const Textarea: React.FC<TextareaProps> = ({
   </div>
 );
 
-export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
+/**
+ * Job Application Form Component
+ * 
+ * This component provides a form for users to apply for jobs.
+ * It includes fields for personal information, resume selection from a dropdown,
+ * cover letter upload, and additional information.
+ */
+export function JobApplicationForm({ userId, onSubmit }: JobApplicationFormProps) {
+  // State to store form data
   const [formData, setFormData] = useState<JobApplicationData>({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
-    resume: null,
+    resumeId: null,
     coverLetter: null,
     linkedin: "",
     github: "",
     portfolio: "",
     additionalInfo: "",
   });
+  
+  // State to store user's resumes fetched from the database
+  const [userResumes, setUserResumes] = useState<Resume[]>([]);
+  // State to track loading state when fetching resumes
+  const [isLoadingResumes, setIsLoadingResumes] = useState(false);
 
+  /**
+   * Effect hook to fetch user's resumes when component mounts
+   * or when userId changes
+   */
+  useEffect(() => {
+    const fetchUserResumes = async () => {
+      if (!userId) return;
+      
+      setIsLoadingResumes(true);
+      try {
+        // Fetch resumes from the API route
+        const response = await fetch(`/api/resumes?userId=${userId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setUserResumes(data);
+          
+          // If there's a default resume, select it automatically
+          const defaultResume = data.find((resume: Resume) => resume.is_default);
+          if (defaultResume) {
+            setFormData(prev => ({ ...prev, resumeId: defaultResume.resume_id }));
+          } else if (data.length > 0) {
+            // Otherwise select the first resume
+            setFormData(prev => ({ ...prev, resumeId: data[0].resume_id }));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch resumes:", error);
+      } finally {
+        setIsLoadingResumes(false);
+      }
+    };
+
+    fetchUserResumes();
+  }, [userId]);
+
+  /**
+   * Handle form submission
+   * @param e - Form event
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
@@ -105,6 +177,7 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Personal Information Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           type="text"
@@ -126,6 +199,7 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
         />
       </div>
 
+      {/* Contact Information Section */}
       <Input
         type="email"
         label="Email"
@@ -145,23 +219,43 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
         }
       />
 
+      {/* Resume Selection Section */}
       <div className="space-y-4">
         <label className="block text-sm font-medium text-gray-700">
           Resume
         </label>
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              setFormData((prev) => ({ ...prev, resume: file }));
+        {isLoadingResumes ? (
+          // Show loading state while fetching resumes
+          <p className="text-sm text-gray-500">Loading your resumes...</p>
+        ) : userResumes.length > 0 ? (
+          // Show dropdown if user has resumes
+          <select
+            value={formData.resumeId || ""}
+            onChange={(e) => 
+              setFormData((prev) => ({ 
+                ...prev, 
+                resumeId: e.target.value ? parseInt(e.target.value) : null 
+              }))
             }
-          }}
-          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-launchpad-blue file:text-white hover:file:bg-launchpad-teal"
-        />
+            className="block w-full border-gray-200 rounded-md shadow-sm focus:border-launchpad-blue focus:ring-launchpad-blue"
+            required
+          >
+            <option value="">Select a resume</option>
+            {userResumes.map((resume) => (
+              <option key={resume.resume_id} value={resume.resume_id}>
+                {resume.file_name} {resume.is_default ? "(Default)" : ""}
+              </option>
+            ))}
+          </select>
+        ) : (
+          // Show message if user has no resumes
+          <p className="text-sm text-gray-500">
+            No resumes found. Please upload a resume in your profile settings.
+          </p>
+        )}
       </div>
 
+      {/* Cover Letter Upload Section */}
       <div className="space-y-4">
         <label className="block text-sm font-medium text-gray-700">
           Cover Letter (Optional)
@@ -179,6 +273,7 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
         />
       </div>
 
+      {/* Professional Profiles Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           type="url"
@@ -207,19 +302,18 @@ export function JobApplicationForm({ onSubmit }: JobApplicationFormProps) {
         }
       />
 
+      {/* Additional Information Section */}
       <Textarea
         label="Additional Information"
         value={formData.additionalInfo}
         onChange={(e) =>
           setFormData((prev) => ({ ...prev, additionalInfo: e.target.value }))
         }
-        placeholder="Tell us why you're a great fit for this role..."
+        placeholder="Tell us anything else you'd like us to know about you"
       />
 
-      <Button
-        type="submit"
-        className="w-full bg-launchpad-blue hover:bg-launchpad-teal text-white"
-      >
+      {/* Submit Button */}
+      <Button type="submit" className="w-full bg-launchpad-blue hover:bg-launchpad-teal text-white">
         Submit Application
       </Button>
     </form>

@@ -13,10 +13,10 @@ import {
   BarChart2,
   Users,
   MessageSquare,
-  Calendar,
   LogOut,
   Settings,
   HelpCircle,
+  FileText,
 } from "lucide-react";
 
 interface NavItem {
@@ -182,15 +182,15 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
 
   const utilityItems: NavItem[] = [
     {
-      title: "Calendar",
-      href: `${baseUrl}/calendar`,
-      icon: <Calendar />,
-      color: extendedPalette.primaryGreen,
+      title: "Profile",
+      href: `${baseUrl}/profile`,
+      icon: <Settings />,
+      color: extendedPalette.darkGray,
     },
     {
-      title: "Settings",
-      href: `${baseUrl}/settings`,
-      icon: <Settings />,
+      title: "Resumes",
+      href: `${baseUrl}/resume-page`,
+      icon: <FileText />,
       color: extendedPalette.darkGray,
     },
   ];
@@ -207,7 +207,7 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
             pathname={pathname}
           />
         )}
-        
+
         <NavSection title="Utilities" items={utilityItems} pathname={pathname} />
       </div>
 
