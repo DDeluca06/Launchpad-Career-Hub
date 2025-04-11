@@ -23,17 +23,17 @@ export async function GET() {
       username: string;
       first_name: string;
       last_name: string;
-      is_admin: boolean;
-      program: string;
-      created_at: string;
+      is_admin: boolean | null;
+      program: string | null;
+      created_at: Date | null;
     }) => ({
       user_id: user.user_id,
       username: user.username,
       first_name: user.first_name,
       last_name: user.last_name,
-      isAdmin: user.is_admin, // Map is_admin to isAdmin
-      program: user.program,
-      created_at: user.created_at,
+      isAdmin: user.is_admin ?? false, // Map is_admin to isAdmin, defaulting to false if null
+      program: user.program ?? '', // Map program, defaulting to empty string if null
+      created_at: user.created_at?.toISOString() ?? '', // Convert Date to ISO string, defaulting to empty string if null
     }));
 
     console.warn(`Found ${mappedUsers.length} users in database`);
