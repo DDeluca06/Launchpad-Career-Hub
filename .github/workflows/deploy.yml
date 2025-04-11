@@ -25,7 +25,17 @@ jobs:
       - name: 🧳 Package Deployment Files
         run: |
           mkdir -p deploy
-          cp -r .next public package.json next.config.js ecosystem.config.js deploy/
+          # Copy essential files first
+          cp -r .next public package.json ecosystem.config.js deploy/
+          # Copy next config file (either .js or .mjs)
+          if [ -f next.config.mjs ]; then
+            cp next.config.mjs deploy/
+          elif [ -f next.config.js ]; then
+            cp next.config.js deploy/
+          else
+            echo "No Next.js config file found"
+            exit 1
+          fi
 
       - name: 🚚 Send to Server
         uses: appleboy/scp-action@v0.1.7
