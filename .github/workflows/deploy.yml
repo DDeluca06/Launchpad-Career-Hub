@@ -1,0 +1,58 @@
+name: Deploy Next.js to DigitalOcean
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧾 Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 📥 Install & Build
+        run: |
+          npm install
+          npm run build
+
+      - name: 🧳 Package Deployment Files
+        run: |
+          mkdir -p deploy
+          # Copy essential files first
+          cp -r .next public package.json ecosystem.config.js deploy/
+          # Copy next config file (either .js or .mjs)
+          if [ -f next.config.mjs ]; then
+            cp next.config.mjs deploy/
+          elif [ -f next.config.js ]; then
+            cp next.config.js deploy/
+          else
+            echo "No Next.js config file found"
+            exit 1
+          fi
+
+      - name: 🚚 Send to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "deploy/*"
+          target: "/home/jobportal/jobportal"
+
+      - name: 🔁 Restart App with PM2 Ecosystem
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/jobportal/jobportal
+            npm install --omit=dev
+            pm2 start ecosystem.config.js || pm2 restart jobportal

@@ -1,8 +1,8 @@
 module.exports = {
   apps: [
     {
-      name: 'next-app',
-      script: 'pnpm',
+      name: 'jobportal',
+      script: 'npm',
       args: 'start',
       env: {
         NODE_ENV: 'production',
@@ -14,4 +14,4 @@ module.exports = {
       max_memory_restart: '1G'
     }
   ]
-} 
+}
