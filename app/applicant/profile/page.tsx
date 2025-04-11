@@ -8,18 +8,20 @@ import { Input } from "@/components/ui/form/input"
 import { Label } from "@/components/ui/basic/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
 import { Check, Save, Camera } from "lucide-react"
-import { userService, User } from "@/lib/local-storage"
+import { userService, User, userProfileService, UserProfile } from "@/lib/local-storage"
 
 
 export default function ApplicantSettingsPage() {
   const [savedIndicator, setSavedIndicator] = useState(false)
   const [user, setUser] = useState<User | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // User settings state
   const [userSettings, setUserSettings] = useState({
-    username: "",
+    firstName: "",
+    lastName: "",
     status: "active", // enum: active, inactive
     program: "foundations", // enum based on available programs
     password: "", // For password change
@@ -33,11 +35,18 @@ export default function ApplicantSettingsPage() {
 
       if (currentUser) {
         setUser(currentUser);
+        
+        // Get user profile data
+        const profile = userProfileService.getByUserId(currentUser.user_id);
+        if (profile) {
+          setUserProfile(profile);
+        }
 
         // Pre-fill form with user data
         setUserSettings(prev => ({
           ...prev,
-          username: currentUser.username || "",
+          firstName: profile ? profile.first_name : "",
+          lastName: profile ? profile.last_name : "",
           status: currentUser.status || "active",
           program: currentUser.program || "foundations"
         }));
@@ -58,25 +67,38 @@ export default function ApplicantSettingsPage() {
   const handleSave = () => {
     // Save to localStorage
     if (user) {
+      // Update user in local storage
       const updatedUser = {
         ...user,
-        username: userSettings.username,
         status: userSettings.status,
         program: userSettings.program
       };
+      
+      // Update user profile in local storage
+      if (userProfile) {
+        const updatedProfile = {
+          ...userProfile,
+          first_name: userSettings.firstName,
+          last_name: userSettings.lastName
+        };
+        
+        userProfileService.update(updatedProfile);
+        setUserProfile(updatedProfile);
+      } else {
+        // Create a new profile if one doesn't exist
+        const newProfile = userProfileService.create({
+          user_id: user.user_id,
+          first_name: userSettings.firstName,
+          last_name: userSettings.lastName,
+          email: "",
+          phone: ""
+        });
+        setUserProfile(newProfile);
+      }
 
-      // Update user in local storage
       const result = userService.update(updatedUser);
-
       if (result) {
         setUser(updatedUser);
-
-        // If this is the current logged-in user, update the current user in local storage
-        const currentUser = userService.getCurrentUser();
-        if (currentUser && currentUser.user_id === user.user_id) {
-          userService.logout(); // Clear current user
-          userService.login(updatedUser.username, updatedUser.password); // Log back in with updated user
-        }
 
         // Show saved indicator
         setSavedIndicator(true);
@@ -158,7 +180,7 @@ export default function ApplicantSettingsPage() {
                     <AvatarImage src={profileImage} alt="Profile" />
                   ) : (
                     <AvatarFallback className="bg-gray-100 text-gray-400 text-2xl">
-                      {user?.username?.substring(0, 2).toUpperCase() || "U"}
+                      {userProfile?.first_name?.substring(0, 2).toUpperCase() || "U"}
                     </AvatarFallback>
                   )}
                 </Avatar>
@@ -184,13 +206,23 @@ export default function ApplicantSettingsPage() {
               <div className="flex-1 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
+                    <Label htmlFor="firstName">First Name</Label>
                     <Input
-                      id="username"
-                      value={userSettings.username}
-                      onChange={(e) => handleSettingChange('username', e.target.value)}
+                      id="firstName"
+                      value={userSettings.firstName}
+                      onChange={(e) => handleSettingChange('firstName', e.target.value)}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={userSettings.lastName}
+                      onChange={(e) => handleSettingChange('lastName', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="program">Program</Label>
                     <select
