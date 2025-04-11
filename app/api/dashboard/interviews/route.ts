@@ -72,7 +72,7 @@ export async function GET() {
       `;
       
       // Get upcoming events that may be interviews
-      const upcomingEvents = await prisma.events.findMany({
+      const upcomingEvents = await prisma.internships.findMany({
         where: {
           event_date: {
             gte: new Date()
