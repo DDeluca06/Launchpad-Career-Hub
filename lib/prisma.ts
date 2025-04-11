@@ -9,14 +9,22 @@
 // What does this mean for you, the developer?
 // You should be using this file to import Prisma Client
 // and not creating your own instance of it.
-import { PrismaClient } from '@/lib/generated/prisma';
+import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: ['query', 'error', 'warn'],
-  });
+// Create Prisma client with error logging
+const prismaClientSingleton = () => {
+  try {
+    return new PrismaClient({
+      log: ['error', 'warn'],
+    })
+  } catch (error) {
+    console.error('Failed to initialize Prisma client:', error)
+    throw error
+  }
+}
+
+export const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma; 
