@@ -157,3 +157,4 @@ Icon?
 /prisma/*.sqlite3
 /prisma/*.sqlite3-journal
 /lib/generated/prisma/
+.deploy
