@@ -144,6 +144,7 @@ model partners {
   jobs_available   Int?    @default(0)
   applicants       Int?    @default(0)
   applicants_hired Int?    @default(0)
+  is_archived      Boolean @default(false)
   jobs             jobs[]
 }
 
