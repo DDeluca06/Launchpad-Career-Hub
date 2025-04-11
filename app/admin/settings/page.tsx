@@ -5,7 +5,6 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import {
   Card,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/basic/card";
@@ -21,35 +20,40 @@ import { Switch } from "@/components/ui/basic/switch";
 import { Badge } from "@/components/ui/basic/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/basic/avatar";
 import {
-  Check,
-  Save,
-  RefreshCw,
-  Moon,
-  Sun,
   Shield,
   UserCircle,
   Search,
+  Sun,
+  Moon,
 } from "lucide-react";
-import { extendedPalette } from "@/lib/colors";
-import { userService, User } from "@/lib/local-storage";
 import { useTheme } from "next-themes";
+
+interface User {
+  user_id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  isAdmin: boolean;
+  program: string;
+  created_at: string;
+}
 
 /**
  * Renders the admin settings page.
  *
  * This component provides an interface for managing appearance preferences and user access for administrators.
- * It loads user data from local storage, supports filtering by username, toggles admin status for users,
- * and simulates saving settings with a temporary indicator.
+ * It loads user data from the database, supports filtering by username, and toggles admin status for users.
  *
  * @returns The JSX element representing the admin settings page in the dashboard layout.
  */
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState("userAccess");
-  const [savedIndicator, setSavedIndicator] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState<number | null>(null);
 
   // Simplified settings state
   const [settings, setSettings] = useState({
@@ -60,10 +64,27 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const loadUsers = async () => {
-      setIsLoading(true);
-      const allUsers = userService.getAll();
-      setUsers(allUsers);
-      setIsLoading(false);
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/users');
+        if (!response.ok) {
+          const text = await response.text();
+          console.error('API Response:', text);
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const users = await response.json();
+        console.warn('Fetched users:', users);
+        setUsers(users);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load users';
+        setError(errorMessage);
+        console.error('Error loading users:', err);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadUsers();
@@ -87,28 +108,41 @@ export default function SettingsPage() {
     }));
   };
 
-  const handleSave = () => {
-    // In a real app, this would save to backend/localStorage
-
-    // Show saved indicator
-    setSavedIndicator(true);
-    setTimeout(() => setSavedIndicator(false), 2000);
-  };
-
   // Toggle admin status for a user
-  const toggleAdminStatus = (userId: number) => {
-    const updatedUsers = users.map((user) =>
-      user.user_id === userId ? { ...user, isAdmin: !user.isAdmin } : user,
-    );
+  const toggleAdminStatus = async (userId: number) => {
+    try {
+      setIsUpdating(userId);
+      setError(null);
 
-    setUsers(updatedUsers);
+      const userToUpdate = users.find((user) => user.user_id === userId);
+      if (!userToUpdate) return;
 
-    // Update in localStorage
-    const userToUpdate = updatedUsers.find(
-      (user: User) => user.user_id === userId,
-    );
-    if (userToUpdate) {
-      userService.update(userToUpdate);
+      const response = await fetch(`/api/users/${userId}/admin`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isAdmin: !userToUpdate.isAdmin,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.details || 'Failed to update admin status');
+      }
+
+      // Update local state
+      setUsers(users.map((user) =>
+        user.user_id === userId ? { ...user, isAdmin: data.isAdmin } : user
+      ));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      console.error('Error updating admin status:', err);
+    } finally {
+      setIsUpdating(null);
     }
   };
 
@@ -120,6 +154,11 @@ export default function SettingsPage() {
   return (
     <DashboardLayout isAdmin>
       <div className="container py-6 px-4 mx-auto pb-24">
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
+        )}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-foreground/90">Settings</h1>
@@ -258,7 +297,7 @@ export default function SettingsPage() {
                           // Generate initials for avatar
                           const initials = user.username
                             .split(" ")
-                            .map((word) => word[0])
+                            .map((word: string) => word[0])
                             .join("")
                             .toUpperCase()
                             .slice(0, 2);
@@ -308,6 +347,7 @@ export default function SettingsPage() {
                                     toggleAdminStatus(user.user_id)
                                   }
                                   className="shadow-sm"
+                                  disabled={isUpdating === user.user_id}
                                 />
                               </td>
                             </tr>
@@ -320,40 +360,6 @@ export default function SettingsPage() {
               </div>
             </TabsContent>
           </Tabs>
-
-          <CardFooter className="flex justify-between items-center px-6 py-4 border-t bg-muted/30">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.location.reload()}
-              className="hover:bg-background shadow-sm hover:shadow-md transition-shadow"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Reset to Defaults
-            </Button>
-
-            <Button
-              onClick={handleSave}
-              style={{
-                backgroundColor: savedIndicator
-                  ? "#4CAF50"
-                  : extendedPalette.primaryBlue,
-              }}
-              className="hover:opacity-90 shadow-sm hover:shadow-md transition-shadow"
-            >
-              {savedIndicator ? (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Saved
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </CardFooter>
         </Card>
       </div>
     </DashboardLayout>
