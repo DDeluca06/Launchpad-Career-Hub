@@ -87,6 +87,7 @@ model applications {
   user_id            Int
   job_id             Int
   status             ApplicationStatus
+  isArchived         Boolean              @default(false)
   applied_at         DateTime?            @default(now()) @db.Timestamptz(6)
   status_updated     DateTime?            @db.Timestamptz(6)
   resume_id          Int?
@@ -108,12 +109,14 @@ model dashboard_activity {
   users       users     @relation(fields: [admin_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-model events {
-  event_id    Int       @id @default(autoincrement())
-  title       String    @db.VarChar
-  description String?
-  event_date  DateTime  @db.Date
-  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+model interviews {
+  interview_id    Int       @id @default(autoincrement())
+  user_id          Int
+  title            String    @db.VarChar
+  description      String?
+  event_date       DateTime  @db.Date
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  users            users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model jobs {
@@ -138,6 +141,7 @@ model jobs {
 model partners {
   partner_id       Int     @id @default(autoincrement())
   name             String  @db.VarChar
+  isArchived       Boolean @default(false)
   description      String?
   industry         String? @db.VarChar
   location         String? @db.VarChar
@@ -163,6 +167,7 @@ model resumes {
 
 model users {
   user_id            Int                  @id @default(autoincrement())
+  lp_id              Int                  @default(0)
   is_active          Boolean              @default(true)
   is_archived        Boolean              @default(false)
   username           String               @db.VarChar
@@ -175,6 +180,7 @@ model users {
   applications       applications[]
   dashboard_activity dashboard_activity[]
   resumes            resumes[]
+  interviews         interviews[]
 
   @@index([user_id], map: "idx_users_user_id")
 }
