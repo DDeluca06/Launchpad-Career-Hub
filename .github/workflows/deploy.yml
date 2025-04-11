@@ -19,14 +19,16 @@ jobs:
 
       - name: 📥 Install & Build
         run: |
-          npm install
+          npm ci
           npm run build
 
       - name: 🧳 Package Deployment Files
         run: |
           mkdir -p deploy
-          # Copy essential files first
-          cp -r .next public package.json ecosystem.config.js deploy/
+          # Copy essential files
+          cp -r .next public package.json package-lock.json deploy/
+          # Copy PM2 config
+          cp ecosystem.config.js deploy/
           # Copy next config file (either .js or .mjs)
           if [ -f next.config.mjs ]; then
             cp next.config.mjs deploy/
@@ -36,6 +38,15 @@ jobs:
             echo "No Next.js config file found"
             exit 1
           fi
+          # Copy any other necessary files
+          [ -d node_modules ] && cp -r node_modules deploy/ || echo "No node_modules folder found"
+
+      - name: 🔑 Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/github_actions_key
+          chmod 600 ~/.ssh/github_actions_key
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
 
       - name: 🚚 Send to Server
         uses: appleboy/scp-action@v0.1.7
@@ -46,15 +57,20 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "deploy/*"
           target: "/home/jobportal/jobportal"
+          strip_components: 1
 
-      - name: 🔁 Restart App with PM2 Ecosystem
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          script: |
+      - name: 🔁 Restart App with PM2
+        run: |
+          ssh -i ~/.ssh/github_actions_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             cd /home/jobportal/jobportal
             npm install --omit=dev
-            pm2 start ecosystem.config.js || pm2 restart jobportal
+            if pm2 list | grep -q "jobportal"; then
+              echo "Restarting existing PM2 process..."
+              pm2 restart jobportal --update-env
+            else
+              echo "Starting new PM2 process..."
+              pm2 start ecosystem.config.js
+            fi
+            pm2 save
+            echo "Deployment completed successfully!"
+          EOF
