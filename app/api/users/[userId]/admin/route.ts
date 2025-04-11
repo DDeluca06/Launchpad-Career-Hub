@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma';
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { userId: string } }
-) {
+  { params }: { params: Promise<{ userId: string }> }
+): Promise<Response> {
   try {
     const { isAdmin } = await request.json();
-    const userId = parseInt(params.userId);
+    const resolvedParams = await params;
+    const userId = parseInt(resolvedParams.userId);
 
     console.warn('Updating admin status:', { userId, isAdmin });
 
