@@ -109,8 +109,8 @@ model dashboard_activity {
   users       users     @relation(fields: [admin_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-model internships {
-  internship_id    Int       @id @default(autoincrement())
+model interviews {
+  interview_id    Int       @id @default(autoincrement())
   user_id          Int
   title            String    @db.VarChar
   description      String?
@@ -179,7 +179,7 @@ model users {
   applications       applications[]
   dashboard_activity dashboard_activity[]
   resumes            resumes[]
-  internships        internships[]
+  interviews         interviews[]
 
   @@index([user_id], map: "idx_users_user_id")
 }
