@@ -183,7 +183,9 @@ export function DashboardLayout({
               </div>
               <div className="hidden md:block">
                 <p className="font-medium text-gray-900 dark:text-gray-100">
-                  {isAdmin ? "Admin" : (firstName || username)}
+                {isAdmin ? "Admin" : username}
+
+
                 </p>
                 <p className="text-sm text-gray-500">
                   {isAdmin ? "Administrator" : "Student"}
