@@ -1,0 +1,10 @@
+first_name,last_name,username,password,program_phase
+John,Doe,johndoe,password123,Foundations
+Jane,Smith,,password456,LiftOff
+Bob,Johnson,bobjohnson,,101
+,Williams,alicewilliams,password012,Alumni
+Mike,Brown,mikebrown,password789,foundations
+Sarah,Wilson,sarahwilson,password345,LIFTOFF
+Tom,Clark,tomclark,password678,OneZeroOne
+Lisa,Adams,lisaadams,password901,Alumni
+,, 
