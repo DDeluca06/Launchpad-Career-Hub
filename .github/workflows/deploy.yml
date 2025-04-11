@@ -59,9 +59,20 @@ jobs:
           target: "/home/jobportal/jobportal"
           strip_components: 1
 
+
       - name: 🔁 Restart App with PM2
         run: |
           ssh -i ~/.ssh/github_actions_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+
+      - name: 🔁 Restart App with PM2 Ecosystem
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+
             cd /home/jobportal/jobportal
             npm install --omit=dev
             if pm2 list | grep -q "jobportal"; then
