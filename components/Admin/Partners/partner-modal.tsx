@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/basic/dialog";
+} from "@/components/ui/overlay/dialog";
 import {
   Form,
   FormControl,
@@ -33,7 +33,6 @@ import { Button } from "@/components/ui/basic/button";
 import { Separator } from "@/components/ui/basic/separator";
 import { toast } from "sonner";
 import { Partner, NewPartner, INDUSTRIES } from "./types";
-import { formatDate } from "@/lib/utils";
 import { createPartner, updatePartner } from "./partner-service";
 
 // Define form validation schema for Partner 
@@ -123,11 +122,11 @@ export function PartnerModal({
         description: partner.description || "",
         industry: partner.industry || "",
         location: partner.location || "",
-        website: partner.website || "",
-        contact_email: partner.contact_email || "",
-        contact_phone: partner.contact_phone || "",
-        contact_name: partner.contact_name || "",
-        logo_url: partner.logo_url || "",
+        website: partner.websiteUrl || "",
+        contact_email: partner.contactEmail || "",
+        contact_phone: partner.contactPhone || "",
+        contact_name: partner.contactName || "",
+        logo_url: partner.logoUrl || "",
       });
     } else if (!partner && open) {
       form.reset({
@@ -150,9 +149,16 @@ export function PartnerModal({
       
       if (isEditMode && partner) {
         // Update existing partner
-        const updatedPartner = await updatePartner({
-          ...partner,
-          ...values,
+        const updatedPartner = await updatePartner(partner.id, {
+          name: values.name,
+          description: values.description,
+          industry: values.industry,
+          location: values.location,
+          websiteUrl: values.website,
+          logoUrl: values.logo_url,
+          contactName: values.contact_name,
+          contactEmail: values.contact_email,
+          contactPhone: values.contact_phone,
         });
         
         toast.success("Partner updated successfully");
@@ -163,7 +169,15 @@ export function PartnerModal({
       } else {
         // Create new partner
         const newPartnerData: NewPartner = {
-          ...values,
+          name: values.name,
+          description: values.description,
+          industry: values.industry,
+          location: values.location,
+          websiteUrl: values.website,
+          logoUrl: values.logo_url,
+          contactName: values.contact_name,
+          contactEmail: values.contact_email,
+          contactPhone: values.contact_phone,
         };
         
         const createdPartner = await createPartner(newPartnerData);

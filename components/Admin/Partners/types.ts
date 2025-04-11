@@ -24,6 +24,17 @@ export interface Partner {
  * Extended Partner with additional UI properties
  */
 export interface ExtendedPartner extends Partner {
+  partner_id?: number;
+  is_archived?: boolean;
+  jobs_available?: number;
+  applicants?: number;
+  applicants_hired?: number;
+  partnership_start?: string;
+  website?: string;
+  logo_url?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
   _count?: {
     jobs?: number;
   };
@@ -32,6 +43,7 @@ export interface ExtendedPartner extends Partner {
     title: string;
     company: string;
     archived: boolean;
+    created_at?: string | Date;
   }[];
 }
 

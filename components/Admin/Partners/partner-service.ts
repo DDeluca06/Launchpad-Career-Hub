@@ -21,7 +21,7 @@ export const fetchPartners = async (): Promise<ExtendedPartner[]> => {
 /**
  * Fetches partners with archived filter
  */
-export async function fetchPartnersByArchiveStatus(archived: boolean = false) {
+export const fetchPartnersByArchiveStatus = async (archived: boolean = false): Promise<ExtendedPartner[]> => {
   try {
     const response = await fetch(`/api/partners?is_archived=${archived}&includeJobs=true`);
     if (!response.ok) {
@@ -31,11 +31,9 @@ export async function fetchPartnersByArchiveStatus(archived: boolean = false) {
     return data.partners;
   } catch (error) {
     console.error('Error fetching partners by status:', error);
-    
-    // Return fallback data if API fails
     return generateFallbackPartners(archived);
   }
-}
+};
 
 /**
  * Generates fallback partner data when API is unavailable
@@ -171,9 +169,26 @@ export const updatePartner = async (id: string, partnerData: Partial<NewPartner>
 };
 
 /**
+ * Gets job count for a partner
+ */
+export const getJobsCount = async (partnerId: string): Promise<number> => {
+  try {
+    const response = await fetch(`/api/partners/${partnerId}/jobs/count`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.count;
+  } catch (error) {
+    console.error('Error getting job count:', error);
+    return 0; // Default to 0 if error
+  }
+};
+
+/**
  * Archives or unarchives a partner
  */
-export async function togglePartnerArchive(partnerId: string, archived: boolean) {
+export const togglePartnerArchive = async (partnerId: string, archived: boolean): Promise<ExtendedPartner> => {
   try {
     const response = await fetch(`/api/partners/${partnerId}`, {
       method: 'PUT',
@@ -192,24 +207,7 @@ export async function togglePartnerArchive(partnerId: string, archived: boolean)
     console.error('Error toggling partner archive status:', error);
     throw error;
   }
-}
-
-/**
- * Gets job count for a partner
- */
-export async function getJobsCount(partnerId: string) {
-  try {
-    const response = await fetch(`/api/partners/${partnerId}/jobs/count`);
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    const data = await response.json();
-    return data.count;
-  } catch (error) {
-    console.error('Error getting job count:', error);
-    return 0; // Default to 0 if error
-  }
-}
+};
 
 // Fetch a single partner by ID
 export const fetchPartnerById = async (id: string): Promise<ExtendedPartner> => {

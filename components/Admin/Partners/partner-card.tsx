@@ -30,7 +30,7 @@ interface PartnerCardProps {
 export function PartnerCard({ partner, onSelect, compact = false }: PartnerCardProps) {
   // Determine partner color based on partner_id for consistent coloring
   const getPartnerColor = (partner: ExtendedPartner) => {
-    const colorIndex = partner.partner_id % 5;
+    const colorIndex = (partner.partner_id || 0) % 5;
     const colors = [
       extendedPalette.primaryBlue,
       extendedPalette.primaryGreen,

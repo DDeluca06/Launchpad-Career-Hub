@@ -3,7 +3,7 @@
 import { PartnerListProps } from './types';
 import { Card } from "@/components/ui/basic/card";
 import { cn } from "@/lib/utils";
-import { MapPin, Calendar, Building2 } from "lucide-react";
+import { MapPin, Calendar, Building2, Briefcase, Users } from "lucide-react";
 import { Badge } from "@/components/ui/basic/badge";
 import { extendedPalette } from "@/lib/colors";
 import { ExtendedPartner } from './types';
@@ -54,19 +54,36 @@ export function PartnerList({
     );
   };
 
+  // Generate a unique key for each partner
+  const getPartnerKey = (partner: ExtendedPartner) => {
+    return partner.partner_id?.toString() || partner.id;
+  };
+  
+  // Check if a partner is selected
+  const isPartnerSelected = (partner: ExtendedPartner, selected?: ExtendedPartner | null) => {
+    if (!selected) return false;
+    
+    if (partner.partner_id && selected.partner_id) {
+      return partner.partner_id === selected.partner_id;
+    }
+    
+    return partner.id === selected.id;
+  };
+
   return (
     <div className="space-y-2">
       {partners.length === 0 ? (
-        <div className="text-center py-8 px-4">
-          <p className="text-gray-500">No partners found</p>
-          <p className="text-sm text-gray-400 mt-1">Try adjusting your filters</p>
+        <div className="flex flex-col items-center justify-center py-10 px-4 text-center bg-gray-50 rounded-md border border-gray-100">
+          <Building2 className="h-10 w-10 text-gray-300 mb-2" />
+          <p className="text-gray-500 font-medium">No partners found</p>
+          <p className="text-sm text-gray-400 mt-1">Try adjusting your search or filters</p>
         </div>
       ) : (
         partners.map((partner) => (
           <Card
-            key={partner.partner_id}
+            key={getPartnerKey(partner)}
             className={cn("cursor-pointer hover:bg-gray-50 transition-colors p-3", {
-              "bg-blue-50 border-blue-200": selectedPartner?.partner_id === partner.partner_id,
+              "bg-blue-50 border-blue-200": isPartnerSelected(partner, selectedPartner),
             })}
             onClick={() => onSelectPartner(partner)}
           >
@@ -95,17 +112,8 @@ export function PartnerList({
                   </div>
                 )}
                 <div className="flex items-center gap-1">
-                  <Badge 
-                    variant="outline" 
-                    className="px-1 py-0 text-xs font-normal border-primary/20 bg-primary/5"
-                    style={{ 
-                      borderColor: `${extendedPalette.primaryBlue}20`,
-                      backgroundColor: `${extendedPalette.lightBlue}50`,
-                      color: extendedPalette.teal
-                    }}
-                  >
-                    {partner.jobs_available || 0} jobs
-                  </Badge>
+                  <Briefcase className="h-3 w-3" />
+                  <span>{partner.jobs_available || 0} jobs</span>
                 </div>
                 {partner.partnership_start && (
                   <div className="flex items-center gap-1">
@@ -118,15 +126,12 @@ export function PartnerList({
               </div>
 
               <div className="flex justify-between items-center mt-2">
-                <div className="flex flex-wrap gap-1">
-                  <Badge variant="outline" className="text-xs py-0 px-1.5">
-                    {partner.applicants_hired || 0} hired
-                  </Badge>
+                <div className="flex items-center gap-1 text-xs text-gray-500">
+                  <Users className="h-3 w-3" />
+                  <span>
+                    {partner.applicants_hired || 0} hired / {partner.applicants || 0} applicants
+                  </span>
                 </div>
-                
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600">
-                  {partner.applicants || 0} applicants
-                </Badge>
               </div>
             </div>
           </Card>

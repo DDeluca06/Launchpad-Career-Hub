@@ -1,9 +1,10 @@
 "use client";
 
+import React from 'react';
 import { Button } from "@/components/ui/basic/button";
 import { Badge } from "@/components/ui/basic/badge";
 import { Separator } from "@/components/ui/basic/separator";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic/card";
+import { Card, CardContent } from "@/components/ui/basic/card";
 import { format } from "date-fns";
 import { extendedPalette } from "@/lib/colors";
 import { PartnerDetailsProps } from "./types";
@@ -46,39 +47,29 @@ export function PartnerDetailsSkeleton() {
 
 export function PartnerDetails({
   partner,
-  jobsCount,
   isLoading,
   onEdit,
   onArchive,
 }: PartnerDetailsProps) {
   if (isLoading || !partner) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Partner Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <PartnerDetailsSkeleton />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-[400px] text-center p-6">
-              <Building2 className="h-16 w-16 text-gray-300 mb-4" />
-              <h3 className="text-xl font-medium text-gray-700">
-                No partner selected
-              </h3>
-              <p className="text-gray-500 max-w-md mt-2">
-                Select a partner from the list to view its details and manage jobs
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    return isLoading ? (
+      <PartnerDetailsSkeleton />
+    ) : (
+      <div className="flex flex-col items-center justify-center h-[400px] text-center p-6">
+        <Building2 className="h-16 w-16 text-gray-300 mb-4" />
+        <h3 className="text-xl font-medium text-gray-700">
+          No partner selected
+        </h3>
+        <p className="text-gray-500 max-w-md mt-2">
+          Select a partner from the list to view its details
+        </p>
+      </div>
     );
   }
 
   // Determine partner color based on partner_id for consistent coloring
-  const getPartnerColor = (partnerId: number) => {
-    const colorIndex = partnerId % 5;
+  const getPartnerColor = (partnerId: number | undefined) => {
+    const colorIndex = (partnerId || 0) % 5;
     const colors = [
       extendedPalette.primaryBlue,
       extendedPalette.primaryGreen,
@@ -89,17 +80,7 @@ export function PartnerDetails({
     return colors[colorIndex];
   };
 
-  // Generate initials for the avatar
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((word) => word[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const partnerColor = getPartnerColor(partner.partner_id);
+  const partnerColor = getPartnerColor(typeof partner.id === 'string' ? parseInt(partner.id, 10) : partner.id);
 
   return (
     <div className="p-6 pb-12">
@@ -179,33 +160,18 @@ export function PartnerDetails({
           <Briefcase className="mr-1 h-3 w-3" />
           {partner.jobs_available || 0} jobs
         </Badge>
-        
-        {partner.partnership_start && (
-          <Badge 
-            variant="outline" 
-            className="px-2 py-1"
-            style={{ 
-              backgroundColor: `${extendedPalette.teal}10`,
-              borderColor: `${extendedPalette.teal}20`,
-              color: extendedPalette.teal
-            }}
-          >
-            <Calendar className="mr-1 h-3 w-3" />
-            Partner since {new Date(partner.partnership_start).toLocaleDateString()}
-          </Badge>
-        )}
       </div>
 
-      {partner.website && (
+      {partner.websiteUrl && (
         <div className="mb-6">
           <a
-            href={partner.website.startsWith("http") ? partner.website : `https://${partner.website}`}
+            href={partner.websiteUrl.startsWith("http") ? partner.websiteUrl : `https://${partner.websiteUrl}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center text-sm text-primary hover:underline"
           >
             <ExternalLink className="h-3.5 w-3.5 mr-1" />
-            {partner.website}
+            {partner.websiteUrl}
           </a>
         </div>
       )}
@@ -240,98 +206,61 @@ export function PartnerDetails({
 
       <div className="mb-6">
         <h2 className="text-lg font-medium mb-2">Contact Information</h2>
-        {partner.contact_name || partner.contact_email || partner.contact_phone ? (
-          <div className="space-y-3 bg-gray-50 border border-gray-100 p-4 rounded">
-            {partner.contact_name && (
-              <div className="flex items-center">
-                <User className="h-4 w-4 text-gray-500 mr-2" />
-                <span>{partner.contact_name}</span>
-              </div>
-            )}
-            {partner.contact_email && (
-              <div className="flex items-center">
-                <Mail className="h-4 w-4 text-gray-500 mr-2" />
-                <a
-                  href={`mailto:${partner.contact_email}`}
-                  className="text-blue-600 hover:underline"
-                >
-                  {partner.contact_email}
-                </a>
-              </div>
-            )}
-            {partner.contact_phone && (
-              <div className="flex items-center">
-                <Phone className="h-4 w-4 text-gray-500 mr-2" />
-                <span>{partner.contact_phone}</span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">
-            No contact information available.
-          </p>
-        )}
-      </div>
-
-      <Separator className="my-6" />
-
-      <div>
-        <h2 className="text-lg font-medium mb-2">Partner Jobs</h2>
-        {partner.jobs && partner.jobs.length > 0 ? (
-          <div>
-            <p className="text-sm text-gray-600 mb-3">
-              This partner has {partner.jobs.length} jobs.
-            </p>
-            
-            <div className="space-y-2 mt-3 max-h-[300px] overflow-y-auto pr-1 border border-gray-100 rounded-md p-2">
-              {partner.jobs.slice(0, 5).map((job) => (
-                <Card key={job.job_id} className="p-2">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{job.title}</p>
-                      <p className="text-xs text-gray-500">{job.company}</p>
-                    </div>
-                    <Badge 
-                      className="text-xs"
-                      style={{
-                        backgroundColor: job.archived 
-                          ? `${extendedPalette.darkGray}15`
-                          : `${extendedPalette.primaryGreen}15`,
-                        color: job.archived
-                          ? extendedPalette.darkGray
-                          : extendedPalette.primaryGreen
-                      }}
-                    >
-                      {job.archived ? "Archived" : "Active"}
-                    </Badge>
+        {partner.contactName || partner.contactEmail || partner.contactPhone ? (
+          <div className="bg-gray-50 border border-gray-100 rounded-lg p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {partner.contactName && (
+                <div className="flex flex-col">
+                  <p className="text-xs text-gray-500 mb-1">Contact Person</p>
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 text-gray-400 mr-2" />
+                    <p>{partner.contactName}</p>
                   </div>
-                </Card>
-              ))}
+                </div>
+              )}
+              
+              {partner.contactEmail && (
+                <div className="flex flex-col">
+                  <p className="text-xs text-gray-500 mb-1">Email</p>
+                  <div className="flex items-center">
+                    <Mail className="h-4 w-4 text-gray-400 mr-2" />
+                    <a 
+                      href={`mailto:${partner.contactEmail}`}
+                      className="text-primary hover:underline"
+                    >
+                      {partner.contactEmail}
+                    </a>
+                  </div>
+                </div>
+              )}
+              
+              {partner.contactPhone && (
+                <div className="flex flex-col">
+                  <p className="text-xs text-gray-500 mb-1">Phone</p>
+                  <div className="flex items-center">
+                    <Phone className="h-4 w-4 text-gray-400 mr-2" />
+                    <a 
+                      href={`tel:${partner.contactPhone}`}
+                      className="text-primary hover:underline"
+                    >
+                      {partner.contactPhone}
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
-            
-            {partner.jobs.length > 5 && (
-              <Button 
-                variant="link" 
-                size="sm"
-                className="mt-2 text-blue-600"
-                onClick={() => window.location.href = `/admin/jobs?partner_id=${partner.partner_id}`}
-              >
-                View all {partner.jobs.length} jobs
-              </Button>
-            )}
           </div>
         ) : (
-          <div className="flex flex-col">
-            <p className="text-sm text-gray-500">
-              No jobs available for this partner organization.
-            </p>
+          <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border border-gray-100 rounded-lg text-center">
+            <p className="text-gray-500 mb-3">No contact information available.</p>
             <Button 
               variant="outline" 
-              size="sm"
-              className="mt-4 w-fit"
-              onClick={() => window.location.href = `/admin/jobs/new?partner_id=${partner.partner_id}`}
+              size="sm" 
+              className="gap-1"
+              onClick={() => onEdit(partner)}
             >
-              Add Job for {partner.name}
+              <Edit className="h-4 w-4" />
+              Add Contact Info
             </Button>
           </div>
         )}
