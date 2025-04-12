@@ -1,4 +1,4 @@
-import { ExtendedPartner, NewPartner, Partner } from "./types";
+import { ExtendedPartner, NewPartner } from "./types";
 
 /**
  * Fetches partner listings from the API
@@ -21,114 +21,19 @@ export const fetchPartners = async (): Promise<ExtendedPartner[]> => {
 /**
  * Fetches partners with archived filter
  */
-export const fetchPartnersByArchiveStatus = async (archived: boolean = false): Promise<ExtendedPartner[]> => {
+export const fetchPartnersByArchiveStatus = async (isArchived: boolean) => {
   try {
-    const response = await fetch(`/api/partners?is_archived=${archived}&includeJobs=true`);
+    const response = await fetch(`/api/partners?archived=${isArchived}`);
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      throw new Error('Failed to fetch partners');
     }
     const data = await response.json();
     return data.partners;
   } catch (error) {
-    console.error('Error fetching partners by status:', error);
-    return generateFallbackPartners(archived);
+    console.error('Error fetching partners:', error);
+    throw error;
   }
 };
-
-/**
- * Generates fallback partner data when API is unavailable
- */
-function generateFallbackPartners(archived: boolean = false): ExtendedPartner[] {
-  return [
-    {
-      partner_id: 1,
-      name: "Tech Innovators Inc.",
-      description: "Leading technology solutions provider",
-      industry: "Technology",
-      location: "San Francisco, CA",
-      website_url: "https://techinnovators.com",
-      contact_name: "John Smith",
-      contact_email: "john@techinnovators.com",
-      contact_phone: "+1 (555) 123-4567",
-      created_at: new Date("2024-01-15").toISOString(),
-      updated_at: new Date("2024-01-15").toISOString(),
-      _count: {
-        jobs: 5,
-      },
-      jobs_available: 5,
-      applicants: 25,
-      applicants_hired: 3,
-      partnership_start: new Date("2024-01-01").toISOString(),
-      jobs: [
-        {
-          job_id: 1,
-          title: "Software Engineer",
-          company: "Tech Innovators Inc.",
-          archived: false,
-          created_at: new Date("2024-01-15").toISOString(),
-        },
-      ],
-    },
-    {
-      partner_id: 2,
-      name: "Global Finance Group",
-      description: "International financial services firm",
-      industry: "Finance",
-      location: "New York, NY",
-      website_url: "https://globalfinance.com",
-      contact_name: "Sarah Johnson",
-      contact_email: "sarah@globalfinance.com",
-      contact_phone: "+1 (555) 987-6543",
-      created_at: new Date("2024-01-10").toISOString(),
-      updated_at: new Date("2024-01-10").toISOString(),
-      _count: {
-        jobs: 3,
-      },
-      jobs_available: 3,
-      applicants: 15,
-      applicants_hired: 1,
-      partnership_start: new Date("2024-01-01").toISOString(),
-      jobs: [
-        {
-          job_id: 2,
-          title: "Financial Analyst",
-          company: "Global Finance Group",
-          archived: false,
-          created_at: new Date("2024-01-10").toISOString(),
-        },
-      ],
-    },
-    {
-      partner_id: 3,
-      name: "Healthcare Solutions Ltd",
-      description: "Healthcare technology and services",
-      industry: "Healthcare",
-      location: "Boston, MA",
-      website_url: "https://healthcaresolutions.com",
-      contact_name: "Michael Brown",
-      contact_email: "michael@healthcaresolutions.com",
-      contact_phone: "+1 (555) 456-7890",
-      created_at: new Date("2024-01-05").toISOString(),
-      updated_at: new Date("2024-01-05").toISOString(),
-      _count: {
-        jobs: 4,
-      },
-      jobs_available: 4,
-      applicants: 20,
-      applicants_hired: 2,
-      partnership_start: new Date("2024-01-01").toISOString(),
-      jobs: [
-        {
-          job_id: 3,
-          title: "Healthcare Data Analyst",
-          company: "Healthcare Solutions Ltd",
-          archived: false,
-          created_at: new Date("2024-01-05").toISOString(),
-        },
-      ],
-    },
-  ];
-}
 
 /**
  * Creates a new partner

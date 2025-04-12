@@ -1,32 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { JobTag } from "@/lib/prisma-enums";
 
 // Define interfaces for the application and job types
-interface Application {
-  created_at: Date | string;
-  status: string;
-  jobs?: {
-    partners?: {
-      name: string;
-    };
-    company?: string;
-  };
-}
-
-interface Job {
-  tags: string[];
-  applications?: Application[];
-}
-
-interface Partner {
-  name: string;
-  jobs: {
-    applications: {
-      status: string;
-    }[];
-  }[];
-}
 
 interface PlacementData {
   partner: string;
@@ -51,7 +26,7 @@ interface DbJob {
   tags: string[];
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // Get all partners with their jobs and applications
     const partners = await prisma.partners.findMany({
@@ -222,11 +197,15 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       data: {
-        overview,
-        applicationsOverTime,
-        statusDistribution,
-        topJobCategories,
-        placementsByPartner,
+        overview: {
+          totalApplicants: overview.totalApplicants,
+          totalJobs: overview.totalJobs,
+          totalApplications: overview.totalApplications
+        },
+        applicationsOverTime: applicationsOverTime,
+        statusDistribution: statusDistribution,
+        topJobCategories: topJobCategories,
+        placementsByPartner: placementsByPartner
       }
     });
   } catch (error) {
@@ -242,29 +221,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
-// Helper to get date filter based on date range
-function getDateFilter(dateRange: string) {
-  const now = new Date();
-  let startDate: Date;
-
-  switch (dateRange) {
-    case "last30Days":
-      startDate = new Date(now);
-      startDate.setDate(now.getDate() - 30);
-      break;
-    case "last90Days":
-      startDate = new Date(now);
-      startDate.setDate(now.getDate() - 90);
-      break;
-    case "last12Months":
-    default:
-      startDate = new Date(now);
-      startDate.setFullYear(now.getFullYear() - 1);
-      break;
-  }
-  
-  return {
-    gte: startDate
-  };
-} 

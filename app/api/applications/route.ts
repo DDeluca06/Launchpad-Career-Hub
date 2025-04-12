@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
             select: {
               first_name: true,
               last_name: true,
-              username: true,
+              email: true,
               is_admin: true,
               program: true
             }
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
           select: {
             first_name: true,
             last_name: true,
-            username: true,
+            email: true,
             is_admin: true,
             program: true
           }

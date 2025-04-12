@@ -1,6 +1,32 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+interface Partner {
+  partner_id: number;
+  name: string;
+  description: string | null;
+  industry: string | null;
+  location: string | null;
+  website_url: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  created_at: Date;
+  updated_at: Date;
+  is_archived: boolean;
+  jobs?: {
+    job_id: number;
+    title: string;
+    company: string;
+    location: string | null;
+    job_type: string | null;
+    created_at: Date;
+    _count?: {
+      applications: number;
+    };
+  }[];
+}
+
 /**
  * API route to fetch all partners or a specific partner by ID
  * 
@@ -102,7 +128,7 @@ export async function GET(req: Request) {
       });
       
       // Add default status field based on is_archived for each partner
-      const partnersWithStatus = partners.map((partner: any) => ({
+      const partnersWithStatus = partners.map((partner: Partner) => ({
         ...partner,
         status: partner.is_archived ? 'archived' : 'active'
       }));

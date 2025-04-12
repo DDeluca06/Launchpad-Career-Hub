@@ -79,7 +79,6 @@ export default function AdminJobListings() {
 
   // State for bulk upload modal
   const [bulkUploadModalOpen, setBulkUploadModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   /**
    * Loads jobs from API
@@ -633,7 +632,7 @@ export default function AdminJobListings() {
     }
 
     try {
-      setLoading(true);
+      setBulkUploadModalOpen(true);
       
       const formData = new FormData();
       formData.append('file', csvFile);
@@ -665,8 +664,6 @@ export default function AdminJobListings() {
         description: "Failed to upload jobs. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 

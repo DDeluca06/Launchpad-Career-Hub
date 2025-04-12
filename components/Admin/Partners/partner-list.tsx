@@ -3,9 +3,8 @@
 import { PartnerListProps } from './types';
 import { Card } from "@/components/ui/basic/card";
 import { cn } from "@/lib/utils";
-import { MapPin, Calendar, Building2, Briefcase, Users } from "lucide-react";
+import { MapPin, Calendar, Building2, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/basic/badge";
-import { extendedPalette } from "@/lib/colors";
 import { ExtendedPartner } from './types';
 
 export function PartnerListSkeleton() {
@@ -34,7 +33,6 @@ export function PartnerList({
   partners,
   selectedPartner,
   onSelectPartner,
-  jobsCount,
   isLoading,
   searchQuery,
 }: PartnerListProps) {

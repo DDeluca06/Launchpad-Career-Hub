@@ -1,25 +1,17 @@
 "use client";
 
+import { Avatar, AvatarFallback } from "@/components/ui/basic/avatar";
 import { Badge } from "@/components/ui/basic/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/basic/card";
-import { MapPin, Calendar, Building2, Briefcase } from "lucide-react";
+import { Card, CardHeader } from "@/components/ui/basic/card";
+import { cn } from "@/lib/utils";
+import { MapPin, Briefcase, Calendar } from "lucide-react";
+import { ExtendedPartner } from "./types";
+import { extendedPalette } from "@/lib/colors";
 import { Button } from "@/components/ui/basic/button";
 import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "@/components/ui/basic/avatar";
-import { formatDistanceToNow } from "date-fns";
-import { extendedPalette } from "@/lib/colors";
-import { cn } from "@/lib/utils";
-import { ExtendedPartner } from "./types";
+  CardContent,
+  CardFooter,
+} from "@/components/ui/basic/card";
 
 interface PartnerCardProps {
   partner: ExtendedPartner;
@@ -65,32 +57,22 @@ export function PartnerCard({ partner, onSelect, compact = false }: PartnerCardP
       onClick={() => !compact && onSelect(partner)}
     >
       <CardHeader className={cn("p-4 pb-2", { "p-3 pb-1": compact })}>
-        <div className="flex items-start gap-3">
-          <Avatar className="h-12 w-12 rounded-md border bg-background">
-            {partner.logo_url ? (
-              <AvatarImage src={partner.logo_url} alt={partner.name} />
-            ) : (
-              <AvatarFallback 
-                className="rounded-md" 
-                style={{ backgroundColor: `${partnerColor}20`, color: partnerColor }}
-              >
-                {getInitials(partner.name)}
-              </AvatarFallback>
-            )}
-          </Avatar>
-          <div className="flex-1 overflow-hidden">
-            <CardTitle className={cn("text-lg font-medium line-clamp-1", { "text-base": compact })}>
-              {partner.name}
-            </CardTitle>
-            <CardDescription className="line-clamp-1">
-              {partner.industry || "Organization"}
-            </CardDescription>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10">
+              <AvatarFallback>{getInitials(partner.name)}</AvatarFallback>
+            </Avatar>
+            <div className="space-y-1">
+              <h3 className="font-medium text-gray-900 line-clamp-2">
+                {partner.name}
+              </h3>
+              <p className="text-sm text-gray-600">
+                {partner.industry || "Organization"}
+              </p>
+            </div>
           </div>
           {partner.is_archived && (
-            <Badge
-              variant="outline"
-              className="bg-gray-50 text-gray-700 border-gray-200"
-            >
+            <Badge variant="outline" className="text-xs bg-gray-100">
               Archived
             </Badge>
           )}

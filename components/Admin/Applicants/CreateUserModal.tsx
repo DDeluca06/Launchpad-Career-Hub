@@ -9,7 +9,6 @@ import {
   SelectValue,
 } from "@/components/ui/form/select";
 import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
-import { extendedPalette } from "@/lib/colors";
 import { NewUserData } from "./types";
 
 interface CreateUserModalProps {

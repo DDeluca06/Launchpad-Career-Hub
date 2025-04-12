@@ -15,7 +15,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { userService } from "@/lib/local-storage";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -36,7 +37,31 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [username, setUsername] = useState("User");
+  const [userName, setUserName] = useState("User");
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // Protect route based on admin status
+  useEffect(() => {
+    if (status === "loading") return;
+    
+    if (!session) {
+      router.push("/login");
+      return;
+    }
+
+    if (isAdmin && !session.user.isAdmin) {
+      router.push("/applicant/dashboard");
+      return;
+    }
+
+    if (!isAdmin && session.user.isAdmin) {
+      router.push("/admin/dashboard");
+      return;
+    }
+
+    setUserName(`${session.user.first_name} ${session.user.last_name}`);
+  }, [session, status, isAdmin, router]);
 
   // Track scroll position to add shadow to navbar when scrolled
   useEffect(() => {
@@ -47,24 +72,19 @@ export function DashboardLayout({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Get username from userService
-  useEffect(() => {
-    // For demo, we'll use user with ID 2 (a non-admin)
-    const userData = userService.getById(2);
-    if (userData && userData.username) {
-      setUsername(userData.username);
-    }
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
 
-    // Set up an interval to check for username changes
-    const intervalId = setInterval(() => {
-      const updatedUserData = userService.getById(2);
-      if (updatedUserData && updatedUserData.username !== username) {
-        setUsername(updatedUserData.username);
-      }
-    }, 1000); // Check every second
-
-    return () => clearInterval(intervalId);
-  }, [username]);
+  if (!session) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -168,7 +188,7 @@ export function DashboardLayout({
               </div>
               <div className="hidden md:block">
                 <p className="font-medium text-gray-900 dark:text-gray-100">
-                  {isAdmin ? "Admin" : username}
+                  {isAdmin ? "Admin" : userName}
                 </p>
                 <p className="text-sm text-gray-500">
                   {isAdmin ? "Administrator" : "Student"}

@@ -12,7 +12,6 @@ import { Mail, FileText, Archive, RefreshCw, Download } from "lucide-react";
 import { Button } from "@/components/ui/basic/button";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { ApplicantWithDetails, JobApplication } from "./types";
-import { extendedPalette } from "@/lib/colors";
 
 interface ApplicantProfileModalProps {
   open: boolean;

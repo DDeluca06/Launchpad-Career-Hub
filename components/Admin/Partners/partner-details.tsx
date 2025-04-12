@@ -5,19 +5,13 @@ import { Button } from "@/components/ui/basic/button";
 import { Badge } from "@/components/ui/basic/badge";
 import { Separator } from "@/components/ui/basic/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic/card";
-import { format } from "date-fns";
 import { extendedPalette } from "@/lib/colors";
 import { PartnerDetailsProps } from "./types";
 import { 
-  Building2, MapPin, Calendar, Briefcase, 
-  ExternalLink, Edit, Archive, Users, ArchiveRestore,
+  Building2, MapPin, Briefcase, 
+  Edit, Archive, ArchiveRestore,
   Mail, Phone, User, Globe, Pencil
 } from "lucide-react";
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "@/components/ui/basic/avatar";
 import { toast } from "@/components/ui/feedback/use-toast";
 
 interface Job {
@@ -335,7 +329,7 @@ export function PartnerDetails({
               <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-3" />
               <h4 className="text-lg font-medium text-gray-900">No Jobs Listed</h4>
               <p className="text-gray-500 mt-1">
-                This partner hasn't posted any jobs yet.
+                This partner hasn&apos;t posted any jobs yet.
               </p>
             </div>
           )}

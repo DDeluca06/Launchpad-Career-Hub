@@ -111,12 +111,22 @@ model dashboard_activity {
 
 model interviews {
   interview_id    Int       @id @default(autoincrement())
-  user_id          Int
-  title            String    @db.VarChar
-  description      String?
-  event_date       DateTime  @db.Date
-  created_at       DateTime? @default(now()) @db.Timestamptz(6)
-  users            users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  user_id        Int
+  title          String    @db.VarChar
+  description    String?
+  start_time     DateTime  @db.Timestamptz(6)
+  end_time       DateTime  @db.Timestamptz(6)
+  location       String?   @db.VarChar
+  candidate_name String    @db.VarChar
+  position       String    @db.VarChar
+  status         String?   @db.VarChar @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime? @updatedAt @db.Timestamptz(6)
+  users          users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([interview_id], map: "idx_interviews_id")
+  @@index([user_id], map: "idx_interviews_user_id")
+  @@index([start_time], map: "idx_interviews_start_time")
 }
 
 model jobs {
@@ -175,7 +185,7 @@ model users {
   lp_id              Int                  @default(0)
   is_active          Boolean              @default(true)
   is_archived        Boolean              @default(false)
-  username           String               @db.VarChar
+  email              String               @unique @db.VarChar
   first_name         String               @db.VarChar
   last_name          String               @db.VarChar
   password_hash      String               @db.VarChar

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { Building, Briefcase, Users } from "lucide-react";
+import { Building, Briefcase } from "lucide-react";
 import { StatsOverview, QuickActions, DashboardSection, UpcomingInterviews } from "@/components/Admin/Dashboard";
 import { extendedPalette } from "@/lib/colors";
 import { Suspense } from "react";

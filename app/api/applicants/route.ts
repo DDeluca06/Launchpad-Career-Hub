@@ -15,7 +15,7 @@ interface Application {
 
 interface User {
   user_id: number;
-  username: string;
+  email: string;
   first_name: string;
   last_name: string;
   is_admin: boolean;
@@ -107,10 +107,9 @@ export async function GET(request: NextRequest) {
       // Create the response object
       const applicant = {
         id: user.user_id,
-        userId: user.username,
+        email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        email: `${user.username}@example.com`, // In a real app, you'd have the email stored
         role: user.is_admin ? 'admin' : 'applicant',
         applications: user.applications.length,
         program: displayProgram,
@@ -160,7 +159,7 @@ export async function GET(request: NextRequest) {
       OR?: Array<{
         first_name?: { contains: string; mode: 'insensitive' };
         last_name?: { contains: string; mode: 'insensitive' };
-        username?: { contains: string; mode: 'insensitive' };
+        email?: { contains: string; mode: 'insensitive' };
       }>;
     } = {
       is_admin: false,
@@ -207,7 +206,7 @@ export async function GET(request: NextRequest) {
       filter.OR = [
         { first_name: { contains: search, mode: 'insensitive' } },
         { last_name: { contains: search, mode: 'insensitive' } },
-        { username: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
       ];
     }
     
@@ -310,10 +309,9 @@ export async function GET(request: NextRequest) {
         
         return {
           id: user.user_id,
-          userId: user.username,
+          email: user.email,
           firstName: user.first_name,
           lastName: user.last_name,
-          email: `${user.username}@example.com`, // In a real app, you'd have the email stored
           role: user.is_admin ? 'admin' : 'applicant',
           applications: user.applications.length,
           program: displayProgram,
@@ -393,23 +391,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Validate required fields
-    if (!body.username || !body.firstName || !body.lastName || !body.password) {
+    if (!body.email || !body.firstName || !body.lastName || !body.password) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
     
-    // Check if username already exists
+    // Check if email already exists
     const existingUser = await prisma.users.findFirst({
       where: {
-        username: body.username
+        email: body.email
       }
     });
     
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Username already exists' },
+        { error: 'Email already exists' },
         { status: 400 }
       );
     }
@@ -423,7 +421,7 @@ export async function POST(request: NextRequest) {
     // Create the user
     const newUser = await prisma.users.create({
       data: {
-        username: body.username,
+        email: body.email,
         first_name: body.firstName,
         last_name: body.lastName,
         password_hash: body.password, // In a real app, you'd hash this
@@ -437,10 +435,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       applicant: {
         id: newUser.user_id,
-        userId: newUser.username,
+        email: newUser.email,
         firstName: newUser.first_name,
         lastName: newUser.last_name,
-        email: `${newUser.username}@example.com`,
         role: newUser.is_admin ? 'admin' : 'applicant',
         applications: 0,
         status: 'unapplied',
@@ -549,7 +546,7 @@ export async function PUT(request: NextRequest) {
     // Format the response
     const responseData = {
       id: updatedUser.user_id,
-      userId: updatedUser.username,
+      email: updatedUser.email,
       firstName: updatedUser.first_name,
       lastName: updatedUser.last_name,
       isArchived: updatedUser.is_archived,

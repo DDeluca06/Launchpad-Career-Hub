@@ -5,9 +5,8 @@ import { Card, CardContent } from "@/components/ui/basic/card";
 import { Button } from "@/components/ui/basic/button";
 import { Input } from "@/components/ui/form/input";
 import { useEffect, useState, useCallback } from "react";
-import { Search, Users, Download, FileText } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
-import { extendedPalette, statusColors } from "@/lib/colors";
+import { Search, Users, FileText } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
 import { toast } from "@/components/ui/feedback/use-toast";
 
 // Import our components
@@ -37,7 +36,6 @@ const PROGRAM_TABS = ["ALL", "FOUNDATION", "101", "LIFTOFF", "ALUMNI"] as const;
  */
 export default function ApplicantsPage() {
   // State for applicants data
-  const [applicants, setApplicants] = useState<ApplicantWithDetails[]>([]);
   const [filteredApplicants, setFilteredApplicants] = useState<ApplicantWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -87,9 +85,6 @@ export default function ApplicantsPage() {
       }
       
       const data = await response.json();
-      
-      // Store all applicants
-      setApplicants(data.applicants);
       
       // Filter by active program if not "ALL"
       const filtered = activeProgram === "ALL" 

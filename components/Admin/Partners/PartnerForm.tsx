@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/form/select';
 import { toast } from 'sonner';
-import { Partner, NewPartner, INDUSTRIES } from './types';
+import { Partner, INDUSTRIES } from './types';
 import { createPartner, updatePartner } from './partner-service';
 
 interface PartnerFormProps {
@@ -76,7 +76,7 @@ const PartnerForm: React.FC<PartnerFormProps> = ({ partner, onSuccess, onCancel 
     setIsSubmitting(true);
     try {
       if (isEditing && partner) {
-        await updatePartner(partner.id, data);
+        await updatePartner(partner.partner_id, data);
         toast.success('Partner updated successfully');
       } else {
         await createPartner(data);

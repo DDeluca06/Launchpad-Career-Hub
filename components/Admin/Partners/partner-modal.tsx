@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,17 +22,10 @@ import {
 } from "@/components/ui/form/form";
 import { Input } from "@/components/ui/form/input";
 import { Textarea } from "@/components/ui/form/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/form/select";
 import { Button } from "@/components/ui/basic/button";
 import { Separator } from "@/components/ui/basic/separator";
 import { toast } from "sonner";
-import { Partner, NewPartner, INDUSTRIES } from "./types";
+import { Partner, NewPartner } from "./types";
 import { createPartner, updatePartner } from "./partner-service";
 
 // Define form validation schema for Partner 

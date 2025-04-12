@@ -6,7 +6,6 @@ export interface Partner {
   industry?: string;
   location?: string;
   website?: string;
-  logo_url?: string;
   status?: 'active' | 'archived';
   is_archived?: boolean;
   contact_name?: string;

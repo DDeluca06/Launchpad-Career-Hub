@@ -12,9 +12,7 @@ import {
   Plus,
   Archive,
   Search,
-  Building2,
-  Briefcase,
-  FileSpreadsheet
+  Building2
 } from "lucide-react";
 
 // Import our custom components
@@ -24,11 +22,9 @@ import { PartnerModal } from "@/components/Admin/Partners/partner-modal";
 import { PartnerFilters, PartnerFiltersRef } from "@/components/Admin/Partners/partner-filters";
 
 // Import types and services
-import { ExtendedPartner, PartnerFilterInterface, INDUSTRIES } from "@/components/Admin/Partners/types";
+import { ExtendedPartner, PartnerFilterInterface } from "@/components/Admin/Partners/types";
 import { 
-  fetchPartnersByArchiveStatus, 
-  togglePartnerArchive,
-  getJobsCount
+  fetchPartnersByArchiveStatus
 } from "@/components/Admin/Partners/partner-service";
 
 export default function PartnersPage() {
@@ -37,12 +33,12 @@ export default function PartnersPage() {
   const [selectedPartner, setSelectedPartner] = useState<ExtendedPartner | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [jobsCount, setJobsCount] = useState<Record<number, number>>({});
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [partnerModalOpen, setPartnerModalOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<ExtendedPartner | null>(null);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+  const [jobsCount, setJobsCount] = useState<Record<number, number>>({});
 
   // Filter state
   const [activeFilters, setActiveFilters] = useState<PartnerFilterInterface>({
@@ -75,6 +71,15 @@ export default function PartnersPage() {
   useEffect(() => {
     loadPartners();
   }, [loadPartners]);
+
+  // Update jobsCount when partners change
+  useEffect(() => {
+    const newJobsCount: Record<number, number> = {};
+    partners.forEach(partner => {
+      newJobsCount[partner.partner_id] = partner.jobs?.length || 0;
+    });
+    setJobsCount(newJobsCount);
+  }, [partners]);
 
   // Filter partners based on current tab and filters
   const filteredPartners = useMemo(() => {
@@ -153,8 +158,7 @@ export default function PartnersPage() {
     try {
       // Toggle the archive status
       const isCurrentlyArchived = !!selectedPartner.is_archived;
-      const updatedPartner = await togglePartnerArchive(selectedPartner.partner_id, !isCurrentlyArchived);
-      
+            
       // Update the partner in the list
       setPartners(prevPartners => 
         prevPartners.map(p => 

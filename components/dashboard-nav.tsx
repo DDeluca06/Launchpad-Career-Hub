@@ -2,11 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/basic/button";
 import { motion } from "framer-motion";
 import { extendedPalette } from "@/lib/colors";
+import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Briefcase,
@@ -141,6 +142,7 @@ function NavSection({ title, items, pathname }: NavSectionProps) {
  */
 export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const baseUrl = isAdmin ? "/admin" : "/applicant";
 
   const mainNavItems: NavItem[] = [
@@ -209,6 +211,11 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
     },
   ];
 
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
+
   return (
     <nav className="flex flex-col h-full">
       <div className="py-2">
@@ -226,17 +233,16 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
       </div>
 
       <div className="mt-auto px-4 pt-4 pb-4 border-t border-gray-200 dark:border-gray-700">
-        <Link href="/">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 text-launchpadDarkGray dark:text-gray-300 hover:text-launchpadOrange hover:bg-launchpadPeach/20 dark:hover:bg-launchpadOrange/20 group transition-colors px-3 py-2"
-          >
-            <LogOut className="h-4 w-4 group-hover:text-launchpadOrange transition-colors" />
-            <span className="group-hover:translate-x-0.5 transition-transform duration-150">
-              Log Out
-            </span>
-          </Button>
-        </Link>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-2 text-launchpadDarkGray dark:text-gray-300 hover:text-launchpadOrange hover:bg-launchpadPeach/20 dark:hover:bg-launchpadOrange/20 group transition-colors px-3 py-2"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4 group-hover:text-launchpadOrange transition-colors" />
+          <span className="group-hover:translate-x-0.5 transition-transform duration-150">
+            Log Out
+          </span>
+        </Button>
         <div className="mt-4 p-3 rounded-md border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-launchpadOffWhite to-white dark:from-gray-800 dark:to-gray-800/50">
           <div className="flex gap-2.5 items-center">
             <div className="rounded-full bg-launchpadLightBlue dark:bg-launchpadTeal/50 p-1.5 flex-shrink-0">

@@ -4,10 +4,8 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/basic/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
-import { BarChart2, Download, FileText, Filter, Users } from "lucide-react";
+import { BarChart2, Download, FileText, Users } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
-import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
-import { JobFilters } from "@/components/Admin/Jobs/job-filters";
 
 // Import modular components
 import { OverviewCard } from "@/components/Admin/Analytics/overview-card";
@@ -51,30 +49,6 @@ interface AnalyticsData {
   topJobCategories: JobCategory[];
   placementsByPartner: ProgramPlacement[];
 }
-
-// Define the matching JobFilter interface
-interface JobFilter {
-  jobTypes: string[];
-  locations: string[];
-  remoteOnly: boolean;
-  salary: [number, number];
-  experienceLevel: string;
-  keywords: string;
-  tags: string[];
-  programs: string[];
-}
-
-// Update defaultFilters
-const defaultFilters: JobFilter = {
-  jobTypes: [],
-  locations: [],
-  remoteOnly: false,
-  salary: [0, 200],
-  experienceLevel: "any",
-  keywords: "",
-  tags: [],
-  programs: [],
-};
 
 // Colors for charts - using our design system colors
 const CHART_COLORS = [

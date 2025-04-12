@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/basic/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/basic/avatar";
 import { Badge } from "@/components/ui/basic/badge";
 import { Button } from "@/components/ui/basic/button";
-import { extendedPalette } from "@/lib/colors";
 
 interface ApplicationStatusCount {
   interested: number;
@@ -149,7 +148,7 @@ export function ApplicantCard({ applicant, onViewProfile }: ApplicantCardProps) 
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              {statusBadges.map((status, index) => (
+              {statusBadges.map((status) => (
                 status.count > 0 && (
                   <span
                     key={status.label}

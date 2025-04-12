@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/basic/button";
 import { LoginForm } from "@/components/ui/basic/login-form";
@@ -13,6 +16,29 @@ import { LoginForm } from "@/components/ui/basic/login-form";
  * for testing and will be removed in production.
  */
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "loading") return;
+
+    if (session) {
+      if (session.user.isAdmin) {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/applicant/dashboard");
+      }
+    }
+  }, [session, status, router]);
+
+  if (status === "loading") {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 flex flex-col bg-slate-50">
       {/* Subtle background pattern - covers entire viewport */}

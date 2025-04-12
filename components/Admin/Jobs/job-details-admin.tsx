@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/basic/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { format } from "date-fns";
 import { extendedPalette } from "@/lib/colors";
-import { JobDetailsProps, ExtendedJob } from "./types";
+import { JobDetailsProps } from "./types";
 import { 
   Building2, MapPin, Calendar, Briefcase, 
   ExternalLink, Edit, Archive, Users, ArchiveRestore

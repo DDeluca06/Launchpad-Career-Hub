@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/basic/label";
 import { Input } from "@/components/ui/form/input";
 import { Button } from "@/components/ui/basic/button";
 import { Search, Building2, MapPin } from "lucide-react";
-import { Badge } from "@/components/ui/basic/badge";
 import { PartnerFilterInterface, INDUSTRIES } from "./types";
 
 interface PartnerFiltersProps {
