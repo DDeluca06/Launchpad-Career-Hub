@@ -30,123 +30,172 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/form/select';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from '@/components/ui/navigation/tabs';
 import { 
   PlusCircle, 
   Search, 
-  Filter 
+  Filter,
+  Archive
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 
-// Task form schema
-const taskFormSchema = z.object({
+// Job form schema
+const jobFormSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   status: z.enum(['interested', 'applied', 'interview', 'offer', 'rejected']),
   tags: z.array(z.string()).optional(),
+  archived: z.boolean().optional(),
 });
 
-type TaskFormValues = z.infer<typeof taskFormSchema>;
+type JobFormValues = z.infer<typeof jobFormSchema>;
 
 export function KanbanPage() {
-  const { tasks, addTask, updateTask, deleteTask, startTimeTracking } = useAppStore();
+  const { tasks: jobs, addTask: addJob, updateTask: updateJob, deleteTask: archiveJob } = useAppStore();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedJob, setSelectedJob] = useState<Task | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<string>('active');
 
   // Create form
-  const createForm = useForm<TaskFormValues>({
-    resolver: zodResolver(taskFormSchema),
+  const createForm = useForm<JobFormValues>({
+    resolver: zodResolver(jobFormSchema),
     defaultValues: {
       title: '',
       description: '',
       status: 'interested',
       tags: [],
+      archived: false,
     },
   });
 
   // Edit form
-  const editForm = useForm<TaskFormValues>({
-    resolver: zodResolver(taskFormSchema),
+  const editForm = useForm<JobFormValues>({
+    resolver: zodResolver(jobFormSchema),
     defaultValues: {
       title: '',
       description: '',
       status: 'interested',
       tags: [],
+      archived: false,
     },
   });
 
-  // Handle create task
-  const onCreateSubmit = (data: TaskFormValues) => {
-    addTask({
+  // Handle create job
+  const onCreateSubmit = (data: JobFormValues) => {
+    addJob({
       title: data.title,
       description: data.description || '',
       status: data.status,
       tags: data.tags || [],
+      archived: false,
     });
     
-    toast.success('Task created successfully');
+    toast.success('Job created successfully');
     setIsCreateDialogOpen(false);
     createForm.reset();
   };
 
-  // Handle edit task
-  const onEditSubmit = (data: TaskFormValues) => {
-    if (!selectedTask) return;
+  // Handle edit job
+  const onEditSubmit = (data: JobFormValues) => {
+    if (!selectedJob) return;
     
-    updateTask(selectedTask.id, {
+    updateJob(selectedJob.id, {
       title: data.title,
       description: data.description || '',
       status: data.status,
       tags: data.tags || [],
+      archived: data.archived,
     });
     
-    toast.success('Task updated successfully');
+    toast.success('Job updated successfully');
     setIsEditDialogOpen(false);
-    setSelectedTask(null);
+    setSelectedJob(null);
   };
 
-  // Handle delete task
-  const handleDeleteTask = (taskId: string) => {
-    deleteTask(taskId);
-    toast.success('Task deleted successfully');
+  // Handle archive job
+  const handleArchiveJob = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      updateJob(jobId, { archived: true });
+      toast.success('Job archived successfully');
+    }
   };
 
-  // Handle edit task button click
-  const handleEditTask = (task: Task) => {
-    setSelectedTask(task);
+  // Handle restore job
+  const handleRestoreJob = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      updateJob(jobId, { archived: false });
+      toast.success('Job restored successfully');
+    }
+  };
+
+  // Handle permanent delete job
+  const handleDeleteJob = (jobId: string) => {
+    archiveJob(jobId);
+    toast.success('Job permanently deleted');
+  };
+
+  // Handle edit job button click
+  const handleEditJob = (job: Task) => {
+    setSelectedJob(job);
     editForm.reset({
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      tags: task.tags,
+      title: job.title,
+      description: job.description,
+      status: job.status,
+      tags: job.tags,
+      archived: job.archived || false,
     });
     setIsEditDialogOpen(true);
   };
 
-  // Handle start timer for task
-  const handleStartTimer = (task: Task) => {
-    startTimeTracking(task.title, task.id);
-    toast.success(`Timer started for "${task.title}"`);
-  };
-
-  // Filter tasks
-  const filteredTasks = tasks
-    .filter((task: Task) => {
+  // Filter active jobs
+  const activeJobs = jobs
+    .filter((job: Task) => {
+      // Filter out archived jobs
+      if (job.archived) return false;
+      
       // Search filter
       const matchesSearch = 
-        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.description.toLowerCase().includes(searchQuery.toLowerCase());
+        job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.description.toLowerCase().includes(searchQuery.toLowerCase());
       
       // Status filter
-      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
       
       return matchesSearch && matchesStatus;
     });
+
+  // Filter archived jobs
+  const archivedJobs = jobs
+    .filter((job: Task) => {
+      // Only include archived jobs
+      if (!job.archived) return false;
+      
+      // Search filter
+      const matchesSearch = 
+        job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.description.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+
+  // Get the jobs to display based on active tab
+  const displayedJobs = activeTab === 'active' ? activeJobs : archivedJobs;
 
   return (
     <div className="space-y-6">
@@ -156,14 +205,14 @@ export function KanbanPage() {
           <DialogTrigger asChild>
             <Button className="flex items-center space-x-2">
               <PlusCircle className="h-4 w-4" />
-              <span>Add Task</span>
+              <span>Add Job</span>
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Task</DialogTitle>
+              <DialogTitle>Create New Job</DialogTitle>
               <DialogDescription>
-                Add a new task to your board. Fill out the details below.
+                Add a new job to your board. Fill out the details below.
               </DialogDescription>
             </DialogHeader>
             <Form {...createForm}>
@@ -175,7 +224,7 @@ export function KanbanPage() {
                     <FormItem>
                       <FormLabel>Title</FormLabel>
                       <FormControl>
-                        <Input placeholder="Task title" {...field} />
+                        <Input placeholder="Job title" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -188,7 +237,7 @@ export function KanbanPage() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input placeholder="Task description" {...field} />
+                        <Input placeholder="Job description" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -243,7 +292,7 @@ export function KanbanPage() {
                   )}
                 />
                 <DialogFooter>
-                  <Button type="submit">Create Task</Button>
+                  <Button type="submit">Create Job</Button>
                 </DialogFooter>
               </form>
             </Form>
@@ -257,7 +306,7 @@ export function KanbanPage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search tasks..."
+              placeholder="Search jobs..."
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -285,21 +334,93 @@ export function KanbanPage() {
         </div>
       </div>
 
-      <ApplicationPipeline
-        tasks={filteredTasks}
-        onUpdateTask={updateTask}
-        onDeleteTask={handleDeleteTask}
-        onEditTask={handleEditTask}
-        onStartTimer={handleStartTimer}
-      />
+      <Tabs defaultValue="active" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="active">Active Jobs ({activeJobs.length})</TabsTrigger>
+          <TabsTrigger value="archived">Archived Jobs ({archivedJobs.length})</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="active" className="mt-4">
+          <ApplicationPipeline
+            jobs={displayedJobs}
+            onUpdateJob={updateJob}
+            onArchiveJob={handleArchiveJob}
+            onEditJob={handleEditJob}
+          />
+        </TabsContent>
+        
+        <TabsContent value="archived" className="mt-4">
+          {displayedJobs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <Archive className="h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium">No Archived Jobs</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                When you archive jobs, they will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {displayedJobs.map((job) => (
+                <div key={job.id} className="bg-white dark:bg-gray-700 shadow-sm rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-medium">{job.title}</h3>
+                      {job.description && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {job.description.length > 100
+                            ? `${job.description.substring(0, 100)}...`
+                            : job.description}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                          ${job.status === 'interested' ? 'bg-gray-100 text-gray-800' : 
+                            job.status === 'applied' ? 'bg-blue-100 text-blue-800' : 
+                            job.status === 'interview' ? 'bg-purple-100 text-purple-800' : 
+                            job.status === 'offer' ? 'bg-green-100 text-green-800' : 
+                            'bg-red-100 text-red-800'}`}
+                        >
+                          {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                        </span>
+                        {job.tags && job.tags.length > 0 && job.tags.map((tag, index) => (
+                          <span key={index} className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 px-2 py-0.5 text-xs font-medium">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRestoreJob(job.id)}
+                      >
+                        Restore
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-500 hover:text-red-600"
+                        onClick={() => handleDeleteJob(job.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
-      {/* Edit Task Dialog */}
+      {/* Edit Job Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Task</DialogTitle>
+            <DialogTitle>Edit Job</DialogTitle>
             <DialogDescription>
-              Update the details of your task.
+              Update the details of your job.
             </DialogDescription>
           </DialogHeader>
           <Form {...editForm}>
@@ -311,7 +432,7 @@ export function KanbanPage() {
                   <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="Task title" {...field} />
+                      <Input placeholder="Job title" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -324,7 +445,7 @@ export function KanbanPage() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Input placeholder="Task description" {...field} />
+                      <Input placeholder="Job description" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -379,7 +500,7 @@ export function KanbanPage() {
                 )}
               />
               <DialogFooter>
-                <Button type="submit">Update Task</Button>
+                <Button type="submit">Update Job</Button>
               </DialogFooter>
             </form>
           </Form>

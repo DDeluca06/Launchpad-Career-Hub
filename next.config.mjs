@@ -22,7 +22,8 @@ const nextConfig = {
       'w8d9q6vsv9.ufs.sh',
       'i0.wp.com',
       '149667878.v2.pressablecdn.com',
-      'placehold.co'
+      'placehold.co',
+      'via.placeholder.com'
     ],
   },
   experimental: {

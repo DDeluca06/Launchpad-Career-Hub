@@ -8,22 +8,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/basic/
 
 interface KanbanColumnProps {
   title: string;
-  tasks: Task[];
+  jobs: Task[];
   status: 'interested' | 'applied' | 'interview' | 'offer' | 'rejected';
-  onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
-  onDeleteTask: (taskId: string) => void;
-  onEditTask: (task: Task) => void;
-  onStartTimer: (task: Task) => void;
+  onUpdateJob: (jobId: string, updates: Partial<Task>) => void;
+  onArchiveJob: (jobId: string) => void;
+  onEditJob: (job: Task) => void;
 }
 
 export function KanbanColumn({
   title,
-  tasks,
+  jobs,
   status,
-  onUpdateTask,
-  onDeleteTask,
-  onEditTask,
-  onStartTimer,
+  onUpdateJob,
+  onArchiveJob,
+  onEditJob,
 }: KanbanColumnProps) {
   // Get background color based on status
   const getColumnColor = () => {
@@ -67,7 +65,7 @@ export function KanbanColumn({
         <CardTitle className="text-lg flex justify-between items-center">
           <span>{title}</span>
           <span className="text-sm font-normal bg-white dark:bg-gray-700 rounded-full px-2 py-1">
-            {tasks.length}
+            {jobs.length}
           </span>
         </CardTitle>
       </CardHeader>
@@ -86,21 +84,20 @@ export function KanbanColumn({
                 snapshot.isDraggingOver ? 'bg-gray-100 dark:bg-gray-700/50' : ''
               }`}
             >
-              {tasks.length === 0 ? (
+              {jobs.length === 0 ? (
                 <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">
-                  No tasks
+                  No jobs
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {tasks.map((task, index) => (
+                  {jobs.map((job, index) => (
                     <KanbanCard
-                      key={task.id}
-                      task={task}
+                      key={job.id}
+                      job={job}
                       index={index}
-                      onUpdateTask={onUpdateTask}
-                      onDeleteTask={onDeleteTask}
-                      onEditTask={onEditTask}
-                      onStartTimer={onStartTimer}
+                      onUpdateJob={onUpdateJob}
+                      onArchiveJob={onArchiveJob}
+                      onEditJob={onEditJob}
                     />
                   ))}
                 </div>

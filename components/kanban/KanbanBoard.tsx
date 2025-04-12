@@ -6,27 +6,25 @@ import { KanbanColumn } from './KanbanColumn';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 
 interface ApplicationPipelineProps {
-  tasks: Task[];
-  onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
-  onDeleteTask: (taskId: string) => void;
-  onEditTask: (task: Task) => void;
-  onStartTimer: (task: Task) => void;
+  readonly jobs: Task[];
+  readonly onUpdateJob: (jobId: string, updates: Partial<Task>) => void;
+  readonly onArchiveJob: (jobId: string) => void;
+  readonly onEditJob: (job: Task) => void;
 }
 
 export function ApplicationPipeline({
-  tasks,
-  onUpdateTask,
-  onDeleteTask,
-  onEditTask,
-  onStartTimer,
-}: ApplicationPipelineProps) {
-  // Group tasks by status
+  jobs,
+  onUpdateJob,
+  onArchiveJob,
+  onEditJob,
+}: Readonly<ApplicationPipelineProps>) {
+  // Group jobs by status
   const columns = {
-    interested: tasks.filter(task => task.status === 'interested'),
-    applied: tasks.filter(task => task.status === 'applied'),
-    interview: tasks.filter(task => task.status === 'interview'),
-    offer: tasks.filter(task => task.status === 'offer'),
-    rejected: tasks.filter(task => task.status === 'rejected'),
+    interested: jobs.filter(job => job.status === 'interested'),
+    applied: jobs.filter(job => job.status === 'applied'),
+    interview: jobs.filter(job => job.status === 'interview'),
+    offer: jobs.filter(job => job.status === 'offer'),
+    rejected: jobs.filter(job => job.status === 'rejected'),
   };
 
   // Handle drag and drop
@@ -40,12 +38,12 @@ export function ApplicationPipeline({
       return;
     }
 
-    // Find the task that was dragged
-    const task = tasks.find(t => t.id === draggableId);
-    if (!task) return;
+    // Find the job that was dragged
+    const job = jobs.find(j => j.id === draggableId);
+    if (!job) return;
 
-    // Update the task status based on the destination column
-    onUpdateTask(task.id, {
+    // Update the job status based on the destination column
+    onUpdateJob(job.id, {
       status: destination.droppableId as 'interested' | 'applied' | 'interview' | 'offer' | 'rejected'
     });
   };
@@ -55,48 +53,43 @@ export function ApplicationPipeline({
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <KanbanColumn 
           title="Interested" 
-          tasks={columns.interested} 
+          jobs={columns.interested} 
           status="interested"
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
-          onEditTask={onEditTask}
-          onStartTimer={onStartTimer}
+          onUpdateJob={onUpdateJob}
+          onArchiveJob={onArchiveJob}
+          onEditJob={onEditJob}
         />
         <KanbanColumn 
           title="Applied" 
-          tasks={columns.applied} 
+          jobs={columns.applied} 
           status="applied"
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
-          onEditTask={onEditTask}
-          onStartTimer={onStartTimer}
+          onUpdateJob={onUpdateJob}
+          onArchiveJob={onArchiveJob}
+          onEditJob={onEditJob}
         />
         <KanbanColumn 
           title="Interview" 
-          tasks={columns.interview} 
+          jobs={columns.interview} 
           status="interview"
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
-          onEditTask={onEditTask}
-          onStartTimer={onStartTimer}
+          onUpdateJob={onUpdateJob}
+          onArchiveJob={onArchiveJob}
+          onEditJob={onEditJob}
         />
         <KanbanColumn 
           title="Offer" 
-          tasks={columns.offer} 
+          jobs={columns.offer} 
           status="offer"
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
-          onEditTask={onEditTask}
-          onStartTimer={onStartTimer}
+          onUpdateJob={onUpdateJob}
+          onArchiveJob={onArchiveJob}
+          onEditJob={onEditJob}
         />
         <KanbanColumn 
           title="Rejected" 
-          tasks={columns.rejected} 
+          jobs={columns.rejected} 
           status="rejected"
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
-          onEditTask={onEditTask}
-          onStartTimer={onStartTimer}
+          onUpdateJob={onUpdateJob}
+          onArchiveJob={onArchiveJob}
+          onEditJob={onEditJob}
         />
       </div>
     </DragDropContext>
