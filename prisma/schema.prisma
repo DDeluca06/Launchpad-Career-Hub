@@ -141,13 +141,19 @@ model jobs {
 model partners {
   partner_id       Int     @id @default(autoincrement())
   name             String  @db.VarChar
-  isArchived       Boolean @default(false)
   description      String?
   industry         String? @db.VarChar
   location         String? @db.VarChar
+  website_url      String? @db.VarChar
+  contact_name     String? @db.VarChar
+  contact_email    String? @db.VarChar
+  contact_phone    String? @db.VarChar
   jobs_available   Int?    @default(0)
   applicants       Int?    @default(0)
   applicants_hired Int?    @default(0)
+  is_archived      Boolean @default(false)
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime? @updatedAt @db.Timestamptz(6)
   jobs             jobs[]
 }
 
@@ -168,8 +174,8 @@ model users {
   user_id            Int                  @id @default(autoincrement())
   lp_id              Int                  @default(0)
   is_active          Boolean              @default(true)
+  email              String               @db.VarChar
   is_archived        Boolean              @default(false)
-  username           String               @db.VarChar
   first_name         String               @db.VarChar
   last_name          String               @db.VarChar
   password_hash      String               @db.VarChar
