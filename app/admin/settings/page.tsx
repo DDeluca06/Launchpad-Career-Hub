@@ -117,26 +117,38 @@ export default function SettingsPage() {
       const userToUpdate = users.find((user) => user.user_id === userId);
       if (!userToUpdate) return;
 
+      // Optimistically update the UI
+      const newAdminStatus = !userToUpdate.isAdmin;
+      setUsers(users.map((user) =>
+        user.user_id === userId ? { ...user, isAdmin: newAdminStatus } : user
+      ));
+
       const response = await fetch(`/api/users/${userId}/admin`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          isAdmin: !userToUpdate.isAdmin,
+          isAdmin: newAdminStatus,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        // Roll back the optimistic update if the API call fails
+        setUsers(users.map((user) =>
+          user.user_id === userId ? { ...user, isAdmin: userToUpdate.isAdmin } : user
+        ));
         throw new Error(data.error || data.details || 'Failed to update admin status');
       }
 
-      // Update local state
-      setUsers(users.map((user) =>
-        user.user_id === userId ? { ...user, isAdmin: data.isAdmin } : user
-      ));
+      // If successful, ensure the state matches what the server returned
+      if (data.isAdmin !== newAdminStatus) {
+        setUsers(users.map((user) =>
+          user.user_id === userId ? { ...user, isAdmin: data.isAdmin } : user
+        ));
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       setError(errorMessage);
@@ -150,6 +162,33 @@ export default function SettingsPage() {
   const filteredUsers = users.filter((user) =>
     user.username.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
+
+  // Check if the user is logged in and is an admin
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const currentUser = await getCurrentUser(); // Implement this based on your auth system
+        if (!currentUser || !currentUser.isAdmin) {
+          router.push('/login'); // Redirect to login or unauthorized page
+          return;
+        }
+        setUser(currentUser);
+      } catch (err) {
+        console.error('Auth check failed:', err);
+        router.push('/login');
+      }
+    };
+
+    checkAuth();
+  }, [router]);
+
+  // Don't render anything until auth check completes
+  if (!user) {
+    return <div className="p-8">Loading...</div>;
+  }
 
   return (
     <DashboardLayout isAdmin>
