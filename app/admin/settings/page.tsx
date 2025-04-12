@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import {
   Card,
@@ -27,16 +28,7 @@ import {
   Moon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-
-interface User {
-  user_id: number;
-  username: string;
-  first_name: string;
-  last_name: string;
-  isAdmin: boolean;
-  program: string;
-  created_at: string;
-}
+import { User, userService } from "@/lib/local-storage";
 
 /**
  * Renders the admin settings page.
@@ -54,6 +46,8 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState<number | null>(null);
+
+    const router = useRouter();
 
   // Simplified settings state
   const [settings, setSettings] = useState({
@@ -164,15 +158,14 @@ export default function SettingsPage() {
   );
 
   const [user, setUser] = useState<User | null>(null);
-  const router = useRouter();
 
   // Check if the user is logged in and is an admin
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const currentUser = await getCurrentUser(); // Implement this based on your auth system
+        const currentUser = userService.getCurrentUser();
         if (!currentUser || !currentUser.isAdmin) {
-          router.push('/login'); // Redirect to login or unauthorized page
+          router.push('/login');
           return;
         }
         setUser(currentUser);
