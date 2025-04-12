@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 /**
  * API route to fetch upcoming interviews
  * 
- * This route queries applications with INTERVIEWING status and combines them
+ * This route queries applications with INTERVIEW_STAGE status and combines them
  * with event records to provide a list of upcoming interviews for the dashboard.
  * 
  * @returns A JSON response with upcoming interviews or error message
@@ -65,7 +65,7 @@ export async function GET() {
         JOIN
           jobs j ON a.job_id = j.job_id
         WHERE
-          a.status = 'INTERVIEWING'
+          a.status = 'INTERVIEW_STAGE'
         ORDER BY
           a.status_updated DESC
         LIMIT 10

@@ -28,7 +28,16 @@ import {
   Moon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { User, userService } from "@/lib/local-storage";
+
+interface User {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isAdmin: boolean;
+  program: string;
+  createdAt: string;
+}
 
 /**
  * Renders the admin settings page.
@@ -42,12 +51,13 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState("userAccess");
   const [users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isUpdating, setIsUpdating] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isUpdating, setIsUpdating] = useState<number | null>(null);
 
-    const router = useRouter();
+  const router = useRouter();
 
   // Simplified settings state
   const [settings, setSettings] = useState({
@@ -57,31 +67,24 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    const loadUsers = async () => {
+    const fetchUsers = async () => {
       try {
-        setIsLoading(true);
-        setError(null);
-        
         const response = await fetch('/api/users');
         if (!response.ok) {
-          const text = await response.text();
-          console.error('API Response:', text);
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error('Failed to fetch users');
         }
-        
-        const users = await response.json();
-        console.warn('Fetched users:', users);
-        setUsers(users);
+        const data = await response.json();
+        if (data.success) {
+          setUsers(data.data);
+        }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load users';
-        setError(errorMessage);
-        console.error('Error loading users:', err);
+        setError("Failed to fetch users");
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadUsers();
+    fetchUsers();
   }, []);
 
   const handleSettingChange = (
@@ -102,59 +105,56 @@ export default function SettingsPage() {
     }));
   };
 
-  // Toggle admin status for a user
-  const toggleAdminStatus = async (userId: number) => {
+  const handleUpdateAdminStatus = async (user: User) => {
+    setIsUpdating(user.id);
     try {
-      setIsUpdating(userId);
-      setError(null);
-
-      const userToUpdate = users.find((user) => user.user_id === userId);
-      if (!userToUpdate) return;
-
-      // Optimistically update the UI
-      const newAdminStatus = !userToUpdate.isAdmin;
-      setUsers(users.map((user) =>
-        user.user_id === userId ? { ...user, isAdmin: newAdminStatus } : user
-      ));
-
-      const response = await fetch(`/api/users/${userId}/admin`, {
+      const response = await fetch(`/api/users/${user.id}/admin`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          isAdmin: newAdminStatus,
+          isAdmin: !user.isAdmin,
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        // Roll back the optimistic update if the API call fails
-        setUsers(users.map((user) =>
-          user.user_id === userId ? { ...user, isAdmin: userToUpdate.isAdmin } : user
-        ));
-        throw new Error(data.error || data.details || 'Failed to update admin status');
+        throw new Error('Failed to update user');
       }
 
-      // If successful, ensure the state matches what the server returned
-      if (data.isAdmin !== newAdminStatus) {
-        setUsers(users.map((user) =>
-          user.user_id === userId ? { ...user, isAdmin: data.isAdmin } : user
-        ));
-      }
+      const updatedUser = await response.json();
+      setUsers(users.map((u) => (u.id === user.id ? updatedUser : u)));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage);
-      console.error('Error updating admin status:', err);
+      setError("Failed to update user");
     } finally {
       setIsUpdating(null);
     }
   };
 
-  // Filter users based on search query
+  const handleDeleteUser = async (user: User) => {
+    if (!confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+
+      setUsers(users.filter((u) => u.id !== user.id));
+    } catch (err) {
+      setError("Failed to delete user");
+    }
+  };
+
   const filteredUsers = users.filter((user) =>
-    user.username.toLowerCase().includes(searchQuery.toLowerCase()),
+    `${user.firstName} ${user.lastName} ${user.email}`
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
   );
 
   const [user, setUser] = useState<User | null>(null);
@@ -163,12 +163,17 @@ export default function SettingsPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const currentUser = userService.getCurrentUser();
-        if (!currentUser || !currentUser.isAdmin) {
+        const response = await fetch('/api/users/current');
+        if (!response.ok) {
           router.push('/login');
           return;
         }
-        setUser(currentUser);
+        const data = await response.json();
+        if (!data.success || !data.data.isAdmin) {
+          router.push('/login');
+          return;
+        }
+        setUser(data.data);
       } catch (err) {
         console.error('Auth check failed:', err);
         router.push('/login');
@@ -182,6 +187,40 @@ export default function SettingsPage() {
   if (!user) {
     return <div className="p-8">Loading...</div>;
   }
+
+  const handleSave = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const response = await fetch(`/api/users/${selectedUser.id}/admin`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: selectedUser.email,
+          firstName: selectedUser.firstName,
+          lastName: selectedUser.lastName,
+          isAdmin: selectedUser.isAdmin,
+          program: selectedUser.program,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update user");
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setUsers(users.map((user) => 
+          user.id === selectedUser.id ? { ...user, ...selectedUser } : user
+        ));
+        setSelectedUser(null);
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
+  };
 
   return (
     <DashboardLayout isAdmin>
@@ -327,21 +366,17 @@ export default function SettingsPage() {
                       ) : (
                         filteredUsers.map((user) => {
                           // Generate initials for avatar
-                          const initials = user.username
-                            .split(" ")
+                          const initials = user.email
+                            .split("@")[0]
+                            .split(".")
                             .map((word: string) => word[0])
                             .join("")
                             .toUpperCase()
                             .slice(0, 2);
 
-                          // Generate email from username
-                          const email =
-                            user.username.toLowerCase().replace(/\s+/g, ".") +
-                            "@example.com";
-
                           return (
                             <tr
-                              key={user.user_id}
+                              key={user.id}
                               className="hover:bg-muted/30 transition-colors"
                             >
                               <td className="px-4 py-3">
@@ -350,12 +385,12 @@ export default function SettingsPage() {
                                     <AvatarFallback>{initials}</AvatarFallback>
                                   </Avatar>
                                   <span className="ml-3 font-medium text-foreground/90">
-                                    {user.username}
+                                    {user.email}
                                   </span>
                                 </div>
                               </td>
                               <td className="px-4 py-3 text-muted-foreground/80">
-                                {email}
+                                {user.email}
                               </td>
                               <td className="px-4 py-3">
                                 <Badge
@@ -376,10 +411,10 @@ export default function SettingsPage() {
                                 <Switch
                                   checked={user.isAdmin}
                                   onCheckedChange={() =>
-                                    toggleAdminStatus(user.user_id)
+                                    handleUpdateAdminStatus(user)
                                   }
                                   className="shadow-sm"
-                                  disabled={isUpdating === user.user_id}
+                                  disabled={isUpdating === user.id}
                                 />
                               </td>
                             </tr>
@@ -393,6 +428,16 @@ export default function SettingsPage() {
             </TabsContent>
           </Tabs>
         </Card>
+
+        {selectedUser && (
+          <div className="mt-4 p-4 border rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">User Details</h3>
+            <p>Name: {selectedUser.firstName} {selectedUser.lastName}</p>
+            <p>Email: {selectedUser.email}</p>
+            <p>Program: {selectedUser.program}</p>
+            <p>Admin Status: {selectedUser.isAdmin ? "Yes" : "No"}</p>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

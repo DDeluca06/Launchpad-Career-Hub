@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
     await prisma.app_status_history.create({
       data: {
         application_id: application.application_id,
-        status: 'APPLIED'
+        status: mapApplicationStatusToHistoryStatus(body.status || ApplicationStatus.APPLIED)
       }
     });
 
@@ -269,7 +269,7 @@ export async function PUT(request: NextRequest) {
       await prisma.app_status_history.create({
         data: {
           application_id: appId,
-          status: 'APPLIED'
+          status: mapApplicationStatusToHistoryStatus(newStatus)
         }
       });
     }
@@ -332,5 +332,26 @@ export async function DELETE(request: NextRequest) {
       { success: false, error: 'Failed to delete application' },
       { status: 500 }
     );
+  }
+}
+
+// Helper function to map ApplicationStatus to AppHistoryStatus
+function mapApplicationStatusToHistoryStatus(status: ApplicationStatus) {
+  switch (status) {
+    case ApplicationStatus.APPLIED:
+      return 'APPLIED';
+    case ApplicationStatus.PHONE_SCREENING:
+    case ApplicationStatus.INTERVIEW_STAGE:
+    case ApplicationStatus.FINAL_INTERVIEW_STAGE:
+      return 'INTERVIEWING';
+    case ApplicationStatus.OFFER_EXTENDED:
+    case ApplicationStatus.NEGOTIATION:
+      return 'OFFERED';
+    case ApplicationStatus.OFFER_ACCEPTED:
+      return 'HIRED';
+    case ApplicationStatus.REJECTED:
+      return 'REJECTED';
+    default:
+      return 'APPLIED';
   }
 } 

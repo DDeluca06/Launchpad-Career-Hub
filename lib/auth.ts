@@ -1,77 +1,76 @@
-import { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "./prisma";
-import bcrypt from "bcrypt";
+import { prisma } from '@/lib/prisma';
 
-export const authOptions: NextAuthOptions = {
-  providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        const user = await prisma.users.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
-
-        if (!user) {
-          return null;
-        }
-
-        const isValid = await bcrypt.compare(credentials.password, user.password_hash);
-
-        if (!isValid) {
-          return null;
-        }
-
-        return {
-          id: user.user_id.toString(),
-          email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          isAdmin: user.is_admin ?? false
-        };
-      },
-    }),
-  ],
-  session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/login",
-  },
-  callbacks: {
-    async session({ session, token }) {
-      if (token) {
-        return {
-          ...session,
-          user: {
-            ...session.user,
-            id: token.id as string,
-            first_name: token.first_name as string,
-            last_name: token.last_name as string,
-            isAdmin: token.isAdmin as boolean,
+// Simplified auth implementation
+export const auth = {
+  api: {
+    session: {
+      async get({ request }: { request: Request }) {
+        try {
+          // Get session token from cookies
+          const cookieHeader = request.headers.get('cookie');
+          console.log('Cookie header:', cookieHeader);
+          
+          if (!cookieHeader) {
+            console.log('No cookie header found');
+            return null;
           }
-        };
+          
+          // Parse cookies
+          const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+            const [key, value] = cookie.trim().split('=');
+            acc[key] = value;
+            return acc;
+          }, {} as Record<string, string>);
+          
+          console.log('Parsed cookies:', cookies);
+          
+          const sessionId = cookies['session-id'];
+          if (!sessionId) {
+            console.log('No session-id cookie found');
+            return null;
+          }
+          
+          console.log('Found session ID:', sessionId);
+          
+          // Try to parse as JSON
+          try {
+            // Decode URI component first to handle URL encoding
+            const decodedSessionId = decodeURIComponent(sessionId);
+            console.log('Decoded session ID:', decodedSessionId);
+            
+            // Convert from base64 to string
+            const decodedString = Buffer.from(decodedSessionId, 'base64').toString();
+            console.log('Decoded string:', decodedString);
+            
+            // Parse the JSON
+            const sessionData = JSON.parse(decodedString);
+            console.log('Parsed session data:', sessionData);
+            
+            if (sessionData && typeof sessionData === 'object' && 'id' in sessionData) {
+              return {
+                user: {
+                  id: sessionData.id.toString(),
+                  isAdmin: !!sessionData.isAdmin
+                }
+              };
+            } else {
+              console.log('Invalid session data format:', sessionData);
+              return null;
+            }
+          } catch (jsonError) {
+            console.error('Error parsing session:', jsonError);
+            return null;
+          }
+        } catch (error) {
+          console.error('Session error:', error);
+          return null;
+        }
       }
-      return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.first_name = user.first_name;
-        token.last_name = user.last_name;
-        token.isAdmin = user.isAdmin;
-      }
-      return token;
-    },
+    }
   },
+  
+  // For the updated API routes
+  async getSession(request: Request) {
+    return this.api.session.get({ request });
+  }
 }; 
