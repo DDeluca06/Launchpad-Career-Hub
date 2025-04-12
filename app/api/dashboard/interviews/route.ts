@@ -74,19 +74,15 @@ export async function GET() {
       // Get upcoming events that may be interviews
       const upcomingEvents = await prisma.interviews.findMany({
         where: {
-          event_date: {
-            gte: new Date()
+          start_time: {
+            gte: new Date(),
           },
-          // Filter to likely interview events based on title
-          title: {
-            contains: 'interview',
-            mode: 'insensitive'
-          }
+          status: 'SCHEDULED'
         },
-        take: 5,
         orderBy: {
-          event_date: 'asc'
-        }
+          start_time: 'asc'
+        },
+        take: 5
       });
       
       // Format interview data for client from raw SQL result
@@ -112,19 +108,17 @@ export async function GET() {
 
       // Add additional interviews from events if available
       upcomingEvents.forEach((event: {
-        user_id: number;
-        title: string;
-        description: string | null;
-        created_at: Date | null;
         interview_id: number;
-        event_date: Date;
+        start_time: Date;
+        title: string;
       }) => {
+        const eventDate = new Date(event.start_time);
         interviews.push({
           id: `event-${event.interview_id}`,
           candidateName: 'Scheduled Candidate',
           position: event.title.replace(/interview/i, '').trim() || 'Candidate Interview',
           company: 'Launchpad Partner',
-          date: event.event_date,
+          date: eventDate,
           time: getRandomTime(),
           type: 'Scheduled Interview',
           interviewer: getRandomInterviewer()

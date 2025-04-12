@@ -48,6 +48,7 @@ export function DashboardSection({
 }: DashboardSectionProps) {
   const [stats, setStats] = useState<Stat[]>(initialStats);
   const [loading, setLoading] = useState(!!apiEndpoint);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!apiEndpoint) return;
@@ -60,75 +61,47 @@ export function DashboardSection({
         }
         
         const data = await response.json();
-        console.error(`API Response from ${apiEndpoint}:`, data);
         
         if (!data.success) {
           throw new Error(data.error || 'Failed to fetch data');
         }
         
-        // Map the returned stats to the expected format
+        // Update stats with API data
         const updatedStats = initialStats.map(stat => {
-          // Convert label to camelCase for API key matching
-          const label = stat.label;
-          const camelLabel = label
+          // Try direct match with the exact label
+          if (data.stats && data.stats[stat.label] !== undefined) {
+            return {
+              ...stat,
+              value: data.stats[stat.label].toString()
+            };
+          }
+          
+          // Try camelCase version of the label
+          const camelLabel = stat.label
             .toLowerCase()
             .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => 
               index === 0 ? word.toLowerCase() : word.toUpperCase()
             )
             .replace(/\s+/g, '');
-          
-          console.error(`Trying to map "${label}" to API keys`);
-          
-          // First check for exact match with the label itself (our most reliable option)
-          if (data.stats[label] !== undefined) {
-            console.error(`Found direct match with label: ${label} = ${data.stats[label]}`);
+            
+          if (data.stats && data.stats[camelLabel] !== undefined) {
             return {
               ...stat,
-              value: data.stats[label].toString()
+              value: data.stats[camelLabel].toString()
             };
           }
           
-          // Handle labels with or without spaces safely
-          const labelParts = label.split(' ');
-          
-          // Try to find a matching key in the returned data
-          const possibleKeys = [
-            camelLabel,                                    // totalApplications
-            label.replace(/\s+/g, '').toLowerCase(),       // totalapplications
-            // Only add split-based keys if there are actually multiple parts
-            ...(labelParts.length > 1 ? [
-              `total${labelParts[1]}`,                       // totalApplications
-              labelParts[1]?.toLowerCase(),                  // applications 
-            ] : []),
-            labelParts[0]?.toLowerCase(),                   // total
-            label.toLowerCase().replace(/\s+/g, '')        // ininterview
-          ];
-          
-          console.error('Possible keys to match:', possibleKeys);
-          console.error('Available keys in API response:', Object.keys(data.stats));
-          
-          // Try each possible key
-          for (const key of possibleKeys) {
-            if (key && data.stats[key] !== undefined) {
-              console.error(`Found match: ${key} = ${data.stats[key]}`);
-              return {
-                ...stat,
-                value: data.stats[key].toString()
-              };
-            }
-          }
-          
-          // If no match found, log error and return the original stat
-          console.error(`No matching key found for ${label}. Using default value.`);
+          // If all else fails, keep the original stat
           return stat;
         });
         
-        console.error('Updated stats:', updatedStats);
         setStats(updatedStats);
         setLoading(false);
+        setError(null);
       } catch (error) {
         console.error(`Error fetching data from ${apiEndpoint}:`, error);
         setLoading(false);
+        setError("Failed to load data");
         // Keep using the initial stats on error
       }
     };
@@ -145,6 +118,11 @@ export function DashboardSection({
             {icon}
             {title}
           </CardTitle>
+          {error && (
+            <div className="text-xs text-red-500">
+              {error}
+            </div>
+          )}
         </div>
         {description && (
           <CardDescription className="text-muted-foreground">

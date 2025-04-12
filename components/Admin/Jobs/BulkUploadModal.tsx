@@ -13,9 +13,6 @@ interface BulkUploadModalProps {
   onBulkUpload: () => void;
 }
 
-/**
- * Modal component for bulk uploading users via CSV file
- */
 export function BulkUploadModal({
   open,
   onOpenChange,
@@ -25,12 +22,12 @@ export function BulkUploadModal({
 }: BulkUploadModalProps) {
   const handleDownloadTemplate = () => {
     // Create template CSV
-    const template = "firstName,lastName,email,program\nJohn,Doe,john.doe@example.com,101\nJane,Smith,jane.smith@example.com,LIFTOFF";
+    const template = "Title,Company,Location,Type,Description,Website,Tags,PartnerId\nSoftware Engineer,Example Corp,Remote,Full-Time,Description here,https://example.com,javascript;react,1\nProduct Manager,Tech Co,San Francisco,Full-Time,Another description,https://techco.com,product;agile,2";
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'applicants_template.csv');
+    link.setAttribute('download', 'jobs_template.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -40,17 +37,17 @@ export function BulkUploadModal({
     <MultiPurposeModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Bulk Upload Applicants"
+      title="Import Jobs from CSV"
       size="md"
       showFooter={true}
-      primaryActionText="Upload"
+      primaryActionText="Import Jobs"
       onPrimaryAction={onBulkUpload}
       secondaryActionText="Cancel"
       onSecondaryAction={() => onOpenChange(false)}
     >
       <div className="space-y-6 py-4">
         <p className="text-sm text-muted-foreground">
-          Upload a CSV file containing multiple applicant records.
+          Upload a CSV file with job listings to bulk import.
         </p>
 
         <div className="space-y-2">
@@ -77,7 +74,7 @@ export function BulkUploadModal({
             </label>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            CSV should have headers: firstName, lastName, email, program
+            CSV should have headers: Title, Company, Location, Type, Description, Website, Tags, PartnerId
           </p>
         </div>
 
@@ -94,9 +91,10 @@ export function BulkUploadModal({
           <h4 className="font-medium text-foreground">CSV Format Requirements:</h4>
           <ul className="list-disc pl-4 space-y-1">
             <li>First row must contain column headers</li>
-            <li>Required columns: firstName, lastName, email, program</li>
-            <li>Program values: FOUNDATION, 101, LIFTOFF, ALUMNI</li>
-            <li>Passwords will be auto-generated if not provided</li>
+            <li>Required columns: Title, Company, Location, Type</li>
+            <li>Optional columns: Description, Website, Tags, PartnerId</li>
+            <li>Tags should be semicolon-separated (e.g. javascript;react)</li>
+            <li>Type values: Full-Time, Part-Time, Contract, Internship</li>
           </ul>
         </div>
       </div>

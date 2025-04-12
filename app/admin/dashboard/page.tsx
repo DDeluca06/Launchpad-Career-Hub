@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { Building, Briefcase, Users } from "lucide-react";
+import { Building, Briefcase } from "lucide-react";
 import { StatsOverview, QuickActions, DashboardSection, UpcomingInterviews } from "@/components/Admin/Dashboard";
 import { extendedPalette } from "@/lib/colors";
 import { Suspense } from "react";
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
         </Suspense>
         
         {/* Dashboard Sections with Database Data - Optimized layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ErrorBoundaryWrapper>
             <DashboardSection
               title="Partner Companies"
@@ -73,25 +73,6 @@ export default function AdminDashboard() {
               ]}
               color={extendedPalette.primaryGreen}
               apiEndpoint="/api/dashboard/internships"
-            />
-          </ErrorBoundaryWrapper>
-
-          <ErrorBoundaryWrapper>
-            <DashboardSection
-              title="Student Applications"
-              icon={
-                <Users
-                  className="h-6 w-6"
-                  style={{ color: extendedPalette.teal }}
-                />
-              }
-              href="/admin/applicants"
-              stats={[
-                { label: "Total Applications", value: "3" },
-                { label: "In Interview", value: "2" }
-              ]}
-              color={extendedPalette.teal}
-              apiEndpoint="/api/dashboard/students"
             />
           </ErrorBoundaryWrapper>
         </div>

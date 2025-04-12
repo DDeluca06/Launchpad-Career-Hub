@@ -1,20 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/basic/button";
 import { Input } from "@/components/ui/form/input";
 import { Label } from "@/components/ui/basic/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/basic/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { extendedPalette } from "@/lib/colors";
-import { useRouter } from "next/navigation";
-import { UserCircle, Lock, AlertCircle } from "lucide-react";
+import { UserCircle, Lock } from "lucide-react";
+import { toast } from "@/components/ui/feedback/use-toast";
 
 /**
  * Renders a login form component for both admin and student users.
@@ -25,74 +18,65 @@ import { UserCircle, Lock, AlertCircle } from "lucide-react";
  * admin and student login modes, which clears any existing input or error state.
  */
 export function LoginForm() {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+    };
 
-    // Basic validation
-    if (!username || !password) {
-      setError("Please enter both username and password");
-      return;
-    }
-
-    setIsLoading(true);
-
-    // Simulate API call with slight delay
-    setTimeout(() => {
-      // In a real app, you would validate against a backend
-      if (isAdmin) {
-        if (username === "admin" && password === "admin123") {
-          router.push("/admin/dashboard");
-        } else {
-          setError("Invalid admin credentials");
-          setIsLoading(false);
-        }
-      } else {
-        if (username === "student" && password === "student123") {
-          router.push("/applicant/dashboard");
-        } else {
-          setError("Invalid student credentials");
-          setIsLoading(false);
-        }
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Login failed');
       }
-    }, 600);
+      
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Login error:', err);
+      toast({
+        title: "Error",
+        description: "Login failed. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <Card className="w-full shadow-md border-0 bg-white/95 backdrop-blur-sm transition-all">
       <CardHeader className="space-y-1 text-center pb-2 pt-4">
         <CardTitle className="text-xl font-bold">
-          {isAdmin ? "Admin Portal" : "Student Portal"}
+          Welcome Back
         </CardTitle>
         <CardDescription className="text-sm">
           Sign in to access your Launchpad dashboard
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-3">
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={onSubmit} className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="username" className="text-sm font-medium">
-              Username
+            <Label htmlFor="email" className="text-sm font-medium">
+              Email
             </Label>
             <div className="relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <UserCircle size={16} />
               </div>
               <Input
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder={isAdmin ? "admin" : "student"}
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Enter your email"
                 className="pl-9 py-4 bg-gray-50 border-gray-200 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                 required
-                disabled={isLoading}
               />
             </div>
           </div>
@@ -115,28 +99,13 @@ export function LoginForm() {
               </div>
               <Input
                 id="password"
+                name="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 className="pl-9 py-4 bg-gray-50 border-gray-200 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                 required
-                disabled={isLoading}
               />
             </div>
-          </div>
-
-          {/* Fixed height error container to prevent layout shift */}
-          <div className="h-5 min-h-5">
-            {error && (
-              <div className="flex items-center text-xs text-red-500 font-medium animate-fadeIn">
-                <AlertCircle
-                  size={12}
-                  className="inline-block mr-1 flex-shrink-0"
-                />
-                <span>{error}</span>
-              </div>
-            )}
           </div>
 
           <Button
@@ -145,9 +114,8 @@ export function LoginForm() {
             style={{
               background: `linear-gradient(to right, ${extendedPalette.primaryBlue}, ${extendedPalette.teal})`,
             }}
-            disabled={isLoading}
           >
-            {isLoading ? "Signing in..." : "Sign In"}
+            Sign In
           </Button>
         </form>
 
@@ -161,21 +129,17 @@ export function LoginForm() {
 
           <div className="text-xs">
             <span className="text-gray-500">
-              {isAdmin ? "Need student access?" : "Administrator access?"}
+              Need student access?
             </span>{" "}
             <button
               type="button"
               className="font-medium hover:underline"
               style={{ color: extendedPalette.primaryBlue }}
               onClick={() => {
-                setIsAdmin(!isAdmin);
-                setUsername("");
-                setPassword("");
-                setError("");
+                // Implement student login logic here
               }}
-              disabled={isLoading}
             >
-              {isAdmin ? "Student Login" : "Admin Login"}
+              Student Login
             </button>
           </div>
         </div>
@@ -185,20 +149,20 @@ export function LoginForm() {
           <span className="font-medium">Demo:</span>
           Student:{" "}
           <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700 text-[10px]">
-            student
+            user@example.com
           </span>{" "}
           /
           <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700 text-[10px]">
-            student123
+            password123
           </span>
           <span className="mx-1">|</span>
           Admin:{" "}
           <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700 text-[10px]">
-            admin
+            admin@example.com
           </span>{" "}
           /
           <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700 text-[10px]">
-            admin123
+            password123
           </span>
         </p>
       </CardFooter>

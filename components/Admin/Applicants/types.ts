@@ -1,4 +1,19 @@
 /**
+ * Application status count for an applicant
+ */
+export interface ApplicationStatusCount {
+  interested: number;
+  applied: number;
+  phoneScreening: number;
+  interviewStage: number;
+  finalInterview: number;
+  offerExtended: number;
+  negotiation: number;
+  offerAccepted: number;
+  rejected: number;
+}
+
+/**
  * Applicant data with details for UI display
  */
 export interface ApplicantWithDetails {
@@ -9,10 +24,9 @@ export interface ApplicantWithDetails {
   email: string;
   role: string;
   applications: number;
-  status: string;
-  createdAt: string;
   program: string;
   isArchived?: boolean;
+  applicationStatusCount: ApplicationStatusCount;
 }
 
 /**

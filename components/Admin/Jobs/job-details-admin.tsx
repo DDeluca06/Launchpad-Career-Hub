@@ -44,9 +44,20 @@ export function JobDetailsAdmin({
   isLoading,
   onEdit,
   onArchive,
+  noCard = false
 }: JobDetailsProps) {
   if (isLoading || !job) {
-    return (
+    return noCard ? (
+      <div className="flex flex-col items-center justify-center h-full text-center p-6">
+        <Building2 className="h-16 w-16 text-gray-300 mb-4" />
+        <h3 className="text-xl font-medium text-gray-700">
+          No job selected
+        </h3>
+        <p className="text-gray-500 max-w-md mt-2">
+          Select a job from the list to view its details and manage applications
+        </p>
+      </div>
+    ) : (
       <Card>
         <CardHeader>
           <CardTitle>Job Details</CardTitle>
@@ -96,7 +107,7 @@ export function JobDetailsAdmin({
 
   const jobTypeColor = getJobTypeColor(job.job_type);
 
-  return (
+  return noCard ? (
     <div className="p-6 pb-12">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
         <div>
@@ -225,7 +236,7 @@ export function JobDetailsAdmin({
         <div className="mb-6">
           <h2 className="text-lg font-medium mb-2">Tags</h2>
           <div className="flex flex-wrap gap-2">
-            {job.tags.map((tag, index) => (
+            {job.tags.map((tag: string, index: number) => (
               <Badge key={index} variant="secondary" className="bg-gray-100">
                 {tag}
               </Badge>
@@ -313,5 +324,14 @@ export function JobDetailsAdmin({
         )}
       </div>
     </div>
+  ) : (
+    <Card>
+      <CardHeader>
+        <CardTitle>Job Details</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="p-6 pb-12">{/* existing content */}</div>
+      </CardContent>
+    </Card>
   );
 } 

@@ -9,11 +9,13 @@
 export interface User {
   user_id: number;
   status: string;
-  username: string;
+  email: string;
   password: string;
   isAdmin: boolean;
   program: string;
   created_at: string;
+  first_name: string;
+  last_name: string;
 }
 
 export interface UserProfile {
@@ -84,7 +86,6 @@ export interface Partner {
   website?: string;
   partnership_start?: string;
   status?: 'active' | 'inactive' | 'pending';
-  logo_url?: string;
 }
 
 export interface Event {
@@ -174,9 +175,9 @@ export const userService = {
     const filtered = users.filter(user => user.user_id !== id);
     setItem(STORAGE_KEYS.USERS, filtered);
   },
-  login: (username: string, password: string) => {
+  login: (email: string, password: string) => {
     const users = getItem<User[]>(STORAGE_KEYS.USERS, []);
-    const user = users.find(u => u.username === username && u.password === password);
+    const user = users.find(u => u.email === email && u.password === password);
     if (user) {
       setItem(STORAGE_KEYS.CURRENT_USER, user);
     }
@@ -186,6 +187,35 @@ export const userService = {
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   },
   getCurrentUser: () => getItem<User | null>(STORAGE_KEYS.CURRENT_USER, null),
+  
+  // Initialize with mock data for demonstration
+  initMockData: () => {
+    const mockUsers: User[] = [
+      {
+        user_id: 1,
+        email: 'admin@example.com',
+        password: 'admin123',
+        isAdmin: true,
+        status: 'ACTIVE',
+        program: 'ADMIN',
+        created_at: new Date().toISOString(),
+        first_name: 'Admin',
+        last_name: 'User'
+      },
+      {
+        user_id: 2,
+        email: 'user@example.com',
+        password: 'user123',
+        isAdmin: false,
+        status: 'ACTIVE',
+        program: 'FULL_STACK',
+        created_at: new Date().toISOString(),
+        first_name: 'User',
+        last_name: 'One'
+      }
+    ];
+    setItem(STORAGE_KEYS.USERS, mockUsers);
+  }
 };
 
 // User Profile operations
@@ -338,58 +368,6 @@ export const jobService = {
     const filtered = jobs.filter(job => job.job_id !== id);
     setItem(STORAGE_KEYS.JOBS, filtered);
   },
-
-  // Initialize with mock data for demonstration
-  initMockData: (): void => {
-    const mockJobs: Job[] = [
-      {
-        job_id: 1,
-        title: "Frontend Developer",
-        company: "TechCorp",
-        location: "Philadelphia, PA (Remote)",
-        job_type: JobType.FULL_TIME,
-        description: "Building modern web applications using React and Next.js",
-        tags: ["FRONT_END", "FULLY_REMOTE"],
-        salary: "$80,000 - $100,000",
-        created_at: new Date().toISOString()
-      },
-      {
-        job_id: 2,
-        title: "UX Designer",
-        company: "Design Studio",
-        location: "Boston, MA (On-site)",
-        job_type: JobType.FULL_TIME,
-        description: "Design user interfaces and experiences for web and mobile applications",
-        tags: ["UX_UI_DESIGN", "IN_PERSON"],
-        salary: "$75,000 - $95,000",
-        created_at: new Date().toISOString()
-      },
-      {
-        job_id: 3,
-        title: "Backend Engineer",
-        company: "Data Inc.",
-        location: "New York, NY (Hybrid)",
-        job_type: JobType.FULL_TIME,
-        description: "Develop and maintain server-side applications and databases",
-        tags: ["BACK_END", "HYBRID"],
-        salary: "$90,000 - $120,000",
-        created_at: new Date().toISOString()
-      },
-      {
-        job_id: 4,
-        title: "Product Manager",
-        company: "Web Solutions",
-        location: "Philadelphia, PA (On-site)",
-        job_type: JobType.FULL_TIME,
-        description: "Lead product development and roadmap planning",
-        tags: ["PRODUCT_MANAGEMENT", "IN_PERSON"],
-        salary: "$95,000 - $115,000",
-        created_at: new Date().toISOString()
-      }
-    ];
-
-    localStorage.setItem(STORAGE_KEYS.JOBS, JSON.stringify(mockJobs));
-  }
 };
 
 // Application operations
