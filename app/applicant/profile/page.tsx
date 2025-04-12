@@ -8,20 +8,42 @@ import { Input } from "@/components/ui/form/input"
 import { Label } from "@/components/ui/basic/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
 import { Check, Save, Camera } from "lucide-react"
-import { userService, User, userProfileService, UserProfile } from "@/lib/local-storage"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 
+type ProgramType = "FOUNDATIONS" | "ONE_ZERO_ONE" | "LIFTOFF" | "ALUMNI";
+
+declare module "next-auth" {
+  interface User {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    isAdmin: boolean;
+    program?: ProgramType;
+  }
+
+  interface Session {
+    user: User;
+  }
+}
 
 export default function ApplicantSettingsPage() {
   const [savedIndicator, setSavedIndicator] = useState(false)
-  const [user, setUser] = useState<User | null>(null)
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
+  
+  const { data: session, status } = useSession({
+    required: true,
+    onUnauthenticated() {
+      router.push('/login')
+    }
+  })
 
   // User settings state
   const [userSettings, setUserSettings] = useState({
-    firstName: "",
-    lastName: "",
+    email: "",
     status: "active", // enum: active, inactive
     program: "foundations", // enum based on available programs
     password: "", // For password change
@@ -29,32 +51,17 @@ export default function ApplicantSettingsPage() {
   })
 
   useEffect(() => {
-    const loadUserData = async () => {
-      // Get current user or default to user with ID 2 (a non-admin)
-      const currentUser = userService.getCurrentUser() || userService.getById(2);
-
-      if (currentUser) {
-        setUser(currentUser);
-        
-        // Get user profile data
-        const profile = userProfileService.getByUserId(currentUser.user_id);
-        if (profile) {
-          setUserProfile(profile);
-        }
-
-        // Pre-fill form with user data
-        setUserSettings(prev => ({
-          ...prev,
-          firstName: profile ? profile.first_name : "",
-          lastName: profile ? profile.last_name : "",
-          status: currentUser.status || "active",
-          program: currentUser.program || "foundations"
-        }));
-      }
-    }
-
-    loadUserData();
-  }, []);
+    if (status === "loading") return;
+    
+    if (session?.user) {
+      // Pre-fill form with user data
+      setUserSettings(prev => ({
+        ...prev,
+        email: session.user.email || "",
+        program: session.user.program || "foundations"
+      }));
+   }
+  }, [session, status]);
 
   // Handle setting change
   const handleSettingChange = (key: string, value: string | boolean) => {
@@ -64,46 +71,30 @@ export default function ApplicantSettingsPage() {
     }));
   }
 
-  const handleSave = () => {
-    // Save to localStorage
-    if (user) {
-      // Update user in local storage
-      const updatedUser = {
-        ...user,
-        status: userSettings.status,
-        program: userSettings.program
-      };
-      
-      // Update user profile in local storage
-      if (userProfile) {
-        const updatedProfile = {
-          ...userProfile,
-          first_name: userSettings.firstName,
-          last_name: userSettings.lastName
-        };
-        
-        userProfileService.update(updatedProfile);
-        setUserProfile(updatedProfile);
-      } else {
-        // Create a new profile if one doesn't exist
-        const newProfile = userProfileService.create({
-          user_id: user.user_id,
-          first_name: userSettings.firstName,
-          last_name: userSettings.lastName,
-          email: "",
-          phone: ""
-        });
-        setUserProfile(newProfile);
+  const handleSave = async () => {
+    if (!session?.user) return;
+
+    try {
+      const response = await fetch('/api/users/me', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: userSettings.email,
+          program: userSettings.program,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
       }
 
-      const result = userService.update(updatedUser);
-      if (result) {
-        setUser(updatedUser);
-
-        // Show saved indicator
-        setSavedIndicator(true);
-        setTimeout(() => setSavedIndicator(false), 2000);
-      }
+      // Show saved indicator
+      setSavedIndicator(true);
+      setTimeout(() => setSavedIndicator(false), 2000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
     }
   }
 
@@ -111,7 +102,6 @@ export default function ApplicantSettingsPage() {
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
 
     // Revoke previous object URL if it exists
     if (profileImage && profileImage.startsWith('blob:')) {
@@ -133,6 +123,20 @@ export default function ApplicantSettingsPage() {
   // Click handler for profile image upload button
   const handleProfileImageClick = () => {
     fileInputRef.current?.click();
+  }
+
+  if (status === "loading") {
+    return (
+      <DashboardLayout>
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!session) {
+    return null;
   }
 
   return (
@@ -180,7 +184,7 @@ export default function ApplicantSettingsPage() {
                     <AvatarImage src={profileImage} alt="Profile" />
                   ) : (
                     <AvatarFallback className="bg-gray-100 text-gray-400 text-2xl">
-                      {userProfile?.first_name?.substring(0, 2).toUpperCase() || "U"}
+                      {session?.user?.email?.substring(0, 2).toUpperCase() || "U"}
                     </AvatarFallback>
                   )}
                 </Avatar>
@@ -206,11 +210,11 @@ export default function ApplicantSettingsPage() {
               <div className="flex-1 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
-                      id="firstName"
-                      value={userSettings.firstName}
-                      onChange={(e) => handleSettingChange('firstName', e.target.value)}
+                      id="email"
+                      value={userSettings.email}
+                      onChange={(e) => handleSettingChange('email', e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -231,10 +235,10 @@ export default function ApplicantSettingsPage() {
                       value={userSettings.program}
                       onChange={(e) => handleSettingChange('program', e.target.value)}
                     >
-                      <option value="foundations">Foundations</option>
-                      <option value="101">101</option>
-                      <option value="liftoff">Liftoff</option>
-                      <option value="alumni">Alumni</option>
+                      <option value="FOUNDATIONS">Foundations</option>
+                      <option value="ONE_ZERO_ONE">101</option>
+                      <option value="LIFTOFF">Liftoff</option>
+                      <option value="ALUMNI">Alumni</option>
                     </select>
                   </div>
                 </div>

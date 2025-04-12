@@ -48,11 +48,8 @@ export interface JobFilterInterface {
   jobTypes: string[];
   locations: string[];
   remoteOnly: boolean;
-  salary: [number, number];
-  experienceLevel: string;
   keywords: string;
   tags: string[];
-  programs: string[];
 }
 
 // Job list component props
@@ -72,6 +69,7 @@ export interface JobDetailsProps {
   isLoading: boolean;
   onEdit: (job: ExtendedJob) => void;
   onArchive: () => void;
+  noCard?: boolean;
 }
 
 // Available job tags in the system

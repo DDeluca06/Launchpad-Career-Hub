@@ -104,7 +104,7 @@ export function JobList({
                       color: extendedPalette.teal
                     }}
                   >
-                    {job.job_type.replace('_', ' ')}
+                    {job.job_type.replace(/_/g, ' ')}
                   </Badge>
                 </div>
                 {job.created_at && (
@@ -129,8 +129,13 @@ export function JobList({
                       key={idx}
                       variant="outline" 
                       className="text-xs py-0 px-1.5"
+                      style={{ 
+                        backgroundColor: `${extendedPalette.lightBlue}50`,
+                        borderColor: `${extendedPalette.primaryBlue}20`,
+                        color: extendedPalette.teal
+                      }}
                     >
-                      {tag}
+                      {tag.replace(/_/g, ' ')}
                     </Badge>
                   ))}
                   {(job.tags?.length || 0) > 2 && (
@@ -140,7 +145,15 @@ export function JobList({
                   )}
                 </div>
                 
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600">
+                <Badge 
+                  variant="outline" 
+                  className="text-xs"
+                  style={{ 
+                    backgroundColor: `${extendedPalette.primaryBlue}10`,
+                    borderColor: `${extendedPalette.primaryBlue}20`,
+                    color: extendedPalette.primaryBlue
+                  }}
+                >
                   {applicationsCount[job.job_id] || 0} applicants
                 </Badge>
               </div>

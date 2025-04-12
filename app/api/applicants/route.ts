@@ -1,13 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ProgramType } from '@/lib/prisma-enums';
+import { ApplicationStatus, ProgramType } from '@/lib/prisma-enums';
+
+interface Application {
+  status: string;
+  application_id: number;
+  job_id: number;
+  jobs?: {
+    title: string;
+    company: string;
+  };
+  applied_at?: Date | null;
+}
+
+interface User {
+  user_id: number;
+  email?: string;
+  first_name: string;
+  last_name: string;
+  is_active: boolean;
+  is_archived: boolean;
+  is_admin?: boolean;
+  program?: ProgramType;
+  created_at?: Date | null;
+  applications: {
+    application_id: number;
+    status: ApplicationStatus;
+    job_id: number;
+    isArchived: boolean;
+    applied_at: Date | null;
+    status_updated: Date | null;
+    resume_id: number | null;
+    position: string | null;
+  }[];
+}
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id'); // For single applicant
+    const fetchApplications = searchParams.get('applications') === 'true'; // New param for fetching applications
     
-    // If ID is provided, fetch a single applicant
+    // If ID is provided, fetch a single applicant or their applications
     if (id) {
       const userId = parseInt(id);
       
@@ -16,6 +50,32 @@ export async function GET(request: NextRequest) {
           { error: 'Invalid applicant ID' },
           { status: 400 }
         );
+      }
+
+      // If fetching applications specifically
+      if (fetchApplications) {
+        const applications = await prisma.applications.findMany({
+          where: { 
+            user_id: userId 
+          },
+          include: {
+            jobs: true
+          },
+          orderBy: {
+            applied_at: 'desc'
+          }
+        });
+        
+        const formattedApplications = applications.map((app: Application) => ({
+          id: app.application_id,
+          jobId: app.job_id,
+          jobTitle: app.jobs?.title || '',
+          company: app.jobs?.company || '',
+          status: app.status.toLowerCase(),
+          appliedDate: app.applied_at?.toISOString() || new Date().toISOString()
+        }));
+        
+        return NextResponse.json({ applications: formattedApplications });
       }
       
       // Get the user/applicant
@@ -28,7 +88,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-      });
+      }) as User | null;
       
       if (!user) {
         return NextResponse.json(
@@ -37,49 +97,17 @@ export async function GET(request: NextRequest) {
         );
       }
       
-      // Determine status based on archived state and applications
-      let status;
-      if (user.is_archived) {
-        status = "archived";
-      } else if (user.applications.length === 0) {
-        status = "unapplied";
-      } else {
-        // Check if any applications are in interview process
-        const hasInterviewApplications = user.applications.some((app: { status: string }) => 
-          ['PHONE_SCREENING', 'INTERVIEW_STAGE', 'FINAL_INTERVIEW_STAGE'].includes(app.status)
-        );
-        
-        // Check if any applications have been accepted
-        const hasAcceptedOffer = user.applications.some((app: { status: string }) => 
-          app.status === 'OFFER_ACCEPTED'
-        );
-        
-        if (hasAcceptedOffer) {
-          status = "placed";
-        } else if (hasInterviewApplications) {
-          status = "interview";
-        } else {
-          status = "unapplied";
-        }
-      }
-      
       // Format program for display
       const displayProgram = user.program === 'ONE_ZERO_ONE' ? '101' : 
                             user.program?.toString() || 'ALUMNI';
                             
       // Format the job applications
-      const jobApplications = user.applications.map((app: { 
-        application_id: number; 
-        job_id: number; 
-        jobs: { title: string; company: string; }; 
-        status: string;
-        applied_at: Date | null;
-      }) => {
+      const jobApplications = user.applications.map((app: Application) => {
         return {
           id: app.application_id,
           jobId: app.job_id,
-          jobTitle: app.jobs.title,
-          company: app.jobs.company,
+          jobTitle: app.jobs?.title || '',
+          company: app.jobs?.company || '',
           status: app.status.toLowerCase(),
           appliedDate: app.applied_at?.toISOString() || new Date().toISOString(),
         };
@@ -88,16 +116,23 @@ export async function GET(request: NextRequest) {
       // Create the response object
       const applicant = {
         id: user.user_id,
-        userId: user.username,
         firstName: user.first_name,
         lastName: user.last_name,
-        email: `${user.username}@example.com`, // In a real app, you'd have the email stored
         role: user.is_admin ? 'admin' : 'applicant',
         applications: user.applications.length,
-        status: status,
-        createdAt: user.created_at?.toISOString() || new Date().toISOString(),
         program: displayProgram,
-        isArchived: user.is_archived
+        isArchived: user.is_archived,
+        applicationStatusCount: {
+          interested: user.applications.filter((app: Application) => app.status === 'INTERESTED').length,
+          applied: user.applications.filter((app: Application) => app.status === 'APPLIED').length,
+          phoneScreening: user.applications.filter((app: Application) => app.status === 'PHONE_SCREENING').length,
+          interviewStage: user.applications.filter((app: Application) => app.status === 'INTERVIEW_STAGE').length,
+          finalInterview: user.applications.filter((app: Application) => app.status === 'FINAL_INTERVIEW_STAGE').length,
+          offerExtended: user.applications.filter((app: Application) => app.status === 'OFFER_EXTENDED').length,
+          negotiation: user.applications.filter((app: Application) => app.status === 'NEGOTIATION').length,
+          offerAccepted: user.applications.filter((app: Application) => app.status === 'OFFER_ACCEPTED').length,
+          rejected: user.applications.filter((app: Application) => app.status === 'REJECTED').length
+        }
       };
       
       return NextResponse.json({ applicant, jobApplications });
@@ -132,7 +167,7 @@ export async function GET(request: NextRequest) {
       OR?: Array<{
         first_name?: { contains: string; mode: 'insensitive' };
         last_name?: { contains: string; mode: 'insensitive' };
-        username?: { contains: string; mode: 'insensitive' };
+        email?: { contains: string; mode: 'insensitive' };
       }>;
     } = {
       is_admin: false,
@@ -179,7 +214,7 @@ export async function GET(request: NextRequest) {
       filter.OR = [
         { first_name: { contains: search, mode: 'insensitive' } },
         { last_name: { contains: search, mode: 'insensitive' } },
-        { username: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
       ];
     }
     
@@ -222,10 +257,10 @@ export async function GET(request: NextRequest) {
       const users = await prisma.users.findMany({
         where: filter,
         include: {
-          applications: true,
+          applications: true
         },
         orderBy,
-      });
+      }) as User[];
       
       console.error(`Retrieved ${users.length} users from database`);
       
@@ -247,7 +282,7 @@ export async function GET(request: NextRequest) {
             break;
         }
         
-        filteredUsers = users.filter((user: { created_at: Date | null }) => 
+        filteredUsers = users.filter((user: User) => 
           user.created_at && new Date(user.created_at) >= cutoffDate
         );
         
@@ -256,67 +291,49 @@ export async function GET(request: NextRequest) {
       
       // Apply min applications filter in memory if provided
       if (minApplications && parseInt(minApplications) > 0) {
-        filteredUsers = filteredUsers.filter((user: { applications: { length: number } }) => 
+        filteredUsers = filteredUsers.filter((user: User) => 
           user.applications.length >= parseInt(minApplications)
         );
         
         console.error(`Min applications filter applied, now ${filteredUsers.length} users remaining`);
       }
       
-      // Transform data to match the frontend expected format
-      const applicants = filteredUsers.map((user: {
-        user_id: number;
-        username: string;
-        first_name: string;
-        last_name: string;
-        is_admin: boolean | null;
-        is_archived: boolean | null;
-        applications: Array<{ status: string }>;
-        program: string | null;
-        created_at: Date | null;
-      }) => {
-        // Determine status based on applications and archived state
-        let status;
-        if (user.is_archived) {
-          status = "archived";
-        } else if (user.applications.length === 0) {
-          status = "unapplied";
-        } else {
-          // Check if any applications are in interview process
-          const hasInterviewApplications = user.applications.some(app => 
-            ['PHONE_SCREENING', 'INTERVIEW_STAGE', 'FINAL_INTERVIEW_STAGE'].includes(app.status)
-          );
-          
-          // Check if any applications have been accepted
-          const hasAcceptedOffer = user.applications.some(app => 
-            app.status === 'OFFER_ACCEPTED'
-          );
-          
-          if (hasAcceptedOffer) {
-            status = "placed";
-          } else if (hasInterviewApplications) {
-            status = "interview";
-          } else {
-            status = "unapplied";
-          }
-        }
-        
+      // Calculate stats
+      const stats = {
+        total: filteredUsers.length,
+        unapplied: filteredUsers.filter((u: User) => u.applications.length === 0).length,
+        interview: filteredUsers.filter((u: User) => u.applications.some((app: Application) => 
+          ['PHONE_SCREENING', 'INTERVIEW_STAGE', 'FINAL_INTERVIEW_STAGE'].includes(app.status)
+        )).length,
+        placed: filteredUsers.filter((u: User) => u.applications.some((app: Application) => app.status === 'OFFER_ACCEPTED')).length,
+        archived: filteredUsers.filter((u: User) => u.is_archived).length
+      };
+      
+      // Format the response
+      const applicants = filteredUsers.map((user: User) => {
         // Format program for display
         const displayProgram = user.program === 'ONE_ZERO_ONE' ? '101' : 
                               user.program?.toString() || 'ALUMNI';
         
         return {
           id: user.user_id,
-          userId: user.username,
           firstName: user.first_name,
           lastName: user.last_name,
-          email: `${user.username}@example.com`, // In a real app, you'd have the email stored
           role: user.is_admin ? 'admin' : 'applicant',
           applications: user.applications.length,
-          status: status,
-          createdAt: user.created_at?.toISOString() || new Date().toISOString(),
           program: displayProgram,
-          isArchived: user.is_archived
+          isArchived: user.is_archived,
+          applicationStatusCount: {
+            interested: user.applications.filter((app: Application) => app.status === 'INTERESTED').length,
+            applied: user.applications.filter((app: Application) => app.status === 'APPLIED').length,
+            phoneScreening: user.applications.filter((app: Application) => app.status === 'PHONE_SCREENING').length,
+            interviewStage: user.applications.filter((app: Application) => app.status === 'INTERVIEW_STAGE').length,
+            finalInterview: user.applications.filter((app: Application) => app.status === 'FINAL_INTERVIEW_STAGE').length,
+            offerExtended: user.applications.filter((app: Application) => app.status === 'OFFER_EXTENDED').length,
+            negotiation: user.applications.filter((app: Application) => app.status === 'NEGOTIATION').length,
+            offerAccepted: user.applications.filter((app: Application) => app.status === 'OFFER_ACCEPTED').length,
+            rejected: user.applications.filter((app: Application) => app.status === 'REJECTED').length
+          }
         };
       });
       
@@ -328,15 +345,6 @@ export async function GET(request: NextRequest) {
             : b.applications - a.applications;
         });
       }
-      
-      // Calculate stats
-      const stats = {
-        total: applicants.length,
-        unapplied: applicants.filter((a: { status: string }) => a.status === 'unapplied').length,
-        interview: applicants.filter((a: { status: string }) => a.status === 'interview').length,
-        placed: applicants.filter((a: { status: string }) => a.status === 'placed').length,
-        archived: applicants.filter((a: { status: string }) => a.status === 'archived').length,
-      };
       
       console.error(`Returning ${applicants.length} applicants with stats`);
       
@@ -390,23 +398,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Validate required fields
-    if (!body.username || !body.firstName || !body.lastName || !body.password) {
+    if (!body.email || !body.firstName || !body.lastName || !body.password) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
     
-    // Check if username already exists
+    // Check if email already exists
     const existingUser = await prisma.users.findFirst({
       where: {
-        username: body.username
+        email: body.email
       }
     });
     
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Username already exists' },
+        { error: 'Email already exists' },
         { status: 400 }
       );
     }
@@ -420,10 +428,10 @@ export async function POST(request: NextRequest) {
     // Create the user
     const newUser = await prisma.users.create({
       data: {
-        username: body.username,
+        email: body.email,
         first_name: body.firstName,
         last_name: body.lastName,
-        password_hash: body.password, // In a real app, you'd hash this
+        password_hash: body.password,
         is_admin: body.isAdmin || false,
         program: program || 'ALUMNI',
         is_active: true,
@@ -434,10 +442,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       applicant: {
         id: newUser.user_id,
-        userId: newUser.username,
         firstName: newUser.first_name,
         lastName: newUser.last_name,
-        email: `${newUser.username}@example.com`,
         role: newUser.is_admin ? 'admin' : 'applicant',
         applications: 0,
         status: 'unapplied',
@@ -530,7 +536,10 @@ export async function PUT(request: NextRequest) {
     
     const updatedUser = await prisma.users.update({
       where: { user_id: userId },
-      data: updateData
+      data: updateData,
+      include: {
+        applications: true
+      }
     });
     
     if (!updatedUser) {
@@ -543,28 +552,16 @@ export async function PUT(request: NextRequest) {
     // Format the response
     const responseData = {
       id: updatedUser.user_id,
-      userId: updatedUser.username,
       firstName: updatedUser.first_name,
-      lastName: updatedUser.last_name
+      lastName: updatedUser.last_name,
+      isArchived: updatedUser.is_archived,
+      program: updatedUser.program === 'ONE_ZERO_ONE' ? '101' : updatedUser.program?.toString() || 'ALUMNI',
+      message: updatedUser.is_archived 
+        ? 'Applicant archived successfully' 
+        : 'Applicant unarchived successfully'
     };
     
-    // Add archived specific response properties
-    if (isArchiveOperation) {
-      return NextResponse.json({
-        ...responseData,
-        isArchived: updatedUser.is_archived,
-        message: updatedUser.is_archived 
-          ? 'Applicant archived successfully' 
-          : 'Applicant unarchived successfully'
-      });
-    }
-    
-    return NextResponse.json({
-      ...responseData,
-      isActive: updatedUser.is_active,
-      program: updatedUser.program === 'ONE_ZERO_ONE' ? '101' : updatedUser.program?.toString() || 'ALUMNI',
-      message: 'Applicant updated successfully'
-    });
+    return NextResponse.json(responseData);
   } catch (error: unknown) {
     console.error('Error updating applicant:', error);
     
