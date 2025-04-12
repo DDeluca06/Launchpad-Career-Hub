@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ProgramType } from '@/lib/prisma-enums';
+import { ApplicationStatus, ProgramType } from '@/lib/prisma-enums';
 
 interface Application {
   status: string;
@@ -15,15 +15,24 @@ interface Application {
 
 interface User {
   user_id: number;
-  email: string;
+  email?: string;
   first_name: string;
   last_name: string;
-  is_admin: boolean;
   is_active: boolean;
   is_archived: boolean;
-  program: ProgramType;
-  created_at: Date | null;
-  applications: Application[];
+  is_admin?: boolean;
+  program?: ProgramType;
+  created_at?: Date | null;
+  applications: {
+    application_id: number;
+    status: ApplicationStatus;
+    job_id: number;
+    isArchived: boolean;
+    applied_at: Date | null;
+    status_updated: Date | null;
+    resume_id: number | null;
+    position: string | null;
+  }[];
 }
 
 export async function GET(request: NextRequest) {
@@ -107,7 +116,6 @@ export async function GET(request: NextRequest) {
       // Create the response object
       const applicant = {
         id: user.user_id,
-        email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
         role: user.is_admin ? 'admin' : 'applicant',
@@ -249,7 +257,7 @@ export async function GET(request: NextRequest) {
       const users = await prisma.users.findMany({
         where: filter,
         include: {
-          applications: true,
+          applications: true
         },
         orderBy,
       }) as User[];
@@ -309,7 +317,6 @@ export async function GET(request: NextRequest) {
         
         return {
           id: user.user_id,
-          email: user.email,
           firstName: user.first_name,
           lastName: user.last_name,
           role: user.is_admin ? 'admin' : 'applicant',
@@ -424,7 +431,7 @@ export async function POST(request: NextRequest) {
         email: body.email,
         first_name: body.firstName,
         last_name: body.lastName,
-        password_hash: body.password, // In a real app, you'd hash this
+        password_hash: body.password,
         is_admin: body.isAdmin || false,
         program: program || 'ALUMNI',
         is_active: true,
@@ -435,7 +442,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       applicant: {
         id: newUser.user_id,
-        email: newUser.email,
         firstName: newUser.first_name,
         lastName: newUser.last_name,
         role: newUser.is_admin ? 'admin' : 'applicant',
@@ -546,7 +552,6 @@ export async function PUT(request: NextRequest) {
     // Format the response
     const responseData = {
       id: updatedUser.user_id,
-      email: updatedUser.email,
       firstName: updatedUser.first_name,
       lastName: updatedUser.last_name,
       isArchived: updatedUser.is_archived,

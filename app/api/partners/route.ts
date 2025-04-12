@@ -1,32 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-interface Partner {
-  partner_id: number;
-  name: string;
-  description: string | null;
-  industry: string | null;
-  location: string | null;
-  website_url: string | null;
-  contact_name: string | null;
-  contact_email: string | null;
-  contact_phone: string | null;
-  created_at: Date;
-  updated_at: Date;
-  is_archived: boolean;
-  jobs?: {
-    job_id: number;
-    title: string;
-    company: string;
-    location: string | null;
-    job_type: string | null;
-    created_at: Date;
-    _count?: {
-      applications: number;
-    };
-  }[];
-}
-
 /**
  * API route to fetch all partners or a specific partner by ID
  * 
@@ -84,21 +58,26 @@ export async function GET(req: Request) {
       const partnerWithStatus = {
         ...partner,
         status: partner.is_archived ? 'archived' : 'active',
-        jobs: partner.jobs?.map((job: { 
+        jobs: partner.jobs?.map((job: {
           job_id: number;
+          job_type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'APPRENTICESHIP' | 'INTERNSHIP';
           title: string;
+          description: string | null;
           company: string;
-          location: string;
-          job_type: string;
-          created_at: string;
+          website: string | null;
+          location: string | null;
+          partner_id: number | null;
+          created_at: Date | null;
+          archived: boolean;
+          tags: ('FULLY_REMOTE' | 'HYBRID' | 'IN_PERSON' | 'FRONT_END' | 'BACK_END' | 'FULL_STACK' | 'NON_PROFIT' | 'START_UP' | 'EDUCATION' | 'HEALTHCARE' | 'FINTECH' | 'MARKETING' | 'DATA_SCIENCE' | 'CYBERSECURITY' | 'UX_UI_DESIGN' | 'IT' | 'PRODUCT_MANAGEMENT' | 'GAME_DEVELOPMENT' | 'AI_ML' | 'CLOUD_COMPUTING' | 'DEVOPS' | 'BUSINESS_ANALYSIS' | 'SOCIAL_MEDIA')[];
           _count?: { applications: number };
         }) => ({
           job_id: job.job_id,
           title: job.title,
-          company: job.company || partner.name,
-          location: job.location,
-          job_type: job.job_type || 'Full-time',
-          created_at: job.created_at,
+          company: job.company,
+          location: job.location || 'Remote',
+          job_type: job.job_type,
+          created_at: job.created_at?.toISOString() || new Date().toISOString(),
           applications_count: job._count?.applications || 0
         }))
       };
@@ -128,9 +107,33 @@ export async function GET(req: Request) {
       });
       
       // Add default status field based on is_archived for each partner
-      const partnersWithStatus = partners.map((partner: Partner) => ({
+      const partnersWithStatus = partners.map((partner: {
+        partner_id: number;
+        name: string;
+        description: string | null;
+        industry: string | null;
+        location: string | null;
+        website_url: string | null;
+        contact_name: string | null;
+        contact_email: string | null;
+        contact_phone: string | null;
+        jobs_available: number | null;
+        applicants: number | null;
+        applicants_hired: number | null;
+        is_archived: boolean;
+        created_at: Date | null;
+        updated_at: Date | null;
+        jobs?: {
+          job_id: number;
+          title: string;
+          company: string;
+          archived: boolean;
+          created_at: Date | null;
+        }[];
+      }) => ({
         ...partner,
-        status: partner.is_archived ? 'archived' : 'active'
+        status: partner.is_archived ? 'archived' : 'active',
+        created_at: partner.created_at || new Date()
       }));
 
       return NextResponse.json({

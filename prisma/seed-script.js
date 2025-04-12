@@ -18,7 +18,7 @@ const main = async () => {
     // Create admin user
     const adminUser = await prisma.users.create({
       data: {
-        username: 'admin',
+        email: 'admin@example.com',
         first_name: 'Admin',
         last_name: 'User',
         password_hash: '$2a$10$YDnlEcylD.SuRnC/cA4Gze4SCH4QtdSTufYQ7X9Ee0o5gDbF.',
@@ -32,7 +32,7 @@ const main = async () => {
     for (let i = 0; i < 50; i++) {
       const user = await prisma.users.create({
         data: {
-          username: faker.internet.username(),
+          email: faker.internet.email(),
           first_name: faker.person.firstName(),
           last_name: faker.person.lastName(),
           password_hash: '$2a$10$YDnlEcylD.SuRnC/cA4Gze4SCH4QtdSTufYQ7X9Ee0o5gDbF.',
@@ -180,12 +180,24 @@ const main = async () => {
     // Create interviews
     for (let i = 0; i < 50; i++) {
       const user = faker.helpers.arrayElement(users);
+      const startTime = faker.date.future();
+      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // Add 1 hour to start time
+      
       await prisma.interviews.create({
         data: {
           user_id: user.user_id,
           title: faker.person.jobTitle(),
           description: faker.lorem.sentence(),
-          event_date: faker.date.future()
+          start_time: startTime,
+          end_time: endTime,
+          location: faker.location.city(),
+          candidate_name: `${user.first_name} ${user.last_name}`,
+          position: faker.person.jobTitle(),
+          status: faker.helpers.arrayElement(['SCHEDULED', 'COMPLETED', 'CANCELLED']),
+          interview_type: faker.helpers.arrayElement(['PHONE', 'VIDEO', 'IN_PERSON']),
+          notes: faker.lorem.paragraphs(2),
+          created_at: new Date(),
+          updated_at: new Date()
         }
       });
     }

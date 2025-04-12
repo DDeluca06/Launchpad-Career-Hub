@@ -12,6 +12,7 @@ interface InterviewCardProps {
   onEdit?: (interview: Interview) => void;
   onCancel?: (interview: Interview) => void;
   onComplete?: (interview: Interview) => void;
+  onStatusUpdate?: (interview: Interview, status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED') => void;
 }
 
 export function InterviewCard({ interview, onEdit, onCancel, onComplete }: InterviewCardProps) {

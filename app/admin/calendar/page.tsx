@@ -8,6 +8,8 @@ import { CalendarIcon, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { Skeleton } from "@/components/ui/feedback/skeleton";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 // Import our custom components
 import { CalendarGrid } from "@/components/Admin/Calendar/CalendarGrid";
@@ -22,7 +24,7 @@ interface User {
   last_name: string;
 }
 
-export default function CalendarPage() {
+function CalendarContent() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [interviews, setInterviews] = useState<ApiInterview[]>([]);
@@ -87,16 +89,16 @@ export default function CalendarPage() {
   }, [currentDate, loadInterviews]);
 
   // Handle interview creation
-  const handleCreateInterview = async (interview: ApiNewInterview) => {
+  const handleCreateInterview = async (data: ApiNewInterview | Partial<ApiInterview>) => {
     try {
       const response = await fetch("/api/interviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(interview),
+        body: JSON.stringify(data),
       });
 
-      const data = await response.json();
-      if (data.success) {
+      const result = await response.json();
+      if (result.success) {
         loadInterviews();
       }
     } catch (error) {
@@ -105,16 +107,16 @@ export default function CalendarPage() {
   };
 
   // Handle interview update
-  const handleUpdateInterview = async (interview: Partial<ApiInterview>) => {
+  const handleUpdateInterview = async (data: ApiNewInterview | Partial<ApiInterview>) => {
     try {
       const response = await fetch("/api/interviews", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(interview),
+        body: JSON.stringify(data),
       });
 
-      const data = await response.json();
-      if (data.success) {
+      const result = await response.json();
+      if (result.success) {
         loadInterviews();
       }
     } catch (error) {
@@ -141,265 +143,214 @@ export default function CalendarPage() {
   };
 
   return (
-    <DashboardLayout isAdmin>
-      <div className="flex flex-col space-y-4 p-6 pb-24">
-        {/* Calendar Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <CalendarIcon className="h-6 w-6" style={{ color: extendedPalette.primaryBlue }} />
-            <h1 className="text-2xl font-bold" style={{ color: extendedPalette.primaryBlue }}>
-              Interview Calendar
-            </h1>
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              className="text-white"
-              style={{ backgroundColor: extendedPalette.primaryBlue }}
-              onClick={() => setIsCreateModalOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" /> Schedule Interview
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => {
-              const prevMonth = new Date(currentDate);
-              prevMonth.setMonth(prevMonth.getMonth() - 1);
-              setCurrentDate(prevMonth);
-            }}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => {
-              setCurrentDate(new Date());
-              setSelectedDate(new Date());
-            }}>
-              Today
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => {
-              const nextMonth = new Date(currentDate);
-              nextMonth.setMonth(nextMonth.getMonth() + 1);
-              setCurrentDate(nextMonth);
-            }}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+    <div className="flex flex-col space-y-4 p-6 pb-24">
+      {/* Calendar Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <CalendarIcon className="h-6 w-6" style={{ color: extendedPalette.primaryBlue }} />
+          <h1 className="text-2xl font-bold" style={{ color: extendedPalette.primaryBlue }}>
+            Interview Calendar
+          </h1>
+        </div>
+        <div className="flex space-x-2">
+          <Button
+            className="text-white"
+            style={{ backgroundColor: extendedPalette.primaryBlue }}
+            onClick={() => setIsCreateModalOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" /> Schedule Interview
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => {
+            const prevMonth = new Date(currentDate);
+            prevMonth.setMonth(prevMonth.getMonth() - 1);
+            setCurrentDate(prevMonth);
+          }}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => {
+            setCurrentDate(new Date());
+            setSelectedDate(new Date());
+          }}>
+            Today
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => {
+            const nextMonth = new Date(currentDate);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            setCurrentDate(nextMonth);
+          }}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 h-full">
+        {/* Calendar Section */}
+        <div className="lg:col-span-5 flex flex-col space-y-6">
+          {/* Calendar Grid */}
+          <CalendarGrid
+            currentDate={currentDate}
+            selectedDate={selectedDate}
+            calendarDays={calendarDays}
+            onDateSelect={setSelectedDate}
+          />
+
+          {/* Selected Day Interviews */}
+          <Card className="shadow-sm border-0">
+            <CardHeader className="pb-2 border-b flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>
+                  Interviews for {format(selectedDate, "MMMM d, yyyy")}
+                </CardTitle>
+                <CardDescription>
+                  {selectedDateInterviews.length === 0
+                    ? "No interviews scheduled for this day"
+                    : `${selectedDateInterviews.length} interview${selectedDateInterviews.length !== 1 ? "s" : ""} scheduled`}
+                </CardDescription>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => setIsCreateModalOpen(true)}
+                style={{ backgroundColor: extendedPalette.primaryBlue }}
+                className="text-white"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add Interview
+              </Button>
+            </CardHeader>
+            <CardContent className="overflow-auto max-h-[400px] p-4">
+              {isLoading ? (
+                Array(3)
+                  .fill(0)
+                  .map((_, i) => (
+                    <Card key={i} className="mb-4 border-0 shadow-sm">
+                      <CardHeader className="pb-2">
+                        <Skeleton className="h-6 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-full" />
+                      </CardHeader>
+                      <CardContent className="pb-2">
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="h-4 w-2/3" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+              ) : selectedDateInterviews.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <CalendarIcon className="h-12 w-12 text-gray-300 mb-4" />
+                  <h3 className="text-lg font-medium">No interviews scheduled</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    There are no interviews scheduled for this day.
+                  </p>
+                  <Button 
+                    className="mt-4 text-white"
+                    style={{ backgroundColor: extendedPalette.primaryBlue }}
+                    onClick={() => setIsCreateModalOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Add Interview
+                  </Button>
+                </div>
+              ) : (
+                selectedDateInterviews.map((interview) => (
+                  <InterviewCard
+                    key={interview.interview_id}
+                    interview={interview}
+                    onEdit={setEditInterview}
+                    onStatusUpdate={handleStatusUpdate}
+                  />
+                ))
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 h-full">
-          {/* Calendar Section */}
-          <div className="lg:col-span-5 flex flex-col space-y-6">
-            {/* Calendar Grid */}
-            <CalendarGrid
-              currentDate={currentDate}
-              selectedDate={selectedDate}
-              calendarDays={calendarDays}
-              onDateSelect={setSelectedDate}
-            />
+        {/* Sidebar */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Upcoming Interviews */}
+          <Card className="shadow-sm border-0">
+            <CardHeader>
+              <CardTitle>Upcoming Interviews</CardTitle>
+              <CardDescription>Next 3 scheduled interviews</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {upcomingInterviews.map((interview) => (
+                <InterviewCard
+                  key={interview.interview_id}
+                  interview={interview}
+                  onEdit={setEditInterview}
+                  onStatusUpdate={handleStatusUpdate}
+                />
+              ))}
+              {upcomingInterviews.length === 0 && (
+                <p className="text-sm text-gray-500">No upcoming interviews</p>
+              )}
+            </CardContent>
+          </Card>
 
-            {/* Selected Day Interviews */}
-            <Card className="shadow-sm border-0">
-              <CardHeader className="pb-2 border-b flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>
-                    Interviews for {format(selectedDate, "MMMM d, yyyy")}
-                  </CardTitle>
-                  <CardDescription>
-                    {selectedDateInterviews.length === 0
-                      ? "No interviews scheduled for this day"
-                      : `${selectedDateInterviews.length} interview${selectedDateInterviews.length !== 1 ? "s" : ""} scheduled`}
-                  </CardDescription>
-                </div>
-                <Button 
-                  size="sm" 
-                  onClick={() => setIsCreateModalOpen(true)}
-                  style={{ backgroundColor: extendedPalette.primaryBlue }}
-                  className="text-white"
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Add Interview
-                </Button>
-              </CardHeader>
-              <CardContent className="overflow-auto max-h-[400px] p-4">
-                {isLoading ? (
-                  Array(3)
-                    .fill(0)
-                    .map((_, i) => (
-                      <Card key={i} className="mb-4 border-0 shadow-sm">
-                        <CardHeader className="pb-2">
-                          <Skeleton className="h-6 w-3/4 mb-2" />
-                          <Skeleton className="h-4 w-full" />
-                        </CardHeader>
-                        <CardContent className="pb-2">
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-1/2" />
-                            <Skeleton className="h-4 w-2/3" />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                ) : selectedDateInterviews.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <CalendarIcon className="h-12 w-12 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium">No interviews scheduled</h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      There are no interviews scheduled for this day.
-                    </p>
-                    <Button 
-                      className="mt-4 text-white"
-                      style={{ backgroundColor: extendedPalette.primaryBlue }}
-                      onClick={() => setIsCreateModalOpen(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-1" /> Add Interview
-                    </Button>
-                  </div>
-                ) : (
-                  selectedDateInterviews.map((interview) => (
-                    <InterviewCard
-                      key={interview.interview_id}
-                      interview={interview}
-                      onEdit={(interview) => {
-                        setEditInterview(interview);
-                        setIsCreateModalOpen(true);
-                      }}
-                      onComplete={(interview) => handleStatusUpdate(interview, 'COMPLETED')}
-                      onCancel={(interview) => handleStatusUpdate(interview, 'CANCELLED')}
-                    />
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Upcoming Interviews */}
-            <Card className="shadow-sm border-0">
-              <CardHeader className="pb-2 border-b">
-                <CardTitle>Upcoming Interviews</CardTitle>
-                <CardDescription>Next 3 scheduled interviews</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                {isLoading ? (
-                  Array(3)
-                    .fill(0)
-                    .map((_, i) => (
-                      <div key={i} className="mb-4 last:mb-0">
-                        <Skeleton className="h-5 w-3/4 mb-1" />
-                        <Skeleton className="h-4 w-1/2 mb-1" />
-                        <Skeleton className="h-3 w-1/3" />
-                      </div>
-                    ))
-                ) : upcomingInterviews.length === 0 ? (
-                  <div className="text-center py-4 text-gray-500">
-                    No upcoming interviews
-                  </div>
-                ) : (
-                  upcomingInterviews.map((interview) => (
-                    <div
-                      key={interview.interview_id}
-                      className="mb-4 last:mb-0 hover:bg-gray-50 p-2 rounded cursor-pointer transition-colors"
-                      onClick={() => {
-                        setSelectedDate(new Date(interview.start_time));
-                      }}
-                    >
-                      <div className="font-medium">
-                        {interview.title || `${interview.candidate_name} - ${interview.position}`}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {format(new Date(interview.start_time), "MMM d")} ·{" "}
-                        {format(new Date(interview.start_time), "h:mm a")}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {interview.location}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent Interviews */}
-            <Card className="shadow-sm border-0">
-              <CardHeader className="pb-2 border-b">
-                <CardTitle>Recent Interviews</CardTitle>
-                <CardDescription>Last 3 completed interviews</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                {isLoading ? (
-                  Array(3)
-                    .fill(0)
-                    .map((_, i) => (
-                      <div key={i} className="mb-4 last:mb-0">
-                        <Skeleton className="h-5 w-3/4 mb-1" />
-                        <Skeleton className="h-4 w-1/2 mb-1" />
-                        <Skeleton className="h-3 w-1/3" />
-                      </div>
-                    ))
-                ) : recentInterviews.length === 0 ? (
-                  <div className="text-center py-4 text-gray-500">
-                    No recent interviews
-                  </div>
-                ) : (
-                  recentInterviews.map((interview) => (
-                    <div
-                      key={interview.interview_id}
-                      className="mb-4 last:mb-0 hover:bg-gray-50 p-2 rounded cursor-pointer transition-colors"
-                      onClick={() => {
-                        setSelectedDate(new Date(interview.start_time));
-                      }}
-                    >
-                      <div className="font-medium">
-                        {interview.title || `${interview.candidate_name} - ${interview.position}`}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {format(new Date(interview.start_time), "MMM d")} ·{" "}
-                        {format(new Date(interview.start_time), "h:mm a")}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {interview.location}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          {/* Recent Interviews */}
+          <Card className="shadow-sm border-0">
+            <CardHeader>
+              <CardTitle>Recent Interviews</CardTitle>
+              <CardDescription>Last 3 completed interviews</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {recentInterviews.map((interview) => (
+                <InterviewCard
+                  key={interview.interview_id}
+                  interview={interview}
+                  onEdit={setEditInterview}
+                  onStatusUpdate={handleStatusUpdate}
+                />
+              ))}
+              {recentInterviews.length === 0 && (
+                <p className="text-sm text-gray-500">No recent interviews</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
       {/* Interview Form Modal */}
       <InterviewFormModal
-        open={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-        onSubmit={(data) => {
-          if (editInterview) {
-            // Convert component Interview type to API Interview type
-            const apiData: Partial<ApiInterview> = {
-              ...data,
-              start_time: (data.start_time as Date).toISOString(),
-              end_time: (data.end_time as Date).toISOString(),
-              description: data.description || null,
-            };
-            handleUpdateInterview(apiData);
-          } else {
-            // Convert component NewInterview type to API NewInterview type
-            const apiData: ApiNewInterview = {
-              title: data.title as string,
-              description: data.description || undefined,
-              start_time: (data.start_time as Date).toISOString(),
-              end_time: (data.end_time as Date).toISOString(),
-              location: data.location as string,
-              candidate_name: data.candidate_name as string,
-              position: data.position as string,
-            };
-            handleCreateInterview(apiData);
-          }
+        open={isCreateModalOpen || !!editInterview}
+        onOpenChange={() => {
+          setIsCreateModalOpen(false);
+          setEditInterview(undefined);
         }}
+        onSubmit={editInterview ? handleUpdateInterview : handleCreateInterview}
         selectedDate={selectedDate}
-        editInterview={editInterview ? {
-          ...editInterview,
-          start_time: new Date(editInterview.start_time),
-          end_time: new Date(editInterview.end_time),
-          description: editInterview.description || "",
-        } : undefined}
+        editInterview={editInterview}
         users={users}
       />
+    </div>
+  );
+}
+
+export default function CalendarPage() {
+  const { data: session, status } = useSession({
+    required: true,
+    onUnauthenticated() {
+      router.push('/login');
+    }
+  });
+  const router = useRouter();
+
+  if (status === "loading") {
+    return (
+      <DashboardLayout isAdmin>
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!session) {
+    return null;
+  }
+
+  return (
+    <DashboardLayout isAdmin>
+      <CalendarContent />
     </DashboardLayout>
   );
 }

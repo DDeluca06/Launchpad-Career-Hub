@@ -11,14 +11,17 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { user_id: parseInt(session.user.id) },
+    const user = await prisma.users.findUnique({
+      where: {
+        user_id: parseInt(session.user.id)
+      },
       select: {
         user_id: true,
+        first_name: true,
+        last_name: true,
         email: true,
-        name: true,
-        role: true,
-        isAdmin: true,
+        is_admin: true,
+        program: true
       },
     });
 

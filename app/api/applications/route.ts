@@ -30,9 +30,11 @@ export async function GET(request: NextRequest) {
         include: {
           users: {
             select: {
+              user_id: true,
               first_name: true,
               last_name: true,
-              email: true,
+              is_active: true,
+              is_archived: true,
               is_admin: true,
               program: true
             }
@@ -94,9 +96,11 @@ export async function GET(request: NextRequest) {
       include: {
         users: {
           select: {
+            user_id: true,
             first_name: true,
             last_name: true,
-            email: true,
+            is_active: true,
+            is_archived: true,
             is_admin: true,
             program: true
           }

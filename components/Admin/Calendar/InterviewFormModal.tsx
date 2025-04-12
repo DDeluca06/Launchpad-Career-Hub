@@ -8,14 +8,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/overlay
 
 interface Interview {
   interview_id: number;
+  user_id: number;
   title: string;
-  description: string;
-  start_time: Date;
-  end_time: Date;
+  description: string | null;
   location: string;
+  start_time: string;
+  end_time: string;
   candidate_name: string;
   position: string;
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+  created_by: number;
+  updated_by: number | null;
+  created_at: string;
+  updated_at: string | null;
 }
 
 interface User {
@@ -35,10 +40,10 @@ interface InterviewFormModalProps {
 
 interface NewInterview {
   title: string;
-  description: string;
-  start_time: Date;
-  end_time: Date;
+  description?: string;
   location: string;
+  start_time: string;
+  end_time: string;
   candidate_name: string;
   position: string;
 }
@@ -47,9 +52,9 @@ export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate,
   const [formData, setFormData] = useState<NewInterview>({
     title: "",
     description: "",
-    start_time: selectedDate,
-    end_time: new Date(selectedDate.getTime() + 60 * 60 * 1000), // 1 hour later
     location: "",
+    start_time: "",
+    end_time: "",
     candidate_name: "",
     position: "",
   });
@@ -60,18 +65,18 @@ export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate,
     if (editInterview) {
       setFormData({
         title: editInterview.title,
-        description: editInterview.description,
-        start_time: new Date(editInterview.start_time),
-        end_time: new Date(editInterview.end_time),
+        description: editInterview.description || "",
         location: editInterview.location,
+        start_time: editInterview.start_time,
+        end_time: editInterview.end_time,
         candidate_name: editInterview.candidate_name,
         position: editInterview.position,
       });
     } else {
       setFormData(prev => ({
         ...prev,
-        start_time: selectedDate,
-        end_time: new Date(selectedDate.getTime() + 60 * 60 * 1000),
+        start_time: selectedDate.toISOString().slice(0, 16),
+        end_time: new Date(selectedDate.getTime() + 60 * 60 * 1000).toISOString().slice(0, 16),
       }));
     }
   }, [editInterview, selectedDate]);
@@ -82,7 +87,7 @@ export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate,
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>, field: "start_time" | "end_time") => {
-    setFormData(prev => ({ ...prev, [field]: new Date(e.target.value) }));
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
   const handleCandidateSelect = (name: string) => {
@@ -114,7 +119,21 @@ export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate,
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(editInterview ? { ...formData, interview_id: editInterview.interview_id } : formData);
+    const submitData = editInterview 
+      ? { 
+          ...formData, 
+          interview_id: editInterview.interview_id,
+          start_time: formData.start_time,
+          end_time: formData.end_time,
+          status: editInterview.status
+        }
+      : { 
+          ...formData, 
+          status: 'SCHEDULED' as const,
+          start_time: formData.start_time,
+          end_time: formData.end_time
+        };
+    onSubmit(submitData);
     onOpenChange(false);
   };
 
@@ -142,7 +161,7 @@ export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate,
               <Textarea
                 id="description"
                 name="description"
-                value={formData.description}
+                value={formData.description || ""}
                 onChange={handleInputChange}
                 placeholder="Interview details..."
                 required
@@ -153,7 +172,7 @@ export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate,
               <Input
                 id="start_time"
                 type="datetime-local"
-                value={formData.start_time.toISOString().slice(0, 16)}
+                value={formData.start_time}
                 onChange={(e) => handleDateChange(e, "start_time")}
                 required
               />
@@ -163,7 +182,7 @@ export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate,
               <Input
                 id="end_time"
                 type="datetime-local"
-                value={formData.end_time.toISOString().slice(0, 16)}
+                value={formData.end_time}
                 onChange={(e) => handleDateChange(e, "end_time")}
                 required
               />

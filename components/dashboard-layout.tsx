@@ -38,29 +38,32 @@ export function DashboardLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userName, setUserName] = useState("User");
-  const { data: session, status } = useSession();
   const router = useRouter();
+  
+  const { data: session, status } = useSession({
+    required: true,
+    onUnauthenticated() {
+      router.push('/login');
+    },
+  });
 
   // Protect route based on admin status
   useEffect(() => {
     if (status === "loading") return;
     
-    if (!session) {
-      router.push("/login");
-      return;
-    }
+    if (session) {
+      if (isAdmin && !session.user.isAdmin) {
+        router.push("/applicant/dashboard");
+        return;
+      }
 
-    if (isAdmin && !session.user.isAdmin) {
-      router.push("/applicant/dashboard");
-      return;
-    }
+      if (!isAdmin && session.user.isAdmin) {
+        router.push("/admin/dashboard");
+        return;
+      }
 
-    if (!isAdmin && session.user.isAdmin) {
-      router.push("/admin/dashboard");
-      return;
+      setUserName(`${session.user.first_name} ${session.user.last_name}`);
     }
-
-    setUserName(`${session.user.first_name} ${session.user.last_name}`);
   }, [session, status, isAdmin, router]);
 
   // Track scroll position to add shadow to navbar when scrolled
