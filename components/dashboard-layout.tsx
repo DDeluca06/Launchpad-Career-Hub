@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import type React from "react";
 import { DashboardNav } from "@/components/dashboard-nav";
 import { LaunchpadImage } from "@/components/ui/basic/image";
@@ -15,8 +15,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { AuthContext } from "@/app/providers";
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
   isAdmin?: boolean;
@@ -39,31 +40,29 @@ export function DashboardLayout({
   const [userName, setUserName] = useState("User");
   const router = useRouter();
   
-  const { data: session, status } = useSession({
-    required: true,
-    onUnauthenticated() {
-      router.push('/login');
-    },
-  });
+  const { session, loading } = useContext(AuthContext);
 
   // Protect route based on admin status
   useEffect(() => {
-    if (status === "loading") return;
+    if (loading) return;
     
-    if (session) {
-      if (isAdmin && !session.user.isAdmin) {
-        router.push("/applicant/dashboard");
-        return;
-      }
-
-      if (!isAdmin && session.user.isAdmin) {
-        router.push("/admin/dashboard");
-        return;
-      }
-
-      setUserName(`${session.user.first_name} ${session.user.last_name}`);
+    if (!session?.user) {
+      router.push('/');
+      return;
     }
-  }, [session, status, isAdmin, router]);
+    
+    if (isAdmin && !session.user.isAdmin) {
+      router.push("/applicant/dashboard");
+      return;
+    }
+
+    if (!isAdmin && session.user.isAdmin) {
+      router.push("/admin/dashboard");
+      return;
+    }
+
+    setUserName(`${session.user.firstName || ''} ${session.user.lastName || ''}`);
+  }, [session, loading, isAdmin, router]);
 
   // Track scroll position to add shadow to navbar when scrolled
   useEffect(() => {
@@ -74,7 +73,7 @@ export function DashboardLayout({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  if (status === "loading") {
+  if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="flex-1 flex items-center justify-center">

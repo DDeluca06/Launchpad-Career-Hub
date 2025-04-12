@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/basic/button";
 import { motion } from "framer-motion";
 import { extendedPalette } from "@/lib/colors";
-import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Briefcase,
@@ -212,8 +211,34 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
   ];
 
   const handleLogout = async () => {
-    await signOut({ redirect: false });
-    router.push("/login");
+    try {
+      // Call our custom logout API
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (response.ok) {
+        // Clear localStorage if any auth-related data might be stored there
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
+        
+        // Add a random query parameter to prevent caching
+        const timestamp = new Date().getTime();
+        
+        // Force a hard redirect to the root path, bypassing Next.js router
+        // This ensures a complete page reload and state reset
+        window.location.href = `/?t=${timestamp}`;
+      } else {
+        console.error('Logout failed:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
 
   return (
@@ -229,7 +254,7 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
           />
         )}
 
-        {!isAdmin && utilityItems.length > 0 && (
+        {utilityItems.length > 0 && (
           <NavSection title="Utilities" items={utilityItems} pathname={pathname} />
         )}
       </div>

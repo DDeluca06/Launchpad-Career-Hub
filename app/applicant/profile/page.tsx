@@ -47,7 +47,8 @@ export default function ApplicantSettingsPage() {
     status: "active", // enum: active, inactive
     program: "foundations", // enum based on available programs
     password: "", // For password change
-    confirmPassword: ""
+    confirmPassword: "",
+    last_name: "" // Changed from lastName to last_name to match schema
   })
 
   useEffect(() => {
@@ -58,7 +59,8 @@ export default function ApplicantSettingsPage() {
       setUserSettings(prev => ({
         ...prev,
         email: session.user.email || "",
-        program: session.user.program || "foundations"
+        program: session.user.program || "foundations",
+        last_name: session.user.last_name || ""
       }));
    }
   }, [session, status]);
@@ -221,8 +223,8 @@ export default function ApplicantSettingsPage() {
                     <Label htmlFor="lastName">Last Name</Label>
                     <Input
                       id="lastName"
-                      value={userSettings.lastName}
-                      onChange={(e) => handleSettingChange('lastName', e.target.value)}
+                      value={userSettings.last_name}
+                      onChange={(e) => handleSettingChange('last_name', e.target.value)}
                     />
                   </div>
                 </div>

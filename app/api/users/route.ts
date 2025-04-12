@@ -1,14 +1,100 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { auth } from "@/lib/auth";
 
-export async function GET() {
+interface User {
+  user_id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  is_admin: boolean | null;
+  program: string | null;
+  created_at: Date | null;
+}
+
+// GET: Fetch users (all users, current user, or specific user)
+export async function GET(request: Request) {
   try {
-    console.warn('Attempting to fetch users from database...');
-    
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type'); // 'me' | 'single' | 'all'
+    const userId = searchParams.get('userId');
+
+    // Get current user's profile
+    if (type === 'me') {
+      const session = await auth.getSession(request);
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      const user = await prisma.users.findUnique({
+        where: { user_id: parseInt(session.user.id) },
+        select: {
+          user_id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+          is_admin: true,
+          program: true,
+          created_at: true,
+        },
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: user.user_id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          isAdmin: user.is_admin ?? false,
+          program: user.program ?? '',
+          createdAt: user.created_at,
+        }
+      });
+    }
+
+    // Get specific user by ID
+    if (type === 'single' && userId) {
+      const user = await prisma.users.findUnique({
+        where: { user_id: parseInt(userId) },
+        select: {
+          user_id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+          is_admin: true,
+          program: true,
+          created_at: true,
+        },
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: user.user_id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          isAdmin: user.is_admin ?? false,
+          program: user.program ?? '',
+          createdAt: user.created_at,
+        }
+      });
+    }
+
+    // Get all users (default)
     const users = await prisma.users.findMany({
       select: {
         user_id: true,
-        username: true,
+        email: true,
         first_name: true,
         last_name: true,
         is_admin: true,
@@ -17,47 +103,82 @@ export async function GET() {
       },
     });
 
-    // Map database fields to frontend fields
-    const mappedUsers = users.map((user: {
-      user_id: number;
-      username: string;
-      first_name: string;
-      last_name: string;
-      is_admin: boolean | null;
-      program: string | null;
-      created_at: Date | null;
-    }) => ({
-      user_id: user.user_id,
-      username: user.username,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      isAdmin: user.is_admin ?? false, // Map is_admin to isAdmin, defaulting to false if null
-      program: user.program ?? '', // Map program, defaulting to empty string if null
-      created_at: user.created_at?.toISOString() ?? '', // Convert Date to ISO string, defaulting to empty string if null
-    }));
-
-    console.warn(`Found ${mappedUsers.length} users in database`);
-    
-    if (mappedUsers.length === 0) {
-      console.warn('No users found in database');
-    }
-
-    return NextResponse.json(mappedUsers);
+    return NextResponse.json({
+      success: true,
+      users: users.map((user: User) => ({
+        id: user.user_id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        isAdmin: user.is_admin ?? false,
+        program: user.program ?? '',
+        createdAt: user.created_at,
+      }))
+    });
   } catch (error) {
-    console.error('Detailed error fetching users:', error);
-    
-    // Check if it's a Prisma error
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
-    
+    console.error('Error fetching users:', error);
     return NextResponse.json(
-      { 
-        error: 'Failed to fetch users',
-        details: error instanceof Error ? error.message : 'Unknown error'
+      { success: false, error: 'Failed to fetch users' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT: Update user profile
+export async function PUT(request: Request) {
+  try {
+    const session = await auth.getSession(request);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const userId = parseInt(session.user.id);
+
+    // Validate required fields
+    if (!body.email) {
+      return NextResponse.json(
+        { error: 'Email is required' },
+        { status: 400 }
+      );
+    }
+
+    // Update user
+    const updatedUser = await prisma.users.update({
+      where: { user_id: userId },
+      data: {
+        email: body.email,
+        first_name: body.firstName,
+        last_name: body.lastName,
+        program: body.program,
       },
+      select: {
+        user_id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        is_admin: true,
+        program: true,
+        created_at: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: updatedUser.user_id,
+        email: updatedUser.email,
+        firstName: updatedUser.first_name,
+        lastName: updatedUser.last_name,
+        isAdmin: updatedUser.is_admin ?? false,
+        program: updatedUser.program ?? '',
+        createdAt: updatedUser.created_at,
+      }
+    });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to update user' },
       { status: 500 }
     );
   }
