@@ -39,83 +39,95 @@ export const fetchPartnersByArchiveStatus = async (archived: boolean = false): P
  * Generates fallback partner data when API is unavailable
  */
 function generateFallbackPartners(archived: boolean = false): ExtendedPartner[] {
-  // Create some mock partners for development/fallback
-  const mockPartners: ExtendedPartner[] = [
+  return [
     {
-      id: "1",
-      name: "Tech Innovators",
-      description: "A leading technology company focused on web development and AI solutions.",
+      partner_id: 1,
+      name: "Tech Innovators Inc.",
+      description: "Leading technology solutions provider",
       industry: "Technology",
-      location: "Philadelphia, PA",
-      websiteUrl: "techinnovators.com",
-      logoUrl: "",
-      contactName: "Sarah Johnson",
-      contactEmail: "sjohnson@techinnovators.com",
-      contactPhone: "(215) 555-1234",
-      createdAt: "2021-03-15",
-      updatedAt: "2022-01-10",
-      _count: { jobs: 8 },
+      location: "San Francisco, CA",
+      website_url: "https://techinnovators.com",
+      contact_name: "John Smith",
+      contact_email: "john@techinnovators.com",
+      contact_phone: "+1 (555) 123-4567",
+      created_at: new Date("2024-01-15").toISOString(),
+      updated_at: new Date("2024-01-15").toISOString(),
+      _count: {
+        jobs: 5,
+      },
+      jobs_available: 5,
+      applicants: 25,
+      applicants_hired: 3,
+      partnership_start: new Date("2024-01-01").toISOString(),
       jobs: [
         {
           job_id: 1,
-          title: "Frontend Developer",
-          company: "Tech Innovators",
-          archived: false
-        }
-      ]
+          title: "Software Engineer",
+          company: "Tech Innovators Inc.",
+          archived: false,
+          created_at: new Date("2024-01-15").toISOString(),
+        },
+      ],
     },
     {
-      id: "2",
-      name: "Creative Solutions",
-      description: "Digital design and creative agency specializing in UX/UI design.",
-      industry: "Design",
-      location: "Philadelphia, PA",
-      websiteUrl: "creativesolutions.co",
-      logoUrl: "",
-      contactName: "Michael Chen",
-      contactEmail: "mchen@creativesolutions.com",
-      contactPhone: "(215) 555-5678",
-      createdAt: "2020-11-01",
-      updatedAt: "2022-01-05",
-      _count: { jobs: 4 },
+      partner_id: 2,
+      name: "Global Finance Group",
+      description: "International financial services firm",
+      industry: "Finance",
+      location: "New York, NY",
+      website_url: "https://globalfinance.com",
+      contact_name: "Sarah Johnson",
+      contact_email: "sarah@globalfinance.com",
+      contact_phone: "+1 (555) 987-6543",
+      created_at: new Date("2024-01-10").toISOString(),
+      updated_at: new Date("2024-01-10").toISOString(),
+      _count: {
+        jobs: 3,
+      },
+      jobs_available: 3,
+      applicants: 15,
+      applicants_hired: 1,
+      partnership_start: new Date("2024-01-01").toISOString(),
       jobs: [
         {
           job_id: 2,
-          title: "UX Designer",
-          company: "Creative Solutions",
-          archived: false
-        }
-      ]
+          title: "Financial Analyst",
+          company: "Global Finance Group",
+          archived: false,
+          created_at: new Date("2024-01-10").toISOString(),
+        },
+      ],
     },
     {
-      id: "3",
-      name: "DataWorks",
-      description: "Data analytics and machine learning services for businesses.",
-      industry: "Data Science",
-      location: "King of Prussia, PA",
-      websiteUrl: "dataworks.io",
-      logoUrl: "",
-      contactName: "Alicia Rodriguez",
-      contactEmail: "arodriguez@dataworks.io",
-      contactPhone: "(610) 555-9876",
-      createdAt: "2022-01-10",
-      updatedAt: "2022-02-15",
-      _count: { jobs: 6 },
+      partner_id: 3,
+      name: "Healthcare Solutions Ltd",
+      description: "Healthcare technology and services",
+      industry: "Healthcare",
+      location: "Boston, MA",
+      website_url: "https://healthcaresolutions.com",
+      contact_name: "Michael Brown",
+      contact_email: "michael@healthcaresolutions.com",
+      contact_phone: "+1 (555) 456-7890",
+      created_at: new Date("2024-01-05").toISOString(),
+      updated_at: new Date("2024-01-05").toISOString(),
+      _count: {
+        jobs: 4,
+      },
+      jobs_available: 4,
+      applicants: 20,
+      applicants_hired: 2,
+      partnership_start: new Date("2024-01-01").toISOString(),
       jobs: [
         {
           job_id: 3,
-          title: "Data Scientist",
-          company: "DataWorks",
-          archived: true
-        }
-      ]
-    }
+          title: "Healthcare Data Analyst",
+          company: "Healthcare Solutions Ltd",
+          archived: false,
+          created_at: new Date("2024-01-05").toISOString(),
+        },
+      ],
+    },
   ];
-  
-  // Filter by archived status based on jobs
-  return mockPartners.filter(partner => 
-    partner.jobs?.some(job => job.archived === archived) || false
-  );
 }
 
 /**
@@ -146,9 +158,9 @@ export const createPartner = async (partnerData: NewPartner): Promise<ExtendedPa
 /**
  * Updates an existing partner
  */
-export const updatePartner = async (id: string, partnerData: Partial<NewPartner>): Promise<ExtendedPartner> => {
+export const updatePartner = async (partnerId: number, partnerData: Partial<NewPartner>): Promise<ExtendedPartner> => {
   try {
-    const response = await fetch(`/api/partners/${id}`, {
+    const response = await fetch(`/api/partners?partner_id=${partnerId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -156,14 +168,19 @@ export const updatePartner = async (id: string, partnerData: Partial<NewPartner>
       body: JSON.stringify(partnerData),
     });
     
+    const data = await response.json();
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(errorData?.message || 'Failed to update partner');
+      throw new Error(data.error || 'Failed to update partner');
     }
     
-    return await response.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to update partner');
+    }
+    
+    return data.partner;
   } catch (error) {
-    console.error(`Error updating partner with id ${id}:`, error);
+    console.error(`Error updating partner with id ${partnerId}:`, error);
     throw error;
   }
 };
@@ -171,7 +188,7 @@ export const updatePartner = async (id: string, partnerData: Partial<NewPartner>
 /**
  * Gets job count for a partner
  */
-export const getJobsCount = async (partnerId: string): Promise<number> => {
+export const getJobsCount = async (partnerId: number): Promise<number> => {
   try {
     const response = await fetch(`/api/partners/${partnerId}/jobs/count`);
     if (!response.ok) {
@@ -188,21 +205,27 @@ export const getJobsCount = async (partnerId: string): Promise<number> => {
 /**
  * Archives or unarchives a partner
  */
-export const togglePartnerArchive = async (partnerId: string, archived: boolean): Promise<ExtendedPartner> => {
+export const togglePartnerArchive = async (partnerId: number, archived: boolean): Promise<ExtendedPartner> => {
   try {
-    const response = await fetch(`/api/partners/${partnerId}`, {
+    const response = await fetch(`/api/partners?partner_id=${partnerId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ archived }), // Update property name to match backend
+      body: JSON.stringify({ is_archived: archived }),
     });
     
+    const data = await response.json();
+    
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      throw new Error(data.error || `API error: ${response.status}`);
     }
     
-    return await response.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to update partner archive status');
+    }
+    
+    return data.partner;
   } catch (error) {
     console.error('Error toggling partner archive status:', error);
     throw error;
@@ -210,9 +233,9 @@ export const togglePartnerArchive = async (partnerId: string, archived: boolean)
 };
 
 // Fetch a single partner by ID
-export const fetchPartnerById = async (id: string): Promise<ExtendedPartner> => {
+export const fetchPartnerById = async (partnerId: number): Promise<ExtendedPartner> => {
   try {
-    const response = await fetch(`/api/partners/${id}`);
+    const response = await fetch(`/api/partners?partner_id=${partnerId}`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch partner');
@@ -220,15 +243,15 @@ export const fetchPartnerById = async (id: string): Promise<ExtendedPartner> => 
     
     return await response.json();
   } catch (error) {
-    console.error(`Error fetching partner with id ${id}:`, error);
+    console.error(`Error fetching partner with id ${partnerId}:`, error);
     throw error;
   }
 };
 
 // Delete a partner
-export const deletePartner = async (id: string): Promise<void> => {
+export const deletePartner = async (partnerId: number): Promise<void> => {
   try {
-    const response = await fetch(`/api/partners/${id}`, {
+    const response = await fetch(`/api/partners?partner_id=${partnerId}`, {
       method: 'DELETE',
     });
     
@@ -237,7 +260,7 @@ export const deletePartner = async (id: string): Promise<void> => {
       throw new Error(errorData?.message || 'Failed to delete partner');
     }
   } catch (error) {
-    console.error(`Error deleting partner with id ${id}:`, error);
+    console.error(`Error deleting partner with id ${partnerId}:`, error);
     throw error;
   }
 }; 

@@ -23,7 +23,28 @@ export async function GET(req: Request) {
       }
       
       const partner = await prisma.partners.findUnique({
-        where: { partner_id: id }
+        where: { partner_id: id },
+        include: {
+          jobs: searchParams.get('jobs') === 'true' ? {
+            where: { archived: false },
+            select: {
+              job_id: true,
+              title: true,
+              company: true,
+              location: true,
+              job_type: true,
+              created_at: true,
+              _count: {
+                select: {
+                  applications: true
+                }
+              }
+            },
+            orderBy: {
+              created_at: 'desc'
+            }
+          } : undefined
+        }
       });
       
       if (!partner) {
@@ -36,7 +57,24 @@ export async function GET(req: Request) {
       // Add default status field based on is_archived
       const partnerWithStatus = {
         ...partner,
-        status: partner.is_archived ? 'archived' : 'active'
+        status: partner.is_archived ? 'archived' : 'active',
+        jobs: partner.jobs?.map((job: { 
+          job_id: number;
+          title: string;
+          company: string;
+          location: string;
+          job_type: string;
+          created_at: string;
+          _count?: { applications: number };
+        }) => ({
+          job_id: job.job_id,
+          title: job.title,
+          company: job.company || partner.name,
+          location: job.location,
+          job_type: job.job_type || 'Full-time',
+          created_at: job.created_at,
+          applications_count: job._count?.applications || 0
+        }))
       };
       
       return NextResponse.json({
@@ -48,6 +86,18 @@ export async function GET(req: Request) {
       const partners = await prisma.partners.findMany({
         orderBy: {
           name: 'asc'
+        },
+        include: {
+          jobs: {
+            where: { archived: false },
+            select: {
+              job_id: true,
+              title: true,
+              company: true,
+              archived: true,
+              created_at: true
+            }
+          }
         }
       });
       
@@ -169,7 +219,16 @@ export async function PUT(req: Request) {
         jobs_available: body.jobs_available !== undefined ? body.jobs_available : undefined,
         applicants: body.applicants !== undefined ? body.applicants : undefined,
         applicants_hired: body.applicants_hired !== undefined ? body.applicants_hired : undefined,
-        is_archived: is_archived
+        is_archived: is_archived,
+        jobs: {
+          updateMany: {
+            where: { partner_id: id },
+            data: { archived: is_archived }
+          }
+        }
+      },
+      include: {
+        jobs: true
       }
     });
     

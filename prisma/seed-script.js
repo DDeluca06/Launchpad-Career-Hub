@@ -5,86 +5,212 @@ const prisma = new PrismaClient();
 
 const main = async () => {
   try {
-    // Original seed content here (your full seed data)
-    // ... existing user/partner/job/application creation code ...
+    // Clear existing data
+    await prisma.app_status_history.deleteMany();
+    await prisma.applications.deleteMany();
+    await prisma.dashboard_activity.deleteMany();
+    await prisma.interviews.deleteMany();
+    await prisma.jobs.deleteMany();
+    await prisma.partners.deleteMany();
+    await prisma.resumes.deleteMany();
+    await prisma.users.deleteMany();
 
-    // Extra Users
-    for (let i = 0; i < 10; i++) {
-      await prisma.users.create({
+    // Create admin user
+    const adminUser = await prisma.users.create({
+      data: {
+        username: 'admin',
+        first_name: 'Admin',
+        last_name: 'User',
+        password_hash: '$2a$10$YDnlEcylD.SuRnC/cA4Gze4SCH4QtdSTufYQ7X9Ee0o5gDbF.',
+        is_admin: true,
+        program: 'ONE_ZERO_ONE'
+      }
+    });
+
+    // Create regular users
+    const users = [];
+    for (let i = 0; i < 50; i++) {
+      const user = await prisma.users.create({
         data: {
           username: faker.internet.username(),
-          first_name: faker.person.firstName(), 
+          first_name: faker.person.firstName(),
           last_name: faker.person.lastName(),
           password_hash: '$2a$10$YDnlEcylD.SuRnC/cA4Gze4SCH4QtdSTufYQ7X9Ee0o5gDbF.',
           is_admin: false,
-          program: faker.helpers.arrayElement(['LIFTOFF', 'ALUMNI', 'FOUNDATIONS', 'ONE_ZERO_ONE'])
+          program: faker.helpers.arrayElement(['ONE_ZERO_ONE', 'LIFTOFF', 'FOUNDATIONS', 'ALUMNI'])
         }
       });
+      users.push(user);
     }
 
-    // Extra Partners
-    for (let i = 0; i < 5; i++) {
-      await prisma.partners.create({
+    // Create partners
+    const partners = [];
+    for (let i = 0; i < 10; i++) {
+      const partner = await prisma.partners.create({
         data: {
           name: faker.company.name(),
           description: faker.company.catchPhrase(),
           industry: faker.commerce.department(),
           location: `${faker.location.city()}, ${faker.location.state({ abbreviated: true })}`,
-          jobs_available: faker.number.int({ min: 1, max: 5 }),
-          applicants: faker.number.int({ min: 0, max: 30 }),
+          website_url: faker.internet.url(),
+          contact_name: faker.person.fullName(),
+          contact_email: faker.internet.email(),
+          contact_phone: faker.phone.number(),
+          jobs_available: faker.number.int({ min: 1, max: 10 }),
+          applicants: faker.number.int({ min: 0, max: 50 }),
           applicants_hired: faker.number.int({ min: 0, max: 10 }),
           is_archived: faker.datatype.boolean()
         }
       });
+      partners.push(partner);
     }
 
-    // Fetch new users and partners
-    const users = await prisma.users.findMany();
-    const partners = await prisma.partners.findMany();
-
-    // Extra Jobs
+    // Create jobs for each partner
+    const jobs = [];
     for (const partner of partners) {
-      const jobCount = faker.number.int({ min: 1, max: 3 });
+      const jobCount = faker.number.int({ min: 3, max: 8 });
       for (let i = 0; i < jobCount; i++) {
-        await prisma.jobs.create({
+        const job = await prisma.jobs.create({
           data: {
             title: faker.person.jobTitle(),
-            description: faker.lorem.sentences(2),
+            description: faker.lorem.paragraphs(2),
             company: partner.name,
+            website: faker.internet.url(),
             location: partner.location,
             partner_id: partner.partner_id,
-            job_type: faker.helpers.arrayElement(['INTERNSHIP', 'FULL_TIME', 'PART_TIME']),
-            tags: faker.helpers.arrayElements(
-              ['FRONT_END', 'BACK_END', 'FULL_STACK', 'DATA_SCIENCE', 'AI_ML', 'DEVOPS', 'UX_UI_DESIGN', 'PRODUCT_MANAGEMENT', 'CLOUD_COMPUTING', 'IN_PERSON', 'HYBRID', 'FULLY_REMOTE'],
-              faker.number.int({ min: 1, max: 3 })
-            )
+            job_type: faker.helpers.arrayElement(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'APPRENTICESHIP', 'INTERNSHIP']),
+            tags: faker.helpers.arrayElements([
+              'FRONT_END', 'BACK_END', 'FULL_STACK',
+              'DATA_SCIENCE', 'CYBERSECURITY', 'UX_UI_DESIGN',
+              'CLOUD_COMPUTING', 'DEVOPS', 'AI_ML'
+            ], { min: 2, max: 4 }),
+            archived: false // Set most jobs as active
           }
         });
+        jobs.push(job);
       }
     }
 
-    // Fetch new jobs
-    const jobs = await prisma.jobs.findMany();
+    // Create resumes for users
+    const resumes = [];
+    for (const user of users) {
+      const resumeCount = faker.number.int({ min: 1, max: 3 });
+      for (let i = 0; i < resumeCount; i++) {
+        const resume = await prisma.resumes.create({
+          data: {
+            user_id: user.user_id,
+            file_path: faker.system.filePath(),
+            file_name: `${user.first_name}_${user.last_name}_resume.pdf`,
+            is_default: i === 0
+          }
+        });
+        resumes.push(resume);
+      }
+    }
 
-    // Extra Applications
-    for (let i = 0; i < 50; i++) {
+    // Create applications - increased number and better status distribution
+    const applications = [];
+    const applicationStatuses = [
+      'INTERESTED',
+      'APPLIED',
+      'PHONE_SCREENING',
+      'INTERVIEW_STAGE',
+      'FINAL_INTERVIEW_STAGE',
+      'OFFER_EXTENDED',
+      'NEGOTIATION',
+      'OFFER_ACCEPTED',
+      'REJECTED'
+    ];
+
+    // Create 200 applications with a good distribution of statuses
+    for (let i = 0; i < 200; i++) {
       const user = faker.helpers.arrayElement(users);
       const job = faker.helpers.arrayElement(jobs);
+      const resume = faker.helpers.arrayElement(resumes.filter(r => r.user_id === user.user_id));
+      
+      // Weight the status distribution to ensure we have enough OFFER_ACCEPTED
+      let status;
+      if (i < 40) { // 20% OFFER_ACCEPTED
+        status = 'OFFER_ACCEPTED';
+      } else if (i < 80) { // 20% in progress (INTERVIEW stages)
+        status = faker.helpers.arrayElement(['INTERVIEW_STAGE', 'FINAL_INTERVIEW_STAGE', 'NEGOTIATION']);
+      } else {
+        status = faker.helpers.arrayElement(applicationStatuses);
+      }
 
-      await prisma.applications.create({
+      const application = await prisma.applications.create({
         data: {
           user_id: user.user_id,
           job_id: job.job_id,
-          status: faker.helpers.arrayElement([
-            'APPLIED', 'INTERESTED', 'PHONE_SCREENING', 'INTERVIEW_STAGE', 'FINAL_INTERVIEW_STAGE', 'OFFER_EXTENDED', 'OFFER_ACCEPTED', 'REJECTED', 'NEGOTIATION'
-          ]),
+          status: status,
+          isArchived: false, // Keep most applications active
           position: job.title,
-          applied_at: faker.date.recent(180)
+          resume_id: resume?.resume_id,
+          applied_at: faker.date.past({ years: 1 }) // Applications within the last year
+        }
+      });
+      applications.push(application);
+
+      // Create status history for each application
+      const statusHistory = [
+        'APPLIED',
+        'INTERVIEWING',
+        'OFFERED',
+        'HIRED',
+        'REJECTED'
+      ];
+      
+      let lastChangeDate = new Date(application.applied_at);
+      for (const status of statusHistory) {
+        if (faker.datatype.boolean()) {
+          // Ensure status changes are sequential after applied_at
+          lastChangeDate = new Date(lastChangeDate.getTime() + faker.number.int({ min: 1, max: 15 }) * 24 * 60 * 60 * 1000);
+          
+          await prisma.app_status_history.create({
+            data: {
+              application_id: application.application_id,
+              status: status,
+              changed_at: lastChangeDate
+            }
+          });
+        }
+      }
+    }
+
+    // Create interviews
+    for (let i = 0; i < 50; i++) {
+      const user = faker.helpers.arrayElement(users);
+      await prisma.interviews.create({
+        data: {
+          user_id: user.user_id,
+          title: faker.person.jobTitle(),
+          description: faker.lorem.sentence(),
+          event_date: faker.date.future()
         }
       });
     }
 
-    console.log('Database has been seeded with extra data!');
+    // Create dashboard activity
+    for (let i = 0; i < 50; i++) {
+      await prisma.dashboard_activity.create({
+        data: {
+          admin_id: adminUser.user_id,
+          action: faker.helpers.arrayElement([
+            'CREATED_PARTNER',
+            'UPDATED_PARTNER',
+            'ARCHIVED_PARTNER',
+            'CREATED_JOB',
+            'UPDATED_JOB',
+            'ARCHIVED_JOB',
+            'VIEWED_APPLICANT',
+            'UPDATED_APPLICATION_STATUS'
+          ]),
+          details: faker.lorem.sentence()
+        }
+      });
+    }
+
+    console.log('Database has been seeded successfully!');
   } catch (error) {
     console.error('Error seeding database:', error);
   } finally {

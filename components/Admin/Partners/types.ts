@@ -6,35 +6,28 @@
  * Partner interface matching our database schema
  */
 export interface Partner {
-  id: string;
+  partner_id: number;
   name: string;
-  description: string;
-  industry: string;
-  location: string;
-  websiteUrl: string;
-  logoUrl?: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string;
-  createdAt: string;
-  updatedAt: string;
+  description?: string;
+  industry?: string;
+  location?: string;
+  website_url?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  created_at?: string;
+  updated_at?: string;
+  is_archived?: boolean;
 }
 
 /**
  * Extended Partner with additional UI properties
  */
 export interface ExtendedPartner extends Partner {
-  partner_id?: number;
-  is_archived?: boolean;
   jobs_available?: number;
   applicants?: number;
   applicants_hired?: number;
   partnership_start?: string;
-  website?: string;
-  logo_url?: string;
-  contact_name?: string;
-  contact_email?: string;
-  contact_phone?: string;
   _count?: {
     jobs?: number;
   };
@@ -52,14 +45,13 @@ export interface ExtendedPartner extends Partner {
  */
 export interface NewPartner {
   name: string;
-  description: string;
-  industry: string;
-  location: string;
-  websiteUrl: string;
-  logoUrl?: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string;
+  description?: string;
+  industry?: string;
+  location?: string;
+  website_url?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
 }
 
 /**
@@ -128,9 +120,9 @@ export interface PartnerFormData {
   description: string;
   industry: string;
   location: string;
-  websiteUrl: string;
+  website_url: string;
   logoUrl?: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string;
+  contact_name: string;
+  contact_email: string;
+  contact_phone: string;
 } 

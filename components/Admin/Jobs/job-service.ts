@@ -143,7 +143,7 @@ export async function updateJob(jobId: number, jobData: Partial<NewJob>) {
  */
 export async function toggleJobArchive(jobId: number, archived: boolean) {
   try {
-    const response = await fetch(`/api/jobs/${jobId}`, {
+    const response = await fetch(`/api/jobs?id=${jobId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

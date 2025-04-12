@@ -97,8 +97,7 @@ const CHART_COLORS = [
  */
 export default function AdminAnalytics() {
   const [isLoading, setIsLoading] = useState(true);
-  const [filterModalOpen, setFilterModalOpen] = useState(false);
-  const [filters, setFilters] = useState(defaultFilters);
+  const [dateRange, setDateRange] = useState("last12Months");
   const [data, setData] = useState<AnalyticsData>({
     overview: {
       totalApplicants: 0,
@@ -110,7 +109,6 @@ export default function AdminAnalytics() {
     topJobCategories: [],
     placementsByPartner: [],
   });
-  const [dateRange, setDateRange] = useState("last12Months");
 
   useEffect(() => {
     const loadAnalyticsData = async () => {
@@ -120,11 +118,6 @@ export default function AdminAnalytics() {
         // Build query parameters
         const queryParams = new URLSearchParams();
         queryParams.append("dateRange", dateRange);
-        
-        // Add program filters if any are selected
-        if (filters.programs && filters.programs.length > 0) {
-          queryParams.append("programs", filters.programs.join(","));
-        }
         
         // Fetch data from our analytics API endpoint
         const response = await fetch(`/api/analytics?${queryParams.toString()}`);
@@ -179,35 +172,73 @@ export default function AdminAnalytics() {
             { category: "QA Testing", count: 5 },
           ],
           placementsByPartner: [
-            { partner: "TechCorp", placements: 36 },
-            { partner: "Data Inc.", placements: 22 },
-            { partner: "Web Solutions", placements: 18 },
-            { partner: "AI Labs", placements: 14 },
-            { partner: "Cloud Computing Inc.", placements: 12 },
+            { partner: "Treutel - Bashirian", placements: 5 },
+            { partner: "D'Amore and Crist", placements: 2 },
+            { partner: "Rath - Rau", placements: 1 },
+            { partner: "O'Connell and Wuckert", placements: 1 },
+            { partner: "Frami - Dare", placements: 1 }
           ],
         });
       } finally {
-        // Simulate loading for demo purposes
         setTimeout(() => setIsLoading(false), 800);
       }
     };
 
     loadAnalyticsData();
-  }, [dateRange, filters]);
-
-  // Filter application handler
-  const handleApplyFilters = (newFilters: JobFilter) => {
-    setFilters(newFilters);
-    setFilterModalOpen(false);
-    setIsLoading(true);
-    // The useEffect will handle the data refresh based on the updated filters
-  };
+  }, [dateRange]);
 
   // Date range handler
   const handleDateRangeChange = (range: string) => {
     setDateRange(range);
     setIsLoading(true);
-    // The useEffect will handle the data refresh based on the date range
+  };
+
+  // Export data handler
+  const handleExport = () => {
+    // Create CSV content
+    const csvContent = [
+      // Overview section
+      ['Overview Metrics'],
+      ['Metric', 'Value'],
+      ['Total Applicants', data.overview.totalApplicants],
+      ['Total Jobs', data.overview.totalJobs],
+      ['Total Applications', data.overview.totalApplications],
+      [''],
+      
+      // Applications over time
+      ['Applications Over Time'],
+      ['Month', 'Applications'],
+      ...data.applicationsOverTime.map(item => [item.month, item.applications]),
+      [''],
+      
+      // Status distribution
+      ['Application Status Distribution'],
+      ['Status', 'Count'],
+      ...data.statusDistribution.map(item => [item.status, item.count]),
+      [''],
+      
+      // Job categories
+      ['Top Job Categories'],
+      ['Category', 'Count'],
+      ...data.topJobCategories.map(item => [item.category, item.count]),
+      [''],
+      
+      // Placements by partner
+      ['Placements by Partner'],
+      ['Partner', 'Placements'],
+      ...data.placementsByPartner.map(item => [item.partner, item.placements])
+    ].map(row => row.join(',')).join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `analytics_report_${dateRange}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -227,16 +258,6 @@ export default function AdminAnalytics() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1"
-              onClick={() => setFilterModalOpen(true)}
-            >
-              <Filter className="h-4 w-4" />
-              Filter Data
-            </Button>
-
             <div className="flex items-center bg-muted/20 rounded-md shadow-sm">
               <Button
                 variant={dateRange === "last30Days" ? "default" : "ghost"}
@@ -268,6 +289,7 @@ export default function AdminAnalytics() {
               variant="outline"
               size="sm"
               className="flex items-center gap-1"
+              onClick={handleExport}
             >
               <Download className="h-4 w-4" /> Export
             </Button>
@@ -373,23 +395,6 @@ export default function AdminAnalytics() {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Filter Modal */}
-      <MultiPurposeModal
-        open={filterModalOpen}
-        onOpenChange={setFilterModalOpen}
-        title="Filter Analytics Data"
-        size="md"
-        showFooter={true}
-        primaryActionText="Apply Filters"
-        onPrimaryAction={() => {
-          handleApplyFilters(filters);
-        }}
-        secondaryActionText="Reset"
-        onSecondaryAction={() => setFilters(defaultFilters)}
-      >
-        <JobFilters onApply={handleApplyFilters} initialFilters={filters} />
-      </MultiPurposeModal>
     </DashboardLayout>
   );
 }

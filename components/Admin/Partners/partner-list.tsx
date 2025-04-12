@@ -56,18 +56,13 @@ export function PartnerList({
 
   // Generate a unique key for each partner
   const getPartnerKey = (partner: ExtendedPartner) => {
-    return partner.partner_id?.toString() || partner.id;
+    return partner.partner_id.toString();
   };
   
   // Check if a partner is selected
   const isPartnerSelected = (partner: ExtendedPartner, selected?: ExtendedPartner | null) => {
     if (!selected) return false;
-    
-    if (partner.partner_id && selected.partner_id) {
-      return partner.partner_id === selected.partner_id;
-    }
-    
-    return partner.id === selected.id;
+    return partner.partner_id === selected.partner_id;
   };
 
   return (
@@ -113,7 +108,7 @@ export function PartnerList({
                 )}
                 <div className="flex items-center gap-1">
                   <Briefcase className="h-3 w-3" />
-                  <span>{partner.jobs_available || 0} jobs</span>
+                  <span>{partner.jobs?.length || 0} jobs</span>
                 </div>
                 {partner.partnership_start && (
                   <div className="flex items-center gap-1">
@@ -123,15 +118,6 @@ export function PartnerList({
                     </span>
                   </div>
                 )}
-              </div>
-
-              <div className="flex justify-between items-center mt-2">
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <Users className="h-3 w-3" />
-                  <span>
-                    {partner.applicants_hired || 0} hired / {partner.applicants || 0} applicants
-                  </span>
-                </div>
               </div>
             </div>
           </Card>

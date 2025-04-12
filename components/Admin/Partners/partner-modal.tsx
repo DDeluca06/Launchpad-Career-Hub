@@ -37,41 +37,14 @@ import { createPartner, updatePartner } from "./partner-service";
 
 // Define form validation schema for Partner 
 const partnerFormSchema = z.object({
-  name: z
-    .string()
-    .min(2, { message: "Organization name must be at least 2 characters" })
-    .max(100, { message: "Organization name must be at most 100 characters" }),
-  description: z
-    .string()
-    .min(10, { message: "Description must be at least 10 characters" })
-    .max(2000, { message: "Description must be at most 2000 characters" }),
-  industry: z
-    .string()
-    .min(1, { message: "Please select an industry" }),
-  location: z
-    .string()
-    .min(1, { message: "Location must be at least 1 character" })
-    .max(100, { message: "Location must be at most 100 characters" }),
-  website: z
-    .string()
-    .url({ message: "Please enter a valid URL" })
-    .or(z.literal("")),
-  contact_email: z
-    .string()
-    .email({ message: "Please enter a valid email address" })
-    .or(z.literal("")),
-  contact_phone: z
-    .string()
-    .max(20, { message: "Phone number must be at most 20 characters" })
-    .or(z.literal("")),
-  contact_name: z
-    .string()
-    .max(100, { message: "Contact name must be at most 100 characters" })
-    .or(z.literal("")),
-  logo_url: z
-    .string()
-    .url({ message: "Please enter a valid URL" })
-    .or(z.literal("")),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  industry: z.string().optional(),
+  location: z.string().optional(),
+  website_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  contact_email: z.string().email("Must be a valid email").optional().or(z.literal("")),
+  contact_phone: z.string().optional(),
+  contact_name: z.string().optional(),
 });
 
 type PartnerFormValues = z.infer<typeof partnerFormSchema>;
@@ -106,11 +79,10 @@ export function PartnerModal({
       description: "",
       industry: "",
       location: "",
-      website: "",
+      website_url: "",
       contact_email: "",
       contact_phone: "",
       contact_name: "",
-      logo_url: "",
     },
   });
 
@@ -122,11 +94,10 @@ export function PartnerModal({
         description: partner.description || "",
         industry: partner.industry || "",
         location: partner.location || "",
-        website: partner.websiteUrl || "",
-        contact_email: partner.contactEmail || "",
-        contact_phone: partner.contactPhone || "",
-        contact_name: partner.contactName || "",
-        logo_url: partner.logoUrl || "",
+        website_url: partner.website_url || "",
+        contact_email: partner.contact_email || "",
+        contact_phone: partner.contact_phone || "",
+        contact_name: partner.contact_name || "",
       });
     } else if (!partner && open) {
       form.reset({
@@ -134,11 +105,10 @@ export function PartnerModal({
         description: "",
         industry: "",
         location: "",
-        website: "",
+        website_url: "",
         contact_email: "",
         contact_phone: "",
         contact_name: "",
-        logo_url: "",
       });
     }
   }, [partner, open, form]);
@@ -149,16 +119,15 @@ export function PartnerModal({
       
       if (isEditMode && partner) {
         // Update existing partner
-        const updatedPartner = await updatePartner(partner.id, {
+        const updatedPartner = await updatePartner(partner.partner_id, {
           name: values.name,
           description: values.description,
           industry: values.industry,
           location: values.location,
-          websiteUrl: values.website,
-          logoUrl: values.logo_url,
-          contactName: values.contact_name,
-          contactEmail: values.contact_email,
-          contactPhone: values.contact_phone,
+          website_url: values.website_url,
+          contact_name: values.contact_name,
+          contact_email: values.contact_email,
+          contact_phone: values.contact_phone,
         });
         
         toast.success("Partner updated successfully");
@@ -173,11 +142,10 @@ export function PartnerModal({
           description: values.description,
           industry: values.industry,
           location: values.location,
-          websiteUrl: values.website,
-          logoUrl: values.logo_url,
-          contactName: values.contact_name,
-          contactEmail: values.contact_email,
-          contactPhone: values.contact_phone,
+          website_url: values.website_url,
+          contact_name: values.contact_name,
+          contact_email: values.contact_email,
+          contact_phone: values.contact_phone,
         };
         
         const createdPartner = await createPartner(newPartnerData);
@@ -233,16 +201,31 @@ export function PartnerModal({
                 )}
               />
               
+              {/* Industry */}
+              <FormField
+                control={form.control}
+                name="industry"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Industry</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Technology, Healthcare, Finance" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               {/* Description */}
               <FormField
                 control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description *</FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Brief description of the organization and partnership"
+                      <Textarea 
+                        placeholder="Describe the partner organization"
                         className="min-h-[100px]"
                         {...field}
                       />
@@ -252,76 +235,30 @@ export function PartnerModal({
                 )}
               />
               
-              {/* Industry & Location (side by side) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="industry"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Industry *</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select an industry" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {INDUSTRIES.map((industry) => (
-                            <SelectItem key={industry} value={industry}>
-                              {industry}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="City, State/Province, Country" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              {/* Website */}
+              {/* Location */}
               <FormField
                 control={form.control}
-                name="website"
+                name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Website</FormLabel>
+                    <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://..." {...field} />
+                      <Input placeholder="e.g. Philadelphia, PA" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              {/* Logo URL */}
+              {/* Website URL */}
               <FormField
                 control={form.control}
-                name="logo_url"
+                name="website_url"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Logo URL</FormLabel>
+                    <FormLabel>Website URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://..." {...field} />
+                      <Input placeholder="https://example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -341,45 +278,44 @@ export function PartnerModal({
                 name="contact_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contact Person</FormLabel>
+                    <FormLabel>Contact Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Full name of primary contact" {...field} />
+                      <Input placeholder="Full name of contact person" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              {/* Contact Email & Phone (side by side) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="contact_email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="contact@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="contact_phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Phone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="+1 (123) 456-7890" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              {/* Contact Email */}
+              <FormField
+                control={form.control}
+                name="contact_email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="contact@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Contact Phone */}
+              <FormField
+                control={form.control}
+                name="contact_phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Phone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="(123) 456-7890" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             
             {/* Footer actions */}
@@ -393,7 +329,13 @@ export function PartnerModal({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : isEditMode ? "Update Partner" : "Add Partner"}
+                {isSubmitting ? (
+                  "Saving..."
+                ) : isEditMode ? (
+                  "Save Changes"
+                ) : (
+                  "Create Partner"
+                )}
               </Button>
             </DialogFooter>
           </form>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Dispatch, SetStateAction } from 'react';
 import { Input } from "@/components/ui/form/input";
 import { Label } from "@/components/ui/basic/label";
 import {
@@ -9,21 +9,16 @@ import {
   SelectValue,
 } from "@/components/ui/form/select";
 import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
-
-interface NewUserData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  program: string;
-}
+import { extendedPalette } from "@/lib/colors";
+import { NewUserData } from "./types";
 
 interface CreateUserModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   newUser: NewUserData;
-  setNewUser: React.Dispatch<React.SetStateAction<NewUserData>>;
-  onCreateUser: () => Promise<void>;
+  setNewUser: Dispatch<SetStateAction<NewUserData>>;
+  onCreateUser: () => void;
+  isEditMode?: boolean;
 }
 
 /**
@@ -35,89 +30,91 @@ export function CreateUserModal({
   newUser,
   setNewUser,
   onCreateUser,
+  isEditMode = false,
 }: CreateUserModalProps) {
   return (
     <MultiPurposeModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Create New User"
-      size="md"
+      title={isEditMode ? "Edit Applicant" : "Add New Applicant"}
+      size="sm"
       showFooter={true}
-      primaryActionText="Create User"
+      primaryActionText={isEditMode ? "Save Changes" : "Create"}
       onPrimaryAction={onCreateUser}
       secondaryActionText="Cancel"
       onSecondaryAction={() => onOpenChange(false)}
     >
       <div className="py-4 space-y-4">
-        <p className="text-sm text-gray-500 mb-4">Add a new applicant user to the system</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
             <Label htmlFor="firstName">First Name</Label>
             <Input
               id="firstName"
               value={newUser.firstName}
               onChange={(e) =>
-                setNewUser({ ...newUser, firstName: e.target.value })
+                setNewUser((prev) => ({ ...prev, firstName: e.target.value }))
               }
-              placeholder="First Name"
-              required
+              placeholder="John"
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="lastName">Last Name</Label>
             <Input
               id="lastName"
               value={newUser.lastName}
               onChange={(e) =>
-                setNewUser({ ...newUser, lastName: e.target.value })
+                setNewUser((prev) => ({ ...prev, lastName: e.target.value }))
               }
-              placeholder="Last Name"
-              required
+              placeholder="Doe"
             />
           </div>
         </div>
-        
-        <div>
+
+        <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
+            type="email"
             value={newUser.email}
             onChange={(e) =>
-              setNewUser({ ...newUser, email: e.target.value })
+              setNewUser((prev) => ({ ...prev, email: e.target.value }))
             }
-            placeholder="Email"
-            type="email"
-            required
+            placeholder="john.doe@example.com"
+            disabled={isEditMode}
           />
         </div>
-        
-        <div>
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            value={newUser.password}
-            onChange={(e) =>
-              setNewUser({ ...newUser, password: e.target.value })
-            }
-            placeholder="Password"
-            type="password"
-            required
-          />
-        </div>
-        
-        <div>
+
+        {!isEditMode && (
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={newUser.password}
+              onChange={(e) =>
+                setNewUser((prev) => ({ ...prev, password: e.target.value }))
+              }
+              placeholder="••••••••"
+            />
+          </div>
+        )}
+
+        <div className="space-y-2">
           <Label htmlFor="program">Program</Label>
           <Select
             value={newUser.program}
-            onValueChange={(value: string) => setNewUser({ ...newUser, program: value })}
+            onValueChange={(value) =>
+              setNewUser((prev) => ({ ...prev, program: value }))
+            }
           >
-            <SelectTrigger id="program">
+            <SelectTrigger>
               <SelectValue placeholder="Select a program" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="101">101</SelectItem>
-              <SelectItem value="LIFTOFF">LIFTOFF</SelectItem>
+              <SelectItem value="FOUNDATION">Foundations</SelectItem>
+              <SelectItem value="LIFTOFF">Liftoff</SelectItem>
+              <SelectItem value="ALUMNI">Alumni</SelectItem>
             </SelectContent>
           </Select>
         </div>

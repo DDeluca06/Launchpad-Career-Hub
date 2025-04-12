@@ -14,12 +14,14 @@ import {
   Archive,
   Search,
 } from "lucide-react";
+import { toast } from "@/components/ui/feedback/use-toast";
 
 // Import our custom components
 import { JobList } from "@/components/Admin/Jobs/job-list";
 import { JobDetailsAdmin } from "@/components/Admin/Jobs/job-details-admin";
 import { JobModals } from "@/components/Admin/Jobs/job-modals";
 import { JobFilters, JobFiltersRef } from "@/components/Admin/Jobs/job-filters";
+import { BulkUploadModal } from "@/components/Admin/Jobs/BulkUploadModal";
 
 // Import types and services
 import { ExtendedJob, JobFilterInterface, JobType, JobTag, JOB_TAGS, NewJob } from "@/components/Admin/Jobs/types";
@@ -68,15 +70,16 @@ export default function AdminJobListings() {
     jobTypes: [],
     locations: [],
     remoteOnly: false,
-    salary: [0, 200],
-    experienceLevel: "any",
     keywords: "",
     tags: [],
-    programs: [],
   });
 
   // Add ref for job filters
   const jobFiltersRef = useRef<JobFiltersRef>(null);
+
+  // State for bulk upload modal
+  const [bulkUploadModalOpen, setBulkUploadModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   /**
    * Loads jobs from API
@@ -251,11 +254,8 @@ export default function AdminJobListings() {
       jobTypes: [],
       locations: [],
       remoteOnly: false,
-      salary: [0, 200],
-      experienceLevel: "any",
       keywords: "",
       tags: [],
-      programs: [],
     };
     setActiveFilters(defaultFilters);
     
@@ -614,9 +614,65 @@ export default function AdminJobListings() {
     setIsEditModalOpen(true);
   };
 
+  // Handle CSV file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setCsvFile(e.target.files[0]);
+    }
+  };
+
+  // Handle bulk upload
+  const handleBulkUpload = async () => {
+    if (!csvFile) {
+      toast({
+        title: "Error",
+        description: "Please select a CSV file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const formData = new FormData();
+      formData.append('file', csvFile);
+      
+      const response = await fetch('/api/jobs/bulk', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload jobs');
+      }
+      
+      setBulkUploadModalOpen(false);
+      setCsvFile(null);
+      
+      toast({
+        title: "Success",
+        description: "Jobs were uploaded successfully.",
+      });
+      
+      // Refresh the jobs list
+      // TODO: Add jobs list refresh logic
+      
+    } catch (error) {
+      console.error("Error uploading jobs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload jobs. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout isAdmin>
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 pb-8">
         <div className="mb-3">
           <h1 className="text-2xl font-bold text-gray-900">
             Jobs
@@ -719,12 +775,12 @@ export default function AdminJobListings() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Job Listings Column */}
-          <Card className="lg:col-span-1 max-h-[calc(100vh-250px)] overflow-hidden flex flex-col">
-            <CardHeader className="py-3">
+          <Card className="lg:col-span-1 h-[calc(100vh-280px)] overflow-hidden">
+            <CardHeader className="py-3 border-b">
               <CardTitle>{activeTab === "active" ? "Job Listings" : "Archived Jobs"}</CardTitle>
               <CardDescription>{filteredJobs.length} jobs found</CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 overflow-auto p-3">
+            <CardContent className="h-[calc(100%-60px)] overflow-auto p-3">
               <Suspense fallback={<p>Loading...</p>}>
                 <JobList
                   jobs={filteredJobs}
@@ -739,8 +795,8 @@ export default function AdminJobListings() {
           </Card>
 
           {/* Job Details Column */}
-          <Card className="lg:col-span-2 max-h-[calc(100vh-250px)] overflow-hidden flex flex-col">
-            <CardContent className="p-0 flex-1 overflow-auto">
+          <Card className="lg:col-span-2 h-[calc(100vh-280px)] overflow-hidden">
+            <CardContent className="h-full overflow-auto">
               <Suspense fallback={<p>Loading...</p>}>
                 <JobDetailsAdmin
                   job={selectedJob}
@@ -748,6 +804,7 @@ export default function AdminJobListings() {
                   isLoading={isLoading}
                   onEdit={openEditModal}
                   onArchive={() => setIsArchiveModalOpen(true)}
+                  noCard={true}
                 />
               </Suspense>
             </CardContent>
@@ -830,6 +887,15 @@ export default function AdminJobListings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Upload Modal */}
+      <BulkUploadModal
+        open={bulkUploadModalOpen}
+        onOpenChange={setBulkUploadModalOpen}
+        csvFile={csvFile}
+        onFileChange={handleFileChange}
+        onBulkUpload={handleBulkUpload}
+      />
     </DashboardLayout>
   );
 }

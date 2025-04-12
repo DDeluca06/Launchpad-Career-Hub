@@ -153,12 +153,12 @@ export default function PartnersPage() {
     try {
       // Toggle the archive status
       const isCurrentlyArchived = !!selectedPartner.is_archived;
-      const updatedPartner = await togglePartnerArchive(selectedPartner.id, !isCurrentlyArchived);
+      const updatedPartner = await togglePartnerArchive(selectedPartner.partner_id, !isCurrentlyArchived);
       
       // Update the partner in the list
       setPartners(prevPartners => 
         prevPartners.map(p => 
-          p.id === selectedPartner.id ? { ...p, is_archived: !isCurrentlyArchived } : p
+          p.partner_id === selectedPartner.partner_id ? { ...p, is_archived: !isCurrentlyArchived } : p
         )
       );
       
@@ -188,11 +188,11 @@ export default function PartnersPage() {
     // If we were editing, update the existing partner
     if (editingPartner) {
       setPartners(prevPartners => 
-        prevPartners.map(p => p.id === partner.id ? { ...p, ...partner } : p)
+        prevPartners.map(p => p.partner_id === partner.partner_id ? { ...p, ...partner } : p)
       );
       
       // If this was the selected partner, update that too
-      if (selectedPartner && selectedPartner.id === partner.id) {
+      if (selectedPartner && selectedPartner.partner_id === partner.partner_id) {
         setSelectedPartner({ ...selectedPartner, ...partner });
       }
     } else {
@@ -382,18 +382,18 @@ export default function PartnersPage() {
         {/* Partner modal for add/edit */}
         <PartnerModal
           partner={editingPartner ? {
-            id: editingPartner.id,
+            partner_id: editingPartner.partner_id,
             name: editingPartner.name,
             description: editingPartner.description || '',
             industry: editingPartner.industry || '',
             location: editingPartner.location || '',
-            websiteUrl: editingPartner.websiteUrl || '',
-            logoUrl: editingPartner.logoUrl || '',
-            contactName: editingPartner.contactName || '',
-            contactEmail: editingPartner.contactEmail || '',
-            contactPhone: editingPartner.contactPhone || '',
-            createdAt: editingPartner.createdAt || '',
-            updatedAt: editingPartner.updatedAt || ''
+            website_url: editingPartner.website_url || '',
+            contact_name: editingPartner.contact_name || '',
+            contact_email: editingPartner.contact_email || '',
+            contact_phone: editingPartner.contact_phone || '',
+            created_at: editingPartner.created_at || '',
+            updated_at: editingPartner.updated_at || '',
+            is_archived: editingPartner.is_archived
           } : undefined}
           open={partnerModalOpen}
           onOpenChange={setPartnerModalOpen}

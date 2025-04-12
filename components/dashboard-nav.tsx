@@ -17,6 +17,7 @@ import {
   Settings,
   HelpCircle,
   FileText,
+  Calendar,
 } from "lucide-react";
 
 interface NavItem {
@@ -68,7 +69,7 @@ function NavSection({ title, items, pathname }: NavSectionProps) {
                 "flex items-center justify-between rounded-md px-3 py-2 text-sm transition-all duration-150 ease-in-out relative overflow-hidden group",
                 isActive
                   ? "text-white font-medium shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/50",
+                  : "text-launchpadDarkGray dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-launchpadOffWhite dark:hover:bg-gray-700/50",
               )}
             >
               {isActive && (
@@ -180,18 +181,31 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
     },
   ] : [];
 
-  const utilityItems: NavItem[] = [
+  const utilityItems: NavItem[] = isAdmin ? [
+    {
+      title: "Calendar",
+      href: `${baseUrl}/calendar`,
+      icon: <Calendar />,
+      color: extendedPalette.teal,
+    },
+    {
+      title: "Settings",
+      href: `${baseUrl}/settings`,
+      icon: <Settings />,
+      color: extendedPalette.darkGray,
+    },
+  ] : [
     {
       title: "Profile",
       href: `${baseUrl}/profile`,
       icon: <Settings />,
-      color: extendedPalette.darkGray,
+      color: extendedPalette.primaryBlue,
     },
     {
       title: "Resumes",
       href: `${baseUrl}/resume-page`,
       icon: <FileText />,
-      color: extendedPalette.darkGray,
+      color: extendedPalette.primaryGreen,
     },
   ];
 
@@ -215,24 +229,24 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
         <Link href="/">
           <Button
             variant="ghost"
-            className="w-full justify-start gap-2 text-gray-600 dark:text-gray-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 group transition-colors px-3 py-2"
+            className="w-full justify-start gap-2 text-launchpadDarkGray dark:text-gray-300 hover:text-launchpadOrange hover:bg-launchpadPeach/20 dark:hover:bg-launchpadOrange/20 group transition-colors px-3 py-2"
           >
-            <LogOut className="h-4 w-4 group-hover:text-red-600 transition-colors" />
+            <LogOut className="h-4 w-4 group-hover:text-launchpadOrange transition-colors" />
             <span className="group-hover:translate-x-0.5 transition-transform duration-150">
               Log Out
             </span>
           </Button>
         </Link>
-        <div className="mt-4 p-3 rounded-md border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
+        <div className="mt-4 p-3 rounded-md border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-launchpadOffWhite to-white dark:from-gray-800 dark:to-gray-800/50">
           <div className="flex gap-2.5 items-center">
-            <div className="rounded-full bg-blue-100 dark:bg-blue-900/50 p-1.5 flex-shrink-0">
-              <HelpCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <div className="rounded-full bg-launchpadLightBlue dark:bg-launchpadTeal/50 p-1.5 flex-shrink-0">
+              <HelpCircle className="h-4 w-4 text-launchpadBlue dark:text-launchpadLightBlue" />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-200 mb-0.5">
+              <p className="text-xs font-medium text-launchpadDarkGray dark:text-gray-200 mb-0.5">
                 Need Help?
               </p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
+              <p className="text-[11px] text-launchpadDarkGray/70 dark:text-gray-400 leading-tight">
                 Contact our support team for assistance.
               </p>
             </div>
