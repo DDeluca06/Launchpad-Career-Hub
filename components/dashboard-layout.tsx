@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-
 interface DashboardLayoutProps {
   children: React.ReactNode;
   isAdmin?: boolean;

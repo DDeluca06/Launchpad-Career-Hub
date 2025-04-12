@@ -60,7 +60,7 @@ export default function ApplicantSettingsPage() {
         email: session.user.email || "",
         program: session.user.program || "foundations"
       }));
-    }
+   }
   }, [session, status]);
 
   // Handle setting change
@@ -217,6 +217,16 @@ export default function ApplicantSettingsPage() {
                       onChange={(e) => handleSettingChange('email', e.target.value)}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={userSettings.lastName}
+                      onChange={(e) => handleSettingChange('lastName', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="program">Program</Label>
                     <select
