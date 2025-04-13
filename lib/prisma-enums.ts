@@ -1,4 +1,5 @@
 // Re-export Prisma enums as TypeScript enums for type safety
+// These enums should be used instead of importing directly from @prisma/client
 export enum ProgramType {
   FOUNDATIONS = 'FOUNDATIONS',
   ONE_ZERO_ONE = 'ONE_ZERO_ONE',

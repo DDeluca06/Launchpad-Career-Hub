@@ -1,13 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/basic/button";
 import { Input } from "@/components/ui/form/input";
 import { Label } from "@/components/ui/basic/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/basic/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { extendedPalette } from "@/lib/colors";
 import { UserCircle, Lock } from "lucide-react";
 import { toast } from "@/components/ui/feedback/use-toast";
+
+type LoginMode = 'admin' | 'student';
 
 /**
  * Renders a login form component for both admin and student users.
@@ -18,36 +21,66 @@ import { toast } from "@/components/ui/feedback/use-toast";
  * admin and student login modes, which clears any existing input or error state.
  */
 export function LoginForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [loginMode, setLoginMode] = useState<LoginMode>('student');
   const router = useRouter();
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      email: formData.get('email') as string,
-      password: formData.get('password') as string,
-    };
+    setError('');
+    setIsLoading(true);
 
     try {
+      // Use Better Auth login API directly
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          loginType: loginMode,
+        }),
+        credentials: 'include',
       });
-      
+
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Login failed');
+        throw new Error(data.error || data.message || 'Login failed');
       }
-      
-      router.push('/dashboard');
-    } catch (err) {
+
+      if (data.user) {
+        // Success - navigate to the correct dashboard
+        toast({
+          title: "Login successful",
+          description: `Welcome, ${data.user.firstName || data.user.email}!`,
+          variant: "default",
+        });
+        
+        // Use window.location for a full page reload with timestamp
+        const dashboardUrl = data.user.isAdmin ? '/admin/dashboard' : '/applicant/dashboard';
+        const timestamp = Date.now();
+        window.location.href = `${dashboardUrl}?t=${timestamp}`;
+      }
+    } catch (err: any) {
       console.error('Login error:', err);
-      toast({
-        title: "Error",
-        description: "Login failed. Please try again.",
-        variant: "destructive",
-      });
+      setError(err.message || 'Invalid email or password');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const switchLoginMode = () => {
+    const newMode = loginMode === 'admin' ? 'student' : 'admin';
+    setLoginMode(newMode);
+    setEmail('');
+    setPassword('');
+    setError('');
   };
 
   return (
@@ -57,11 +90,14 @@ export function LoginForm() {
           Welcome Back
         </CardTitle>
         <CardDescription className="text-sm">
-          Sign in to access your Launchpad dashboard
+          Sign in to access your {loginMode === 'admin' ? 'Admin' : 'Student'} dashboard
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-3">
-        <form onSubmit={onSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {error && (
+            <div className="text-red-500 text-sm">{error}</div>
+          )}
           <div className="space-y-1">
             <Label htmlFor="email" className="text-sm font-medium">
               Email
@@ -76,6 +112,9 @@ export function LoginForm() {
                 type="email"
                 placeholder="Enter your email"
                 className="pl-9 py-4 bg-gray-50 border-gray-200 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
                 required
               />
             </div>
@@ -103,6 +142,9 @@ export function LoginForm() {
                 type="password"
                 placeholder="Enter your password"
                 className="pl-9 py-4 bg-gray-50 border-gray-200 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
                 required
               />
             </div>
@@ -111,11 +153,12 @@ export function LoginForm() {
           <Button
             type="submit"
             className="w-full py-4 transition-all"
+            disabled={isLoading}
             style={{
               background: `linear-gradient(to right, ${extendedPalette.primaryBlue}, ${extendedPalette.teal})`,
             }}
           >
-            Sign In
+            {isLoading ? 'Signing In...' : 'Sign In'}
           </Button>
         </form>
 
@@ -129,43 +172,19 @@ export function LoginForm() {
 
           <div className="text-xs">
             <span className="text-gray-500">
-              Need student access?
+              {loginMode === 'admin' ? 'Need student access?' : 'Need admin access?'}
             </span>{" "}
             <button
               type="button"
               className="font-medium hover:underline"
               style={{ color: extendedPalette.primaryBlue }}
-              onClick={() => {
-                // Implement student login logic here
-              }}
+              onClick={switchLoginMode}
             >
-              Student Login
+              {loginMode === 'admin' ? 'Student Login' : 'Admin Login'}
             </button>
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex flex-col items-center border-t pt-3 pb-3 bg-gray-50/50">
-        <p className="text-[10px] text-gray-500">
-          <span className="font-medium">Demo:</span>
-          Student:{" "}
-          <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700 text-[10px]">
-            user@example.com
-          </span>{" "}
-          /
-          <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700 text-[10px]">
-            password123
-          </span>
-          <span className="mx-1">|</span>
-          Admin:{" "}
-          <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700 text-[10px]">
-            admin@example.com
-          </span>{" "}
-          /
-          <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700 text-[10px]">
-            password123
-          </span>
-        </p>
-      </CardFooter>
     </Card>
   );
 }

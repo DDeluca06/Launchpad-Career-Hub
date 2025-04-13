@@ -198,11 +198,22 @@ function formatActivityTitle(action: string): string {
  */
 function formatStatus(status: string): string {
   switch (status) {
+    // ApplicationStatus values
+    case 'INTERESTED': return 'Interested';
     case 'APPLIED': return 'Applied';
+    case 'PHONE_SCREENING': return 'Phone Screening';
+    case 'INTERVIEW_STAGE': return 'In Interview Process';
+    case 'FINAL_INTERVIEW_STAGE': return 'Final Interview';
+    case 'OFFER_EXTENDED': return 'Offer Extended';
+    case 'NEGOTIATION': return 'In Negotiation';
+    case 'OFFER_ACCEPTED': return 'Offer Accepted';
+    case 'REJECTED': return 'Not Selected';
+    
+    // AppHistoryStatus values
     case 'INTERVIEWING': return 'In Interview Process';
     case 'OFFERED': return 'Offered Position';
     case 'HIRED': return 'Hired';
-    case 'REJECTED': return 'Not Selected';
-    default: return status.charAt(0) + status.slice(1).toLowerCase();
+    
+    default: return status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ');
   }
 } 

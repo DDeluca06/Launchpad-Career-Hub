@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useEffect, useContext } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/basic/button";
 import { LoginForm } from "@/components/ui/basic/login-form";
+import { AuthContext } from "./providers";
 
 /**
  * Renders the main home page with a centered login form and development navigation.
@@ -16,22 +16,43 @@ import { LoginForm } from "@/components/ui/basic/login-form";
  * for testing and will be removed in production.
  */
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { session, loading } = useContext(AuthContext);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const timestamp = searchParams.get('t');
 
   useEffect(() => {
-    if (status === "loading") return;
-
-    if (session) {
-      if (session.user.isAdmin) {
-        router.push("/admin/dashboard");
-      } else {
-        router.push("/applicant/dashboard");
-      }
+    if (loading) {
+      console.log('Session loading...');
+      return;
     }
-  }, [session, status, router]);
 
-  if (status === "loading") {
+    console.log('Session loaded:', session);
+
+    // Check if we have a valid session with user information
+    if (session?.user?.id) {
+      console.log('User found in session, redirecting to dashboard. User ID:', session.user.id);
+      console.log('Is admin?', session.user.isAdmin);
+      
+      // Force a hard redirect using window.location to ensure a fresh page load
+      const dashboardUrl = session.user.isAdmin ? "/admin/dashboard" : "/applicant/dashboard";
+      console.log('Redirecting to:', dashboardUrl);
+      
+      // Use the router for client-side navigation
+      router.push(dashboardUrl);
+    } else {
+      console.log('No valid user in session, showing login form');
+    }
+  }, [session, loading, router]);
+
+  useEffect(() => {
+    if (timestamp) {
+      console.log('Page loaded with timestamp param, triggering fresh session check');
+      // This could trigger a reload of the auth state if needed
+    }
+  }, [timestamp]);
+
+  if (loading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-slate-50">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
