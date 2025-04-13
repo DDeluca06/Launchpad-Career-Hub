@@ -4,8 +4,8 @@ import { auth } from "@/lib/auth";
 import bcrypt from 'bcryptjs';
 import { NextRequest } from "next/server";
 
-// Define the User interface for type safety
-interface User {
+// Define the User type for use in the response transform
+type UserData = {
   user_id: number;
   email: string;
   first_name: string;
@@ -109,7 +109,7 @@ export async function PUT(request: Request) {
     }
 
     // Update user
-    const updatedUser = await prisma.users.update({
+    const updatedUser: UserData = await prisma.users.update({
       where: { user_id: userId },
       data: {
         email: body.email,

@@ -17,6 +17,15 @@ interface Job {
   job_type?: string;
 }
 
+// Type for API job response
+interface JobResponse {
+  job_id: number;
+  title: string;
+  company: string;
+  location: string | null;
+  job_type: string | null;
+}
+
 interface User {
   id: number;
   firstName: string;
@@ -78,7 +87,7 @@ export function JobRecommendationModal({ open, onClose, user, adminId }: JobReco
       
       if (data.success) {
         // Transform the job data to match our interface
-        const transformedJobs: Job[] = data.jobs.map((job: any) => ({
+        const transformedJobs: Job[] = data.jobs.map((job: JobResponse) => ({
           job_id: job.job_id,
           title: job.title,
           company: job.company,
