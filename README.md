@@ -9,6 +9,14 @@ To complete this project, we are relying on the following technologies:
 - PostgreSQL
 - Prisma
 
+# User Management
+## Admin Capabilities
+- Administrators can create new applicant accounts
+- Administrators have the ability to reset applicant passwords
+- Default password for new applicant accounts is: `Changeme`
+
+**Note:** For security purposes, applicants should change their password upon first login.
+
 # Credits and Attributions
 Project is being worked on by Team LP and, at the end of the statement of work, will be transferred to the Faculty Advisor as requested by the client.
 # Future Implementation

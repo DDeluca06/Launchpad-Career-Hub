@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ApplicationStatus, ProgramType } from '@/lib/prisma-enums';
+import bcrypt from 'bcrypt';
 
 interface Application {
   status: string;
@@ -398,7 +399,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Validate required fields
-    if (!body.email || !body.firstName || !body.lastName || !body.password) {
+    if (!body.email || !body.firstName || !body.lastName) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -425,13 +426,20 @@ export async function POST(request: NextRequest) {
       program = 'ONE_ZERO_ONE';
     }
     
+    // Use default password if none provided
+    const password = body.password || 'Changeme';
+    
+    // Hash the password with bcrypt
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+    
     // Create the user
     const newUser = await prisma.users.create({
       data: {
         email: body.email,
         first_name: body.firstName,
         last_name: body.lastName,
-        password_hash: body.password,
+        password_hash: passwordHash,
         is_admin: body.isAdmin || false,
         program: program || 'ALUMNI',
         is_active: true,

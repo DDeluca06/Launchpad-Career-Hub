@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 
+
 // Handler for login
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
-    const { email, password } = body;
+    const { email, password, loginType } = body;
     
     if (!email || !password) {
       return NextResponse.json({
@@ -15,31 +15,26 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Check if any users exist
-    const userCount = await prisma.users.count();
+    // Determine which table to query based on login type
+    const isAdminLogin = loginType === 'admin';
     
-    if (userCount === 0) {
-      return NextResponse.json({
-        error: 'No users in database. Database needs to be seeded.'
-      }, { status: 500 });
-    }
-
-    // Check if the user exists in our database
-    const user = await prisma.users.findUnique({
-      where: { email },
-      select: {
-        user_id: true,
-        email: true,
-        first_name: true,
-        last_name: true,
-        is_admin: true,
-        password_hash: true,
-      },
+    // Use type-safe Prisma query
+    const user = await prisma.users.findFirst({
+      where: {
+        AND: [
+          { email: { equals: email } },
+          { is_admin: isAdminLogin },
+          { is_active: true },
+          { is_archived: false }
+        ]
+      }
     });
     
     if (!user) {
       return NextResponse.json({
-        error: 'Invalid credentials'
+        error: isAdminLogin 
+          ? 'Invalid admin credentials' 
+          : 'Invalid student credentials'
       }, { status: 401 });
     }
     
@@ -53,21 +48,15 @@ export async function POST(request: Request) {
           error: 'Invalid credentials'
         }, { status: 401 });
       }
-            
-      // Skip loginType check for now to debug password issue
-      /*
-      // If login type doesn't match user type, return error
-      if ((isAdmin && isStudentLogin) || (!isAdmin && !isStudentLogin)) {
-        return NextResponse.json(
-          { 
-            error: isStudentLogin 
-              ? 'This account is not a student account' 
-              : 'This account is not an admin account'
-          }, 
-          { status: 403 }
-        );
+
+      // Verify login type matches user type
+      if (isAdminLogin !== user.is_admin) {
+        return NextResponse.json({ 
+          error: isAdminLogin 
+            ? 'This account is not an admin account' 
+            : 'This account is not a student account'
+        }, { status: 403 });
       }
-      */
     } catch (authError) {
       console.error('Authentication error:', authError);
       return NextResponse.json({
@@ -78,7 +67,7 @@ export async function POST(request: Request) {
     // Create a session token with more details
     const sessionData = {
       id: user.user_id,
-      isAdmin: user.is_admin || false
+      isAdmin: user.is_admin
     };
 
     // Convert to JSON string and then base64 encode
@@ -93,16 +82,18 @@ export async function POST(request: Request) {
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        isAdmin: user.is_admin || false,
+        isAdmin: user.is_admin,
+        createdAt: user.created_at,
       }
     });
     
-    // Set cookie directly on the response
+    // Set cookie with secure settings
     response.cookies.set('session-id', sessionId, {
       httpOnly: true, 
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
       path: '/',
-      sameSite: 'lax', // Changed from 'strict' to allow redirects
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production', // Only use HTTPS in production
     });
     
     return response;
@@ -110,7 +101,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Login failed:', error);
     return NextResponse.json({ 
-      error: 'Login failed. Please check your credentials and try again.' 
+      error: 'Login failed. Please try again.' 
     }, { status: 500 });
   }
 } 
