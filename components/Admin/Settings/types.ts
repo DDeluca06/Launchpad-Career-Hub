@@ -24,4 +24,24 @@ export interface UserAccessSettingsProps extends SettingsContentProps {
   users: User[];
   currentUserId: number;
   onUserUpdate?: (updatedUser: User) => void;
+}
+
+/**
+ * Common types for settings components
+ */
+
+export interface ProfileSettingsProps {
+  isLoading?: boolean;
+}
+
+export interface SecuritySettingsProps {
+  isLoading?: boolean;
+}
+
+export interface NotificationSettingsProps {
+  isLoading?: boolean;
+}
+
+export interface AppearanceSettingsProps {
+  isLoading?: boolean;
 } 
