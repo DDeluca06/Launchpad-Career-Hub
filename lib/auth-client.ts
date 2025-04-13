@@ -14,7 +14,6 @@ export const getClientSession = async () => {
     
     // Check if response is ok
     if (!response.ok) {
-      console.error('Session response not OK:', response.status, response.statusText);
       return null;
     }
     
@@ -22,7 +21,6 @@ export const getClientSession = async () => {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error getting client session:', error);
     return null;
   }
 };

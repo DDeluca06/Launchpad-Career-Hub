@@ -51,9 +51,62 @@ export async function GET(request: Request) {
       },
     }) : [];
 
+    // If no interviews exist, add some sample ones for demo purposes
+    let interviewsResponse = interviews;
+    if (interviews.length === 0) {
+      console.log("No interviews found, returning sample data");
+      // Create some future and past dates for sample interviews
+      const today = new Date();
+      const tomorrow = new Date();
+      tomorrow.setDate(today.getDate() + 1);
+      const lastWeek = new Date();
+      lastWeek.setDate(today.getDate() - 7);
+      
+      interviewsResponse = [
+        {
+          interview_id: 1,
+          user_id: parseInt(session.user.id),
+          title: "Forward Research Designer",
+          description: "Decimus ullus vomito basium defero tabula cenaculum carpo ubi.",
+          location: "Kirkland",
+          start_time: tomorrow,
+          end_time: new Date(tomorrow.getTime() + 60 * 60 * 1000),
+          candidate_name: "Alex Johnson",
+          position: "Forward Research Designer",
+          status: "SCHEDULED",
+          created_at: today,
+          updated_at: null,
+          users: {
+            user_id: parseInt(session.user.id),
+            first_name: "Admin",
+            last_name: "User"
+          }
+        },
+        {
+          interview_id: 2,
+          user_id: parseInt(session.user.id),
+          title: "International Security Planner",
+          description: "Adamo voluptate laudantium.",
+          location: "Fort Delphine",
+          start_time: lastWeek,
+          end_time: new Date(lastWeek.getTime() + 60 * 60 * 1000),
+          candidate_name: "Taylor Wilson",
+          position: "International Security Planner",
+          status: "COMPLETED",
+          created_at: new Date(lastWeek.getTime() - 7 * 24 * 60 * 60 * 1000),
+          updated_at: lastWeek,
+          users: {
+            user_id: parseInt(session.user.id),
+            first_name: "Admin",
+            last_name: "User"
+          }
+        }
+      ];
+    }
+
     return NextResponse.json({ 
       success: true, 
-      data: interviews,
+      data: interviewsResponse,
       users: users,
     });
   } catch (error) {

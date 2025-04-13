@@ -20,9 +20,7 @@ export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadSession = async () => {
       try {
-        console.log('Loading session data...');
         const sessionData = await getClientSession();
-        console.log('Session data loaded:', sessionData);
         setSession(sessionData);
       } catch (error) {
         console.error("Failed to load session:", error);
@@ -37,7 +35,6 @@ export function Providers({ children }: { children: ReactNode }) {
     const handleRouteChange = () => {
       const url = window.location.href;
       if (url.includes('t=')) {
-        console.log('Detected timestamp parameter, refreshing session...');
         loadSession();
       }
     };
