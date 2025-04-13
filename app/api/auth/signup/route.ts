@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { hash } from 'bcrypt';
 import { prisma } from '@/lib/prisma';
 
+
 // Handler for signup (registration)
 export async function POST(request: Request) {
   try {
@@ -14,12 +15,11 @@ export async function POST(request: Request) {
         error: 'All fields are required'
       }, { status: 400 });
     }
-    
+
     // Check if user already exists
     const existingUser = await prisma.users.findUnique({
       where: { email }
     });
-    
     if (existingUser) {
       return NextResponse.json({
         error: 'User with this email already exists'
@@ -28,7 +28,6 @@ export async function POST(request: Request) {
 
     // Hash password
     const passwordHash = await hash(password, 10);
-    
     // Create user
     const user = await prisma.users.create({
       data: {

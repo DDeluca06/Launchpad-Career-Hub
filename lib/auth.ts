@@ -50,6 +50,7 @@ export const auth = {
           }
         } catch (sessionError) {
           console.error('Error retrieving session:', sessionError);
+
           return null;
         }
       }

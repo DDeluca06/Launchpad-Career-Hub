@@ -16,8 +16,6 @@ const publicPaths = [
 const adminPaths = ["/admin"];
 
 // Paths that should be student-only
-const studentPaths = ["/applicant"];
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 

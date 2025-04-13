@@ -53,9 +53,7 @@ export async function POST(request: Request) {
           error: 'Invalid credentials'
         }, { status: 401 });
       }
-      
-      // Removed unused variables
-      
+            
       // Skip loginType check for now to debug password issue
       /*
       // If login type doesn't match user type, return error

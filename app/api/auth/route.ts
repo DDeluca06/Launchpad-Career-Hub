@@ -8,6 +8,7 @@ export async function GET() {
 }
 
 export async function POST() {
+
   // For compatibility with existing code
   return NextResponse.json({ status: 'ok' });
 }

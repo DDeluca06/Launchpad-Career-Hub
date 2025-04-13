@@ -79,6 +79,7 @@ export default function SettingsPage() {
     );
   };
 
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -127,6 +128,16 @@ export default function SettingsPage() {
             onUserUpdate={handleUserUpdate}
           />
         </Card>
+
+        {selectedUser && (
+          <div className="mt-4 p-4 border rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">User Details</h3>
+            <p>Name: {selectedUser.firstName} {selectedUser.lastName}</p>
+            <p>Email: {selectedUser.email}</p>
+            <p>Program: {selectedUser.program}</p>
+            <p>Admin Status: {selectedUser.isAdmin ? "Yes" : "No"}</p>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
