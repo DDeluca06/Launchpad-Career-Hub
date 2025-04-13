@@ -14,37 +14,32 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const timestamp = searchParams.get('t');
 
+  // Handle session state changes
   useEffect(() => {
+    // Only proceed if loading is complete
     if (loading) {
-      console.error('Session loading...');
       return;
     }
 
-    console.error('Session loaded:', session);
-
     // Check if we have a valid session with user information
     if (session?.user?.id) {
-      console.error('User found in session, redirecting to dashboard. User ID:', session.user.id);
-      console.error('Is admin?', session.user.isAdmin);
-      
-      // Force a hard redirect using window.location to ensure a fresh page load
+      // Determine the correct dashboard based on user role
       const dashboardUrl = session.user.isAdmin ? "/admin/dashboard" : "/applicant/dashboard";
-      console.error('Redirecting to:', dashboardUrl);
       
       // Use the router for client-side navigation
       router.push(dashboardUrl);
-    } else {
-      console.error('No valid user in session, showing login form');
     }
   }, [session, loading, router]);
 
+  // Handle timestamp parameter for session refreshing
   useEffect(() => {
-    if (timestamp) {
-      console.error('Page loaded with timestamp param, triggering fresh session check');
-      // This could trigger a reload of the auth state if needed
+    if (timestamp && !loading) {
+      // This is just for logging, no need to take action here
+      // The session refresh is handled in the providers component
     }
-  }, [timestamp]);
+  }, [timestamp, loading]);
 
+  // Show loading spinner while checking authentication
   if (loading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-slate-50">
@@ -86,7 +81,7 @@ function HomeContent() {
       {/* Footer - fixed at bottom */}
       <footer className="py-3 px-4 relative z-10 mt-auto border-t border-gray-100 bg-white/80 backdrop-blur-sm">
         <div className="text-center text-xs text-gray-500">
-          <p>© 2025 Launchpad. All rights reserved.</p>
+          <p>&#169; 2025 Launchpad. All rights reserved.</p>
         </div>
       </footer>
 

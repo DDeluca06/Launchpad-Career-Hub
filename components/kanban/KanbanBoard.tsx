@@ -1,32 +1,30 @@
 "use client";
 
 import React from 'react';
-import { Task } from '@/types';
+import { JobApplication, Stage, SubStage } from '@/types/application-stages';
 import { KanbanColumn } from './KanbanColumn';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 
 interface ApplicationPipelineProps {
-  tasks: Task[];
-  onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
-  onDeleteTask: (taskId: string) => void;
-  onEditTask: (task: Task) => void;
-  onStartTimer: (task: Task) => void;
+  readonly jobs: JobApplication[];
+  readonly onUpdateJob: (jobId: string, updates: Partial<JobApplication>) => void;
+  readonly onArchiveJob: (jobId: string) => void;
+  readonly onEditJob: (job: JobApplication) => void;
 }
 
 export function ApplicationPipeline({
-  tasks,
-  onUpdateTask,
-  onDeleteTask,
-  onEditTask,
-  onStartTimer,
-}: ApplicationPipelineProps) {
-  // Group tasks by status
+  jobs,
+  onUpdateJob,
+  onArchiveJob,
+  onEditJob,
+}: Readonly<ApplicationPipelineProps>) {
+  // Group jobs by status
   const columns = {
-    interested: tasks.filter(task => task.status === 'interested'),
-    applied: tasks.filter(task => task.status === 'applied'),
-    interview: tasks.filter(task => task.status === 'interview'),
-    offer: tasks.filter(task => task.status === 'offer'),
-    rejected: tasks.filter(task => task.status === 'rejected'),
+    interested: jobs.filter(job => job.status === 'interested'),
+    applied: jobs.filter(job => job.status === 'applied'),
+    interview: jobs.filter(job => job.status === 'interview'),
+    offer: jobs.filter(job => job.status === 'offer'),
+    referrals: jobs.filter(job => job.status === 'referrals'),
   };
 
   // Handle drag and drop
@@ -40,63 +38,73 @@ export function ApplicationPipeline({
       return;
     }
 
-    // Find the task that was dragged
-    const task = tasks.find(t => t.id === draggableId);
-    if (!task) return;
+    // Find the job that was dragged
+    const job = jobs.find(j => j.id === draggableId);
+    if (!job) return;
 
-    // Update the task status based on the destination column
-    onUpdateTask(task.id, {
-      status: destination.droppableId as 'interested' | 'applied' | 'interview' | 'offer' | 'rejected'
-    });
+    // Extract the target stage and substage from the destination droppableId
+    // Format could be either "stage" or "stage:substage"
+    const [targetStage, targetSubStage] = destination.droppableId.split(':') as [Stage, SubStage];
+
+    // Update the job status based on the destination column
+    const updates: Partial<JobApplication> = {
+      status: targetStage as Stage,
+      stage: targetStage as Stage
+    };
+
+    // If there's a substage in the destination, update that too
+    if (targetSubStage) {
+      updates.subStage = targetSubStage;
+    } else if (job.subStage && targetStage !== job.stage) {
+      // If moving to a different stage, reset the substage
+      updates.subStage = null;
+    }
+
+    onUpdateJob(job.id, updates);
   };
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <KanbanColumn 
+          title="Referrals" 
+          jobs={columns.referrals} 
+          status="referrals"
+          onUpdateJob={onUpdateJob}
+          onArchiveJob={onArchiveJob}
+          onEditJob={onEditJob}
+        />
+        <KanbanColumn 
           title="Interested" 
-          tasks={columns.interested} 
+          jobs={columns.interested} 
           status="interested"
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
-          onEditTask={onEditTask}
-          onStartTimer={onStartTimer}
+          onUpdateJob={onUpdateJob}
+          onArchiveJob={onArchiveJob}
+          onEditJob={onEditJob}
         />
         <KanbanColumn 
           title="Applied" 
-          tasks={columns.applied} 
+          jobs={columns.applied} 
           status="applied"
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
-          onEditTask={onEditTask}
-          onStartTimer={onStartTimer}
+          onUpdateJob={onUpdateJob}
+          onArchiveJob={onArchiveJob}
+          onEditJob={onEditJob}
         />
         <KanbanColumn 
           title="Interview" 
-          tasks={columns.interview} 
+          jobs={columns.interview} 
           status="interview"
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
-          onEditTask={onEditTask}
-          onStartTimer={onStartTimer}
+          onUpdateJob={onUpdateJob}
+          onArchiveJob={onArchiveJob}
+          onEditJob={onEditJob}
         />
         <KanbanColumn 
           title="Offer" 
-          tasks={columns.offer} 
+          jobs={columns.offer} 
           status="offer"
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
-          onEditTask={onEditTask}
-          onStartTimer={onStartTimer}
-        />
-        <KanbanColumn 
-          title="Rejected" 
-          tasks={columns.rejected} 
-          status="rejected"
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
-          onEditTask={onEditTask}
-          onStartTimer={onStartTimer}
+          onUpdateJob={onUpdateJob}
+          onArchiveJob={onArchiveJob}
+          onEditJob={onEditJob}
         />
       </div>
     </DragDropContext>
