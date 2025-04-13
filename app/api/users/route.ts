@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from "@/lib/auth";
+import bcrypt from 'bcryptjs';
 
 interface User {
   user_id: number;
@@ -179,6 +180,90 @@ export async function PUT(request: Request) {
     console.error('Error updating user:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update user' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST: Create a new user (admin only)
+export async function POST(request: Request) {
+  try {
+    // Verify that the current user is an admin
+    const session = await auth.getSession(request);
+    if (!session?.user?.id || !session?.user?.isAdmin) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Unauthorized. Only admins can create new users."
+      }, { status: 401 });
+    }
+
+    const body = await request.json();
+    
+    // Validate required fields
+    if (!body.firstName || !body.lastName || !body.email) {
+      return NextResponse.json(
+        { success: false, error: 'Required fields: firstName, lastName, and email' },
+        { status: 400 }
+      );
+    }
+
+    // Use default password if none provided
+    const password = body.password || 'Changeme';
+
+    // Check if email already exists
+    const existingUser = await prisma.users.findUnique({
+      where: { email: body.email }
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, error: 'A user with this email already exists' },
+        { status: 409 }
+      );
+    }
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create the new user
+    const newUser = await prisma.users.create({
+      data: {
+        email: body.email,
+        first_name: body.firstName,
+        last_name: body.lastName,
+        password_hash: hashedPassword,
+        program: body.program === "101" ? "ONE_ZERO_ONE" : body.program,
+        is_admin: false, // New users are not admins by default
+        lp_id: 0, // Default lp_id, adjust if needed
+      },
+      select: {
+        user_id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        is_admin: true,
+        program: true,
+        created_at: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: newUser.user_id,
+        email: newUser.email,
+        firstName: newUser.first_name,
+        lastName: newUser.last_name,
+        isAdmin: newUser.is_admin ?? false,
+        program: newUser.program,
+        createdAt: newUser.created_at,
+      }
+    }, { status: 201 });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to create user. Please try again.' },
       { status: 500 }
     );
   }

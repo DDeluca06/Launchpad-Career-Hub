@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/basic/switch";
 import { Badge } from "@/components/ui/basic/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/basic/avatar";
 import { Card, CardContent } from "@/components/ui/basic/card";
-import { Shield, Search, UserPlus } from "lucide-react";
+import { Shield, Search, UserPlus, KeyRound, Tag } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { User, UserAccessSettingsProps } from "./types";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/basic/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/overlay/dialog";
 import { Label } from "@/components/ui/basic/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/form/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
 
 export function UserAccessManager({ 
   users, 
@@ -25,12 +26,16 @@ export function UserAccessManager({
   const [isUpdating, setIsUpdating] = useState<number | null>(null);
   const [localUsers, setLocalUsers] = useState<User[]>(users);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
   const [newUser, setNewUser] = useState({
     firstName: "",
     lastName: "",
     email: "",
-    password: "",
-    program: "101"
+    password: "Changeme",
+    program: "ONE_ZERO_ONE"
   });
 
   // Update local users when props change
@@ -38,12 +43,18 @@ export function UserAccessManager({
     setLocalUsers(users);
   }, [users]);
 
-  // Filter users by search query
-  const filteredUsers = localUsers.filter((user) =>
-    `${user.firstName} ${user.lastName} ${user.email}`
+  // Filter users by search query and tab
+  const filteredUsers = localUsers.filter((user) => {
+    const matchesSearch = `${user.firstName} ${user.lastName} ${user.email}`
       .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  );
+      .includes(searchQuery.toLowerCase());
+    
+    if (activeTab === "all") return matchesSearch;
+    if (activeTab === "admins") return matchesSearch && user.isAdmin;
+    if (activeTab === "applicants") return matchesSearch && !user.isAdmin;
+    
+    return matchesSearch;
+  });
 
   // Toggle admin status for a user
   const handleToggleAdmin = async (userId: number, currentAdminStatus: boolean) => {
@@ -142,8 +153,8 @@ export function UserAccessManager({
         firstName: "",
         lastName: "",
         email: "",
-        password: "",
-        program: "101"
+        password: "Changeme",
+        program: "ONE_ZERO_ONE"
       });
       setCreateUserDialogOpen(false);
       
@@ -157,6 +168,66 @@ export function UserAccessManager({
       toast({
         title: "Error",
         description: "Failed to create user. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Open reset password dialog
+  const openResetPasswordDialog = (userId: number) => {
+    setSelectedUserId(userId);
+    setNewPassword("Changeme");
+    setResetPasswordDialogOpen(true);
+  };
+
+  // Handle password reset
+  const handleResetPassword = async () => {
+    if (!selectedUserId || !newPassword) {
+      toast({
+        title: "Error",
+        description: "Please provide a new password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/users/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: selectedUserId,
+          newPassword: newPassword,
+        }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to reset password');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setResetPasswordDialogOpen(false);
+        setSelectedUserId(null);
+        setNewPassword("");
+        
+        toast({
+          title: "Success",
+          description: "Password reset successfully",
+          variant: "default",
+        });
+      } else {
+        throw new Error(data.error || 'Unknown error occurred');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reset password. Please try again.",
         variant: "destructive",
       });
     }
@@ -184,21 +255,31 @@ export function UserAccessManager({
       <Card className="border-none shadow-sm bg-white/80 dark:bg-gray-800/80">
         <CardContent className="p-6">
           <div className="space-y-4">
-            <div className="relative max-w-md">
-              <Search 
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" 
-                style={{ color: extendedPalette.darkGray }}
-              />
-              <Input
-                placeholder="Search users..."
-                className="pl-9 border-gray-200 dark:border-gray-700 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ 
-                  borderColor: extendedPalette.lightBlue,
-                  backgroundColor: extendedPalette.offWhite
-                }}
-              />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="relative max-w-md">
+                <Search 
+                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" 
+                  style={{ color: extendedPalette.darkGray }}
+                />
+                <Input
+                  placeholder="Search users..."
+                  className="pl-9 border-gray-200 dark:border-gray-700 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ 
+                    borderColor: extendedPalette.lightBlue,
+                    backgroundColor: extendedPalette.offWhite
+                  }}
+                />
+              </div>
+              
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+                <TabsList className="grid grid-cols-3 w-full sm:w-auto">
+                  <TabsTrigger value="all">All Users</TabsTrigger>
+                  <TabsTrigger value="admins">Admins</TabsTrigger>
+                  <TabsTrigger value="applicants">Applicants</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
 
             <div className="overflow-hidden rounded-lg border shadow-sm" style={{ borderColor: extendedPalette.lightBlue }}>
@@ -209,6 +290,7 @@ export function UserAccessManager({
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Email</th>
                     <th className="px-4 py-2 text-center text-xs font-medium text-gray-700">Role</th>
                     <th className="px-4 py-2 text-center text-xs font-medium text-gray-700">Admin Access</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -230,12 +312,15 @@ export function UserAccessManager({
                         <td className="px-4 py-3 text-center">
                           <div className="h-5 w-10 mx-auto bg-gray-200 rounded"></div>
                         </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="h-8 w-8 mx-auto bg-gray-200 rounded"></div>
+                        </td>
                       </tr>
                     ))
                   ) : filteredUsers.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={4}
+                        colSpan={5}
                         className="px-4 py-4 text-center text-gray-500"
                       >
                         No users found
@@ -284,7 +369,10 @@ export function UserAccessManager({
                                   Admin
                                 </>
                               ) : (
-                                "User"
+                                <>
+                                  <Tag className="h-3 w-3 mr-1" />
+                                  Applicant
+                                </>
                               )}
                             </Badge>
                           </td>
@@ -295,6 +383,17 @@ export function UserAccessManager({
                               disabled={isUpdating === user.id || isCurrentUser}
                               className="shadow-sm"
                             />
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openResetPasswordDialog(user.id)}
+                              className="p-2"
+                              title="Reset Password"
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
                           </td>
                         </tr>
                       );
@@ -356,6 +455,9 @@ export function UserAccessManager({
                 onChange={(e) => setNewUser({...newUser, password: e.target.value})}
                 placeholder="Create a password"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Default password is &quot;Changeme&quot;
+              </p>
             </div>
             <div>
               <Label htmlFor="program" className="mb-1">Program</Label>
@@ -367,7 +469,7 @@ export function UserAccessManager({
                   <SelectValue placeholder="Select program" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="101">101</SelectItem>
+                  <SelectItem value="ONE_ZERO_ONE">101</SelectItem>
                   <SelectItem value="LIFTOFF">Liftoff</SelectItem>
                   <SelectItem value="FOUNDATIONS">Foundations</SelectItem>
                   <SelectItem value="ALUMNI">Alumni</SelectItem>
@@ -383,6 +485,42 @@ export function UserAccessManager({
               Cancel
             </Button>
             <Button onClick={handleCreateUser}>Create User</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Reset User Password</DialogTitle>
+            <DialogDescription>
+              Enter a new password for this user.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label htmlFor="newPassword" className="mb-1">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Default password is &quot;Changeme&quot;
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setResetPasswordDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleResetPassword}>Reset Password</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
