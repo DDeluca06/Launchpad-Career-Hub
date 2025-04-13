@@ -13,14 +13,14 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     // Get partner statistics from database
-    const totalPartners = await prisma.companies.count();
+    const totalPartners = await prisma.partners.count();
     
-    // Count active partners (companies with at least one active job)
+    // Count active partners (partners with at least one active job)
     const activePartnersResult = await prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT COUNT(DISTINCT c.company_id) as count
-      FROM companies c
-      JOIN jobs j ON c.company_id = j.company_id
-      WHERE j.is_active = true
+      SELECT COUNT(DISTINCT p.partner_id) as count
+      FROM partners p
+      JOIN jobs j ON p.partner_id = j.partner_id
+      WHERE j.archived = false
     `;
     
     const activePartners = Number(activePartnersResult[0]?.count || 0);

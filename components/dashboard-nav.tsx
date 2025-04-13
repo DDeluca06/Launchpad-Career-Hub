@@ -154,7 +154,7 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
       title: "Jobs",
       href: `${baseUrl}/jobs`,
       icon: <Briefcase />,
-      badge: isAdmin ? 12 : 5,
+      badge: isAdmin ? undefined : 5,
       color: extendedPalette.primaryGreen,
     },
   ];
@@ -176,7 +176,6 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
       title: "Applicants",
       href: `${baseUrl}/applicants`,
       icon: <Users />,
-      badge: 8,
       color: extendedPalette.primaryOrange
     },
     {
@@ -195,8 +194,8 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
       color: extendedPalette.teal,
     },
     {
-      title: "Settings",
-      href: `${baseUrl}/settings`,
+      title: "User Management",
+      href: `${baseUrl}/user-management`,
       icon: <Settings />,
       color: extendedPalette.darkGray,
     },

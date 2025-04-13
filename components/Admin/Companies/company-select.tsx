@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/form/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/form/select';
 import { Checkbox } from '@/components/ui/form/checkbox';
-import { fetchCompanies, createCompany, NewCompany, Company } from '@/lib/company-service';
+import { NewCompany, Company } from '@/lib/company-service';
 import { INDUSTRIES } from '../Partners/types';
 import { toast } from 'sonner';
 
@@ -52,8 +52,12 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
   const loadCompanies = async () => {
     try {
       setLoading(true);
-      const data = await fetchCompanies();
-      setCompanies(data);
+      const response = await fetch('/api/companies');
+      if (!response.ok) {
+        throw new Error('Failed to fetch companies');
+      }
+      const data = await response.json();
+      setCompanies(data.companies || []);
     } catch (error) {
       console.error('Error loading companies:', error);
       toast.error('Failed to load companies');
@@ -82,10 +86,18 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
         return;
       }
       
-      // Submit the form
-      const result = await createCompany(newCompany);
+      // Submit the form using the API endpoint
+      const response = await fetch('/api/companies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newCompany),
+      });
       
-      if (result.success) {
+      const result = await response.json();
+      
+      if (response.ok) {
         toast.success('Company created successfully');
         await loadCompanies(); // Reload companies
         
@@ -96,9 +108,9 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
         setNewCompanyOpen(false);
         resetNewCompanyForm();
       } else {
-        toast.error(result.message);
+        toast.error(result.error || 'Failed to create company');
         // If company already exists, select it
-        if (result.company) {
+        if (response.status === 409 && result.company) {
           onChange(result.company.company_id);
           setNewCompanyOpen(false);
         }
@@ -194,6 +206,7 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
                   setNewCompanyOpen(true);
                   setOpen(false);
                 }}
+                className="company-select-create-button"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Create Company

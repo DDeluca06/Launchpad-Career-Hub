@@ -312,9 +312,42 @@ export default function AdminJobListings() {
       return;
     }
     
+    // Check for company ID
+    if (!newJob.company_id) {
+      alert("Please select a company");
+      return;
+    }
+    
     try {
+      let companyName = "";
+      
+      // Try to fetch the company details to get the company name
+      try {
+        const companyResponse = await fetch(`/api/companies?id=${newJob.company_id}`);
+        if (companyResponse.ok) {
+          const companyData = await companyResponse.json();
+          companyName = companyData.company?.name || "";
+        }
+      } catch (companyError) {
+        console.error("Error fetching company details:", companyError);
+        // Continue with fallback
+      }
+      
+      // If company name is empty, use fallback
+      if (!companyName) {
+        console.warn("Company name not found, using fallback");
+        // Try alternative fields from form if available or use placeholder
+        companyName = `Company ID: ${newJob.company_id}`;
+      }
+      
+      // Include company name in the job data
+      const jobData = {
+        ...newJob,
+        company: companyName
+      };
+      
       // Create job via API
-      const result = await createJob(newJob);
+      const result = await createJob(jobData);
       const createdJob = result.job;
       
       // Add the new job to the UI state with proper type handling
@@ -359,6 +392,27 @@ export default function AdminJobListings() {
     }
     
     try {
+      let companyName = "";
+      
+      // Try to fetch the company details to get the company name
+      try {
+        const companyResponse = await fetch(`/api/companies?id=${editingJob.company_id}`);
+        if (companyResponse.ok) {
+          const companyData = await companyResponse.json();
+          companyName = companyData.company?.name || "";
+        }
+      } catch (companyError) {
+        console.error("Error fetching company details:", companyError);
+        // Continue with fallback
+      }
+      
+      // If company name is empty, use fallback
+      if (!companyName) {
+        console.warn("Company name not found, using fallback");
+        // Try to use existing company name from the job or use a placeholder
+        companyName = editingJob.companies?.name || `Company ID: ${editingJob.company_id}`;
+      }
+      
       // Update job via API
       const result = await updateJob(editingJob.job_id, {
         title: editingJob.title,
@@ -367,6 +421,8 @@ export default function AdminJobListings() {
         description: editingJob.description || undefined,
         website: editingJob.website || undefined,
         tags: editingJob.tags,
+        company: companyName,
+        company_id: editingJob.company_id
       });
       
       const updatedJob = result.job;
@@ -441,6 +497,7 @@ export default function AdminJobListings() {
             if (value) {
               switch(header.toLowerCase()) {
                 case 'title': job.title = value; break;
+                case 'company': job.company = value; break; // Set the company name directly
                 case 'location': job.location = value; break;
                 case 'type': job.job_type = value as JobType; break;
                 case 'description': job.description = value; break;
@@ -448,7 +505,7 @@ export default function AdminJobListings() {
                 case 'tags': job.tags = value.split(';') as JobTag[]; break;
                 case 'partnerid': {
                   const partnerId = parseInt(value);
-                  job.company_id = isNaN(partnerId) ? undefined : partnerId; 
+                  job.partner_id = isNaN(partnerId) ? undefined : partnerId; 
                   break;
                 }
               }
@@ -456,7 +513,7 @@ export default function AdminJobListings() {
           });
           
           // Validate required fields
-          if (job.title && job.location) {
+          if (job.title && job.company && job.location) {
             try {
               // Create job via API
               const result = await createJob(job as NewJob);
