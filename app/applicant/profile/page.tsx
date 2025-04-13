@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/basic/button"
 import { Input } from "@/components/ui/form/input"
 import { Label } from "@/components/ui/basic/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
-import { AlertCircle, Check, Eye, EyeOff, Save, Camera } from "lucide-react"
+import { AlertCircle, Check, Eye, EyeOff, Save } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AuthContext } from "@/app/providers"
 import { toast } from "sonner"
@@ -15,12 +15,22 @@ import { Alert, AlertDescription } from "@/components/ui/feedback/alert"
 
 type ProgramType = "FOUNDATIONS" | "ONE_ZERO_ONE" | "LIFTOFF" | "ALUMNI";
 
+// We'll reference this interface for our type assertion later
+type UserWithProgram = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isAdmin: boolean;
+  program?: ProgramType;
+}
+
 declare module "next-auth" {
   interface User {
     id: string;
     email: string;
-    first_name: string;
-    last_name: string;
+    firstName: string;
+    lastName: string;
     isAdmin: boolean;
     program?: ProgramType;
   }
@@ -54,8 +64,8 @@ export default function ApplicantSettingsPage() {
     currentPassword: "", // For current password verification
     password: "", // For new password
     confirmPassword: "",
-    first_name: "", // Added first_name field to match schema
-    last_name: "" // Changed from lastName to last_name to match schema
+    firstName: "", // Updated to match the User interface
+    lastName: "" // Updated to match the User interface
   })
 
   useEffect(() => {
@@ -69,10 +79,10 @@ export default function ApplicantSettingsPage() {
     // Pre-fill form with user data
     setUserSettings(prev => ({
       ...prev,
-      email: session.user!.email || "",
-      program: session.user!.program || "FOUNDATIONS", // Fallback for missing program
-      first_name: session.user!.first_name || "",
-      last_name: session.user!.last_name || ""
+      email: session.user?.email || "",
+      program: ((session.user as UserWithProgram)?.program || "FOUNDATIONS").toLowerCase(), // Proper typing for user with program
+      firstName: session.user?.firstName || "",
+      lastName: session.user?.lastName || ""
     }));
   }, [session, loading, router]);
 
@@ -279,6 +289,22 @@ export default function ApplicantSettingsPage() {
                     </AvatarFallback>
                   )}
                 </Avatar>
+                <input 
+                  ref={fileInputRef} 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleProfileImageChange} 
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleProfileImageClick}
+                  type="button"
+                  className="hidden" // Hidden since the feature is disabled
+                >
+                  Change Photo
+                </Button>
                 <p className="text-xs text-gray-500 mt-1">Profile photo cannot be changed</p>
               </div>
 
@@ -299,7 +325,7 @@ export default function ApplicantSettingsPage() {
                     <Label htmlFor="firstName">First Name</Label>
                     <Input
                       id="firstName"
-                      value={userSettings.first_name}
+                      value={userSettings.firstName}
                       disabled
                       className="bg-gray-50 cursor-not-allowed"
                     />
@@ -311,7 +337,7 @@ export default function ApplicantSettingsPage() {
                     <Label htmlFor="lastName">Last Name</Label>
                     <Input
                       id="lastName"
-                      value={userSettings.last_name}
+                      value={userSettings.lastName}
                       disabled
                       className="bg-gray-50 cursor-not-allowed"
                     />

@@ -7,8 +7,6 @@ import {
   ChevronUp, 
   Building, 
   Calendar, 
-  XCircle, 
-  CheckCircle, 
   ExternalLink,
   MoreVertical,
   GripVertical,
@@ -221,14 +219,28 @@ export default function KanbanBoard({
   // Get column background color based on status
   const getColumnColor = (status: string) => {
     switch(status) {
-      case 'interested': return 'bg-blue-50 border border-blue-100';
-      case 'applied': return 'bg-indigo-50 border border-indigo-100';
-      case 'interview': return 'bg-purple-50 border border-purple-100';
-      case 'offer': return 'bg-green-50 border border-green-100';
-      case 'referrals': return 'bg-amber-50 border border-amber-100';
-      case 'accepted': return 'bg-emerald-50 border border-emerald-100';
-      case 'rejected': return 'bg-red-50 border border-red-100';
-      default: return 'bg-gray-50 border border-gray-100';
+      case 'interested': return 'bg-blue-50/70 border border-blue-100';
+      case 'applied': return 'bg-indigo-50/70 border border-indigo-100';
+      case 'interview': return 'bg-purple-50/70 border border-purple-100';
+      case 'offer': return 'bg-green-50/70 border border-green-100';
+      case 'referrals': return 'bg-amber-50/70 border border-amber-100';
+      case 'accepted': return 'bg-emerald-50/70 border border-emerald-100';
+      case 'rejected': return 'bg-red-50/70 border border-red-100';
+      default: return 'bg-gray-50/70 border border-gray-100';
+    }
+  };
+
+  // Get column header color based on status
+  const getColumnHeaderColor = (status: string) => {
+    switch(status) {
+      case 'interested': return 'bg-blue-100 text-blue-800';
+      case 'applied': return 'bg-indigo-100 text-indigo-800';
+      case 'interview': return 'bg-purple-100 text-purple-800';
+      case 'offer': return 'bg-green-100 text-green-800';
+      case 'referrals': return 'bg-amber-100 text-amber-800';
+      case 'accepted': return 'bg-emerald-100 text-emerald-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -305,21 +317,21 @@ export default function KanbanBoard({
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`mb-4 ${updatingStatus === String(app.id) ? 'opacity-50' : ''}`}
+          className={`mb-4 transition-opacity duration-200 ${updatingStatus === String(app.id) ? 'opacity-50' : 'opacity-100'}`}
         >
           <Card
-            className={`p-4 bg-white hover:shadow-md transition-shadow ${
+            className={`p-4 bg-white hover:shadow-md transition-all duration-200 ${
               getCardAccent(app.status, app.subStage)
             } shadow-sm group cursor-pointer relative ${
-              snapshot.isDragging ? 'shadow-lg' : ''
-            } aspect-[4/3]`}
+              snapshot.isDragging ? 'shadow-xl -rotate-1 scale-105' : ''
+            } rounded-md overflow-hidden`}
             onClick={(e) => handleCardClick(app, e)}
           >
             <div 
               {...provided.dragHandleProps} 
               className="absolute top-2 left-2 cursor-move drag-handle"
             >
-              <GripVertical size={16} className="text-gray-400 opacity-50 group-hover:opacity-100" />
+              <GripVertical size={16} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             </div>
             
             <CardMenu app={app} onMoveToStatus={handleMoveToStatus} />
@@ -341,7 +353,8 @@ export default function KanbanBoard({
 
               {/* Recommendation badge */}
               {(app.isRecommendation || app.status === 'referrals' || app.subStage === 'referrals') && (
-                <div className="mt-2 inline-block px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-800 font-medium">
+                <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-800 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                   Recommended by Staff
                 </div>
               )}
@@ -354,7 +367,7 @@ export default function KanbanBoard({
                 </div>
               )}
               
-              <div className="mt-3 text-xs text-blue-500 flex items-center">
+              <div className="mt-3 text-xs text-blue-500 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <ExternalLink className="h-3 w-3 mr-1" />
                 <span>View details</span>
               </div>
@@ -540,10 +553,10 @@ export default function KanbanBoard({
             
             return (
               <div key={subStage.id} className="space-y-2">
-                <div className="text-sm text-gray-600 flex items-center">
+                <div className={`text-sm px-2 py-1 rounded ${getColumnHeaderColor('interview')} inline-flex items-center gap-2`}>
                   <span>{subStage.label}</span>
-                  <span className="ml-2 text-xs text-gray-400">
-                    ({subStageApps.length})
+                  <span className="flex items-center justify-center h-5 w-5 rounded-full bg-white text-xs font-medium text-purple-800">
+                    {subStageApps.length}
                   </span>
                 </div>
                 <Droppable droppableId={subDroppableId}>
@@ -551,12 +564,14 @@ export default function KanbanBoard({
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`rounded-lg p-4 min-h-[150px] ${getColumnColor('interview')}`}
+                      className={`rounded-lg p-4 min-h-[150px] ${getColumnColor('interview')} transition-colors duration-200`}
                     >
                       {subStageApps.length ? (
                         subStageApps.map((app, index) => renderCard(app, index))
                       ) : (
-                        <div className="text-center py-6 text-gray-500">No applications here yet</div>
+                        <div className="flex flex-col items-center justify-center h-[100px] text-center text-gray-500 border-2 border-dashed border-gray-200 rounded-lg bg-white/50">
+                          <p className="text-sm">Drop an application here</p>
+                        </div>
                       )}
                       {provided.placeholder}
                     </div>
@@ -578,10 +593,10 @@ export default function KanbanBoard({
             
             return (
               <div key={subStage.id} className="space-y-2">
-                <div className="text-sm text-gray-600 flex items-center">
+                <div className={`text-sm px-2 py-1 rounded ${getColumnHeaderColor('offer')} inline-flex items-center gap-2`}>
                   <span>{subStage.label}</span>
-                  <span className="ml-2 text-xs text-gray-400">
-                    ({subStageApps.length})
+                  <span className="flex items-center justify-center h-5 w-5 rounded-full bg-white text-xs font-medium text-green-800">
+                    {subStageApps.length}
                   </span>
                 </div>
                 <Droppable droppableId={subDroppableId}>
@@ -589,12 +604,14 @@ export default function KanbanBoard({
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`rounded-lg p-4 min-h-[150px] ${getColumnColor('offer')}`}
+                      className={`rounded-lg p-4 min-h-[150px] ${getColumnColor('offer')} transition-colors duration-200`}
                     >
                       {subStageApps.length ? (
                         subStageApps.map((app, index) => renderCard(app, index))
                       ) : (
-                        <div className="text-center py-6 text-gray-500">No applications here yet</div>
+                        <div className="flex flex-col items-center justify-center h-[100px] text-center text-gray-500 border-2 border-dashed border-gray-200 rounded-lg bg-white/50">
+                          <p className="text-sm">Drop an application here</p>
+                        </div>
                       )}
                       {provided.placeholder}
                     </div>
@@ -612,12 +629,14 @@ export default function KanbanBoard({
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className={`flex-1 rounded-lg p-4 min-h-[550px] ${getColumnColor(status)}`}
+              className={`flex-1 rounded-lg p-4 min-h-[550px] ${getColumnColor(status)} transition-colors duration-200`}
             >
               {columns[status]?.length ? (
                 columns[status].map((app, index) => renderCard(app, index))
               ) : (
-                <div className="text-center py-8 text-gray-500">No jobs</div>
+                <div className="flex flex-col items-center justify-center h-[100px] text-center text-gray-500 border-2 border-dashed border-gray-200 rounded-lg bg-white/50">
+                  <p className="text-sm">Drop an application here</p>
+                </div>
               )}
               {provided.placeholder}
             </div>
@@ -627,25 +646,26 @@ export default function KanbanBoard({
     }
   };
 
-  // Get column title with icon
+  // Get column title with icon and count
   const getColumnTitle = (status: string) => {
-    switch(status) {
-      case 'interested': return 'Interested';
-      case 'applied': return 'Applied';
-      case 'interview': return 'Interview';
-      case 'offer': return 'Offer';
-      case 'referrals': return 'Referrals';
-      case 'accepted': return 'Accepted';
-      case 'rejected': return 'Rejected';
-      default: return status.charAt(0).toUpperCase() + status.slice(1);
-    }
+    const count = columns[status]?.length || 0;
+    const bgColor = getColumnHeaderColor(status);
+    
+    return (
+      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md ${bgColor}`}>
+        <span>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+        <span className="flex items-center justify-center h-5 w-5 rounded-full bg-white text-xs font-medium">
+          {count}
+        </span>
+      </div>
+    );
   };
 
   // Add instructions for using the drag and drop
   const renderInstructions = () => (
-    <div className="mb-2 text-xs text-gray-500 italic flex items-center">
-      <AlertCircle className="w-3 h-3 mr-1" /> 
-      <span>Drag and drop cards to move applications between stages, or use the menu (⋮)</span>
+    <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center text-sm text-blue-700">
+      <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" /> 
+      <span>Drag cards between columns to update application status. Use card menu (⋮) for quick moves.</span>
     </div>
   );
 
@@ -659,7 +679,7 @@ export default function KanbanBoard({
             {/* Generate columns for desktop */}
             {MAIN_STAGES.map(status => (
               <div key={status} className="flex flex-col space-y-4 w-full">
-                <div className="font-medium text-gray-700 flex items-center justify-between">
+                <div className="font-medium flex items-center justify-between">
                   {getColumnTitle(status)}
                   {(status === 'interview' || status === 'offer') && (
                     <button 
@@ -667,7 +687,10 @@ export default function KanbanBoard({
                       onClick={preventFormSubmission(() => toggleExpand(status as 'interview' | 'offer'))}
                       className="p-1 rounded hover:bg-gray-200"
                     >
-                      {expandedColumns[status as 'interview' | 'offer'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {expandedColumns[status as 'interview' | 'offer'] ? 
+                        <ChevronUp size={16} className="text-gray-600" /> : 
+                        <ChevronDown size={16} className="text-gray-600" />
+                      }
                     </button>
                   )}
                 </div>
@@ -679,7 +702,7 @@ export default function KanbanBoard({
         </div>
       </div>
 
-      {/* Mobile View - Make tabs more square */}
+      {/* Mobile View - Tab-based navigation */}
       <div className="md:hidden kanban-board">
         {renderInstructions()}
         <div className="flex overflow-x-auto space-x-3 pb-3 mb-4">
@@ -687,19 +710,25 @@ export default function KanbanBoard({
             <button 
               type="button"
               key={status} 
-              className={`px-5 py-3 rounded-lg text-sm whitespace-nowrap ${status === currentMobileView 
-                ? `${getColumnColor(status)} font-bold border border-gray-300` 
-                : 'bg-gray-100'}`}
+              className={`px-5 py-3 rounded-lg text-sm whitespace-nowrap transition-colors duration-200 ${
+                status === currentMobileView 
+                  ? getColumnHeaderColor(status)
+                  : 'bg-gray-100 text-gray-700'
+              }`}
               onClick={preventFormSubmission(() => setCurrentMobileView(status))}
             >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-              <span className="ml-1">({columns[status]?.length || 0})</span>
+              <div className="flex items-center gap-2">
+                <span>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                <span className="flex items-center justify-center h-5 w-5 rounded-full bg-white text-xs font-medium">
+                  {columns[status]?.length || 0}
+                </span>
+              </div>
             </button>
           ))}
         </div>
 
         <div className="mb-3 flex items-center justify-between">
-          <div className="font-medium text-gray-700">
+          <div className="font-medium">
             {getColumnTitle(currentMobileView)}
           </div>
           {(currentMobileView === 'interview' || currentMobileView === 'offer') && (
@@ -708,7 +737,10 @@ export default function KanbanBoard({
               onClick={preventFormSubmission(() => toggleExpand(currentMobileView as 'interview' | 'offer'))}
               className="p-1 rounded hover:bg-gray-200"
             >
-              {expandedColumns[currentMobileView as 'interview' | 'offer'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              {expandedColumns[currentMobileView as 'interview' | 'offer'] ? 
+                <ChevronUp size={16} className="text-gray-600" /> : 
+                <ChevronDown size={16} className="text-gray-600" />
+              }
             </button>
           )}
         </div>

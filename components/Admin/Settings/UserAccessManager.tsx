@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/basic/switch";
 import { Badge } from "@/components/ui/basic/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/basic/avatar";
 import { Card, CardContent } from "@/components/ui/basic/card";
-import { Shield, Search, UserPlus, KeyRound, Tag, FileText, Info, Briefcase } from "lucide-react";
+import { Shield, Search, UserPlus, KeyRound, Tag, FileText, Briefcase } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { User, UserAccessSettingsProps } from "./types";

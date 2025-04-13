@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import bcrypt from 'bcryptjs';
 import { NextRequest } from "next/server";
 
+// Define the User interface for type safety
 interface User {
   user_id: number;
   email: string;

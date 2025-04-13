@@ -6,8 +6,9 @@ import KanbanBoard from "@/components/kanban-board";
 import { Button } from "@/components/ui/basic/button";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/basic/card";
-import { Plus, RefreshCw, Info } from "lucide-react";
+import { Plus, RefreshCw, Info, Briefcase, Calendar, CheckCircle2 } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/feedback/alert";
+import { toast } from "@/components/ui/feedback/use-toast";
 
 // Define types for our dashboard data
 interface Application {
@@ -128,7 +129,8 @@ export default function ApplicantDashboard() {
           message: error instanceof Error ? error.message : 'Failed to load dashboard data. Please try again later.'
         });
       } finally {
-        setLoading(false);
+        // Add a slight delay to loading state to prevent UI flashing
+        setTimeout(() => setLoading(false), 300);
       }
     };
 
@@ -195,6 +197,12 @@ export default function ApplicantDashboard() {
     try {
       console.log(`Attempting to update application ${applicationId} to: ${newStatus} (${subStage || 'no sub-stage'})`);
       
+      // Show toast notification for status change
+      toast({
+        title: "Updating status...",
+        description: `Moving application to ${newStatus}${subStage ? ` (${subStage})` : ''}`,
+      });
+      
       // Direct API call with exactly what columns need
       const response = await fetch(`/api/applicant/update-app-status`, {
         method: 'POST',
@@ -213,6 +221,13 @@ export default function ApplicantDashboard() {
         throw new Error(errorData.error || 'Failed to update application status');
       }
 
+      // Show success toast
+      toast({
+        title: "Status updated",
+        description: `Application moved to ${newStatus}${subStage ? ` (${subStage})` : ''}`,
+        variant: "default",
+      });
+
       // Refresh the dashboard data
       setRetryCount(prev => prev + 1);
       
@@ -220,6 +235,14 @@ export default function ApplicantDashboard() {
       return Promise.resolve();
     } catch (error) {
       console.error('Error updating application status:', error);
+      
+      // Show error toast
+      toast({
+        title: "Error updating status",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+      
       // Return a rejected promise to indicate failure
       return Promise.reject(error);
     }
@@ -235,6 +258,30 @@ export default function ApplicantDashboard() {
       console.log(`View application details: ${applicationId}`);
     }
   };
+
+  // Calculate statistics for the dashboard
+  const calculateStats = () => {
+    if (!data?.applications) return { total: 0, active: 0, interviews: 0, offers: 0 };
+    
+    const total = data.applications.length;
+    const active = data.applications.filter(app => 
+      app.status !== 'REJECTED' && app.status !== 'OFFER_ACCEPTED'
+    ).length;
+    const interviews = data.applications.filter(app => 
+      app.status === 'PHONE_SCREENING' || 
+      app.status === 'INTERVIEW_STAGE' || 
+      app.status === 'FINAL_INTERVIEW_STAGE'
+    ).length;
+    const offers = data.applications.filter(app => 
+      app.status === 'OFFER_EXTENDED' || 
+      app.status === 'NEGOTIATION'
+    ).length;
+    
+    return { total, active, interviews, offers };
+  };
+
+  // Get the stats
+  const stats = calculateStats();
 
   if (loading) {
     return (
@@ -316,18 +363,77 @@ export default function ApplicantDashboard() {
     <DashboardLayout>
       <div className="container py-6 px-4 mx-auto pb-24">
         <div className="flex flex-col space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-wrap justify-between items-center gap-4">
             <div>
               <h1 className="text-2xl font-bold">Application Board</h1>
               <p className="text-gray-500">Track your job applications</p>
             </div>
-            <Button 
-              onClick={() => router.push('/applicant/jobs')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Find Jobs
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant="outline"
+                onClick={handleRetry}
+                className="gap-2"
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                {loading ? 'Refreshing...' : 'Refresh'}
+              </Button>
+              <Button 
+                onClick={() => router.push('/applicant/jobs')}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Find Jobs
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats summary */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="p-4 bg-white border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Total Applications</p>
+                  <p className="text-2xl font-bold">{stats.total}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Briefcase className="h-5 w-5 text-blue-700" />
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4 bg-white border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Active Applications</p>
+                  <p className="text-2xl font-bold">{stats.active}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                  <RefreshCw className="h-5 w-5 text-green-700" />
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4 bg-white border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Interviews</p>
+                  <p className="text-2xl font-bold">{stats.interviews}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-purple-700" />
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4 bg-white border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Offers</p>
+                  <p className="text-2xl font-bold">{stats.offers}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-amber-700" />
+                </div>
+              </div>
+            </Card>
           </div>
 
           {/* Recommendation alert */}
@@ -336,7 +442,7 @@ export default function ApplicantDashboard() {
               <Info className="h-5 w-5 text-amber-500" />
               <AlertTitle className="text-amber-800">New Job Recommendations</AlertTitle>
               <AlertDescription className="text-amber-700">
-                Your Career Launch advisor has recommended jobs for you. Check the "Referrals" column to see them.
+                Your Career Launch advisor has recommended jobs for you. Check the &quot;Referrals&quot; column to see them.
               </AlertDescription>
             </Alert>
           )}
@@ -372,17 +478,15 @@ export default function ApplicantDashboard() {
             </Card>
           )}
           
-          {/* Kanban board */}
-          {!error && (
-            <div className="mt-4">
-              <KanbanBoard 
-                applications={kanbanApplications}
-                isLoading={loading}
-                onStatusChange={handleStatusChange}
-                onViewJobDetails={handleViewJobDetails}
-              />
-            </div>
-          )}
+          {/* Kanban board with loading state */}
+          <div className="mt-4">
+            <KanbanBoard 
+              applications={kanbanApplications}
+              isLoading={loading}
+              onStatusChange={handleStatusChange}
+              onViewJobDetails={handleViewJobDetails}
+            />
+          </div>
         </div>
       </div>
     </DashboardLayout>

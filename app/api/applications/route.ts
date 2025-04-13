@@ -372,8 +372,12 @@ export async function PATCH(request: NextRequest) {
       );
     }
     
-    // Prepare update data
-    const updateData: any = {
+    // Prepare update data with proper typing
+    const updateData: {
+      status?: ApplicationStatus;
+      status_updated: Date;
+      notes?: string;
+    } = {
       status_updated: new Date()
     };
     
