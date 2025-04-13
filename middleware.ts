@@ -16,6 +16,8 @@ const publicPaths = [
 const adminPaths = ["/admin"];
 
 // Paths that should be student-only
+const studentPaths = ["/applicant"];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -43,7 +45,7 @@ export async function middleware(request: NextRequest) {
     // Admins can only access admin routes
     if (sessionData.isAdmin) {
       // Admin trying to access student routes, redirect to admin dashboard
-      if (studentPaths.some(path => pathname === path || pathname.startsWith(path + "/"))) {
+      if (studentPaths.some((path: string) => pathname === path || pathname.startsWith(path + "/"))) {
         const adminDashboard = new URL("/admin/dashboard", request.url);
         return NextResponse.redirect(adminDashboard);
       }
@@ -51,7 +53,7 @@ export async function middleware(request: NextRequest) {
     // Students can only access student routes
     else {
       // Student trying to access admin routes, redirect to student dashboard
-      if (adminPaths.some(path => pathname === path || pathname.startsWith(path + "/"))) {
+      if (adminPaths.some((path: string) => pathname === path || pathname.startsWith(path + "/"))) {
         const studentDashboard = new URL("/applicant/dashboard", request.url);
         return NextResponse.redirect(studentDashboard);
       }
