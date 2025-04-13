@@ -159,3 +159,4 @@ Icon?
 /lib/generated/prisma/
 .deploy
 .pre-commit-config.yaml
+deploy
