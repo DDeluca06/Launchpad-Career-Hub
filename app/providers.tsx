@@ -34,20 +34,20 @@ export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadSession = async () => {
       try {
-        console.error("Session loading...");
+        console.log("[Auth] Loading session...");
         const sessionData = await getClientSession();
-        console.error("Session loaded:", sessionData);
+        console.log("[Auth] Session state:", sessionData);
         
         // Check if we have a valid user in the session
         if (sessionData?.user?.id) {
           setSession(sessionData);
-          console.error("Valid user found in session:", sessionData.user.id);
+          console.log("[Auth] User authenticated:", sessionData.user.id);
         } else {
-          console.error("No valid user in session, showing login form");
+          console.log("[Auth] No authenticated user found");
           setSession(null);
         }
       } catch (error) {
-        console.error("Failed to load session:", error);
+        console.error("[Auth] Session load failed:", error);
         setSession(null);
       } finally {
         setLoading(false);
