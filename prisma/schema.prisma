@@ -84,6 +84,22 @@ model jobs {
   @@index([title], map: "idx_jobs_title")
 }
 
+model companies {
+  company_id    Int       @id @default(autoincrement())
+  name          String    @unique @db.VarChar
+  description   String?
+  website       String?   @db.VarChar
+  industry      String?   @db.VarChar
+  location      String?   @db.VarChar
+  logo_url      String?   @db.VarChar
+  is_partner    Boolean   @default(false)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime? @updatedAt @db.Timestamptz(6)
+
+  @@index([company_id], map: "idx_companies_id")
+  @@index([name], map: "idx_companies_name")
+}
+
 model partners {
   partner_id       Int       @id @default(autoincrement())
   name             String    @db.VarChar

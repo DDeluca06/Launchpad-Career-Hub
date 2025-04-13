@@ -9,18 +9,11 @@ import { toast } from "@/components/ui/feedback/use-toast";
 import { extendedPalette } from "@/lib/colors";
 import { SettingsHeader } from "@/components/Admin/Settings/SettingsHeader";
 import { SettingsTabs } from "@/components/Admin/Settings/SettingsTabs";
-
-interface User {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  isAdmin: boolean;
-  program: string;
-}
+import { User } from "@/components/Admin/Settings/types";
 
 /**
- * Renders a simplified admin settings page with theme selection and user access management.
+ * Renders the user management page for administrators.
+ * Allows admins to create new users and manage user access.
  */
 export default function SettingsPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -93,8 +86,8 @@ export default function SettingsPage() {
     <DashboardLayout isAdmin={true}>
       <div className="container py-6 px-4 mx-auto pb-24">
         <SettingsHeader 
-          title="Settings"
-          description="Manage your admin preferences and user access"
+          title="User Management"
+          description="Create and manage user accounts and permissions"
         />
 
         <Card 
@@ -112,10 +105,10 @@ export default function SettingsPage() {
               className="text-lg"
               style={{ color: extendedPalette.primaryBlue }}
             >
-              Admin Settings
+              User Access
             </CardTitle>
             <CardDescription style={{ color: extendedPalette.darkGray }}>
-              Customize your admin experience and manage user access
+              Create new users and manage admin privileges
             </CardDescription>
           </CardHeader>
 
@@ -123,7 +116,6 @@ export default function SettingsPage() {
             users={users}
             currentUserId={parseInt(session.user.id)}
             isLoading={isLoading}
-            defaultTab="appearance"
             onUserUpdate={handleUserUpdate}
           />
         </Card>

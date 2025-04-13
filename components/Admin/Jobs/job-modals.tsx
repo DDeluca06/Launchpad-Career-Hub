@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/basic/badge";
 import { useState, useEffect } from "react";
 import { JobTag, JobType, JOB_TAGS, NewJob } from "./types";
 import { ExtendedJob } from "./types";
+import CompanySelect from "../Companies/company-select";
 
 // Partner interface
 interface Partner {
@@ -154,11 +155,9 @@ export function JobModals({
                 
                 <div className="space-y-2">
                   <Label htmlFor="edit-company">Company</Label>
-                  <Input
-                    id="edit-company"
-                    value={editingJob.company}
-                    onChange={(e) => setEditingJob({...editingJob, company: e.target.value})}
-                    placeholder="e.g. Acme Inc."
+                  <CompanySelect 
+                    value={editingJob.company_id}
+                    onChange={(value) => setEditingJob({...editingJob, company_id: value as number})}
                   />
                 </div>
               </div>
@@ -293,13 +292,10 @@ export function JobModals({
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="company">Company *</Label>
-                <Input
-                  id="company"
-                  value={newJob.company}
-                  onChange={(e) => setNewJob({...newJob, company: e.target.value})}
-                  placeholder="e.g. Acme Inc."
-                  required
+                <Label htmlFor="company">Company</Label>
+                <CompanySelect 
+                  value={newJob.company_id}
+                  onChange={(value) => setNewJob({...newJob, company_id: value as number})}
                 />
               </div>
             </div>

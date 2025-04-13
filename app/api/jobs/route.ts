@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { JobType, JobTag, ApplicationStatus } from '@/lib/prisma-enums';
 
-// Define a type for jobs with _count and partners relations
+// Define a type for jobs with _count and relations
 interface JobWithRelations {
   job_id: number;
   job_type: string;
   title: string;
   description: string | null;
-  company: string;
+  company_id: number;
   website: string | null;
   location: string | null;
   partner_id: number | null;
@@ -18,6 +18,12 @@ interface JobWithRelations {
   _count: {
     applications: number;
   };
+  companies?: {
+    name: string;
+    is_partner: boolean;
+    industry?: string | null;
+    location?: string | null;
+  } | null;
   partners?: {
     name: string;
   } | null;
@@ -39,7 +45,7 @@ type PrismaJobResult = {
   job_type: string;
   title: string;
   description: string | null;
-  company: string;
+  company_id: number;
   website: string | null;
   location: string | null;
   partner_id: number | null;
@@ -49,6 +55,12 @@ type PrismaJobResult = {
   _count: {
     applications: number;
   };
+  companies?: {
+    name: string;
+    is_partner: boolean;
+    industry?: string | null;
+    location?: string | null;
+  } | null;
   partners?: {
     name: string;
   } | null;
@@ -59,7 +71,7 @@ type PrismaJobResult = {
 // Define type for job import data to use for importing jobs
 export interface JobImportData {
   title: string;
-  company: string;
+  company_id: number;
   location?: string;
   description?: string;
   job_type?: string;
@@ -89,7 +101,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Fetch the job with application counts
+      // Fetch the job with application counts and relations
       const job = await prisma.jobs.findUnique({
         where: { job_id: jobId },
         include: {
@@ -129,7 +141,7 @@ export async function GET(request: NextRequest) {
         job_type: job.job_type,
         title: job.title,
         description: job.description,
-        company: job.company || job.partners?.name || 'Unknown Company',
+        company: job.company,
         website: job.website,
         location: job.location,
         partner_id: job.partner_id,
@@ -153,6 +165,7 @@ export async function GET(request: NextRequest) {
     const tagFilter = searchParams.get('tag');
     const searchQuery = searchParams.get('search');
     const isRemote = searchParams.get('isRemote') === 'true';
+    const partnerOnly = searchParams.get('partnerOnly') === 'true';
     const includeApplications = searchParams.get('includeApplications') === 'true';
     
     // Parse the archived parameter with proper boolean conversion
@@ -175,6 +188,9 @@ export async function GET(request: NextRequest) {
       }>;
       tags?: {
         hasSome: JobTag[];
+      };
+      companies?: {
+        is_partner?: boolean;
       };
     } = {};
 
@@ -202,6 +218,11 @@ export async function GET(request: NextRequest) {
         contains: 'remote',
         mode: 'insensitive'
       };
+    }
+
+    // Add partner only filter
+    if (partnerOnly) {
+      console.warn('Partner-only filter not implemented due to schema changes');
     }
 
     // Add search query if specified
@@ -249,111 +270,75 @@ export async function GET(request: NextRequest) {
                   last_name: true
                 }
               }
-            }
+            },
+            take: 100 // Limit the number of applications returned to prevent large payloads
           }
         } : {})
       },
-      orderBy: {
-        created_at: 'desc'
-      }
+      orderBy: [
+        { archived: 'asc' },
+        { created_at: 'desc' }
+      ]
     });
 
-    console.error(`Found ${jobs.length} jobs`);
-
-    // Format jobs for the frontend
-    const formattedJobs = jobs.map((job: PrismaJobResult) => {
-      // Create a job object that conforms to JobWithRelations interface
-      const formattedJob: JobWithRelations = {
+    // Format the jobs for the frontend
+    const formattedJobs = jobs.map((job) => {
+      return {
         job_id: job.job_id,
         job_type: job.job_type,
         title: job.title,
         description: job.description,
-        company: job.company || job.partners?.name || 'Unknown Company',
+        company: job.company, // Use the direct company string field
         website: job.website,
         location: job.location,
         partner_id: job.partner_id,
-        created_at: job.created_at,
+        created_at: job.created_at?.toISOString(),
         tags: job.tags,
-        archived: job.archived,
-        _count: {
-          applications: job._count.applications
-        },
-        // Type assertion to satisfy TypeScript without changing the data
-        applications: job.applications as JobWithRelations['applications']
-      };
-      
-      // Return a formatted version with the date converted to string
-      return {
-        ...formattedJob,
-        created_at: formattedJob.created_at?.toISOString(),
-        // Ensure we always return an array for applications
-        applications: formattedJob.applications || []
+        applications: job.applications || [],
+        applicationCount: job._count.applications,
+        partners: job.partners,
+        archived: job.archived
       };
     });
 
     return NextResponse.json({ success: true, jobs: formattedJobs });
   } catch (error) {
     console.error('Error fetching jobs:', error);
-    // Return more detailed error information
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { success: false, error: `Failed to fetch jobs: ${errorMessage}` },
+      { success: false, error: 'An error occurred while fetching jobs' },
       { status: 500 }
     );
   }
 }
 
 /**
- * POST request handler to create a new job listing
+ * POST request handler to create a new job
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const data = await request.json();
     
-    // Validate required fields
-    if (!body.title || !body.company || !body.job_type) {
+    // Check required fields
+    if (!data.title || !data.company || !data.job_type) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: 'Missing required fields: title, company, and job_type are required' },
         { status: 400 }
       );
     }
-
-    // Validate job type
-    const validJobTypes = Object.values(JobType);
-    if (!validJobTypes.includes(body.job_type)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid job type' },
-        { status: 400 }
-      );
-    }
-
-    // Format tags to ensure they're valid JobTag enum values
-    let tags: JobTag[] = [];
-    if (Array.isArray(body.tags)) {
-      tags = body.tags.filter((tag: string) => 
-        Object.values(JobTag).includes(tag as JobTag)
-      ) as JobTag[];
-    }
-
+    
     // Create the job
     const job = await prisma.jobs.create({
       data: {
-        title: body.title,
-        job_type: body.job_type as JobType,
-        description: body.description || null,
-        company: body.company,
-        website: body.website || null,
-        location: body.location || null,
-        partner_id: body.partner_id || null,
-        archived: false, // Default new jobs to not archived
-        tags: tags
+        title: data.title,
+        company: data.company,
+        job_type: data.job_type as JobType,
+        description: data.description || null,
+        location: data.location || null,
+        website: data.website || null,
+        partner_id: data.partner_id || null,
+        tags: data.tags || [],
       },
       include: {
-        _count: {
-          select: {
-            applications: true
-          }
-        },
         partners: {
           select: {
             name: true
@@ -361,29 +346,20 @@ export async function POST(request: NextRequest) {
         }
       }
     });
-
-    // Format the response
-    const formattedJob = {
-      ...job,
-      created_at: job.created_at?.toISOString(),
-      _count: {
-        applications: job._count.applications
-      }
-    };
-
-    return NextResponse.json({ success: true, job: formattedJob });
+    
+    return NextResponse.json({ success: true, job });
   } catch (error) {
     console.error('Error creating job:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { success: false, error: `Failed to create job: ${errorMessage}` },
+      { success: false, error: 'An error occurred while creating the job' },
       { status: 500 }
     );
   }
 }
 
 /**
- * PUT request handler to update an existing job listing
+ * PUT request handler to update a job
+ * Can update any job field and also handle archive/unarchive
  */
 export async function PUT(request: NextRequest) {
   try {
@@ -405,65 +381,36 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const body = await request.json();
     
-    // Validate that we have data to update
-    if (Object.keys(body).length === 0) {
+    // Check if the job exists
+    const existingJob = await prisma.jobs.findUnique({
+      where: { job_id: jobId }
+    });
+    
+    if (!existingJob) {
       return NextResponse.json(
-        { success: false, error: 'No update data provided' },
-        { status: 400 }
+        { success: false, error: 'Job not found' },
+        { status: 404 }
       );
     }
-
-    // Validate job type if provided
-    if (body.job_type && !Object.values(JobType).includes(body.job_type)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid job type' },
-        { status: 400 }
-      );
-    }
-
-    // Format tags if provided
-    if (body.tags) {
-      body.tags = Array.isArray(body.tags) 
-        ? body.tags.filter((tag: string) => Object.values(JobTag).includes(tag as JobTag))
-        : [];
-    }
-
-    // Create data object with only the provided fields
-    const updateData: {
-      title?: string;
-      job_type?: JobType;
-      description?: string | null;
-      company?: string;
-      website?: string | null;
-      location?: string | null;
-      tags?: JobTag[];
-      archived?: boolean;
-      partner_id?: number | null;
-    } = {};
     
-    if (body.title !== undefined) updateData.title = body.title;
-    if (body.job_type !== undefined) updateData.job_type = body.job_type as JobType;
-    if (body.description !== undefined) updateData.description = body.description;
-    if (body.company !== undefined) updateData.company = body.company;
-    if (body.website !== undefined) updateData.website = body.website;
-    if (body.location !== undefined) updateData.location = body.location;
-    if (body.tags !== undefined) updateData.tags = body.tags as JobTag[];
-    if (body.archived !== undefined) updateData.archived = body.archived;
-    if (body.partner_id !== undefined) updateData.partner_id = body.partner_id;
-
+    const data = await request.json();
+    
     // Update the job
-    const job = await prisma.jobs.update({
+    const updatedJob = await prisma.jobs.update({
       where: { job_id: jobId },
-      data: updateData,
+      data: {
+        title: data.title,
+        company: data.company,
+        job_type: data.job_type as JobType,
+        description: data.description,
+        location: data.location,
+        website: data.website,
+        partner_id: data.partner_id,
+        tags: data.tags,
+        archived: data.archived !== undefined ? data.archived : existingJob.archived,
+      },
       include: {
-        _count: {
-          select: {
-            applications: true
-          }
-        },
         partners: {
           select: {
             name: true
@@ -471,28 +418,19 @@ export async function PUT(request: NextRequest) {
         }
       }
     });
-
-    // Format the response
-    const formattedJob = {
-      ...job,
-      created_at: job.created_at?.toISOString(),
-      _count: {
-        applications: job._count.applications
-      }
-    };
-
-    return NextResponse.json({ success: true, job: formattedJob });
+    
+    return NextResponse.json({ success: true, job: updatedJob });
   } catch (error) {
     console.error('Error updating job:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update job' },
+      { success: false, error: 'An error occurred while updating the job' },
       { status: 500 }
     );
   }
 }
 
 /**
- * DELETE request handler to delete a job listing
+ * DELETE request handler to delete a job
  */
 export async function DELETE(request: NextRequest) {
   try {
@@ -514,29 +452,29 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Check if job exists
+    
+    // Check if the job exists
     const existingJob = await prisma.jobs.findUnique({
       where: { job_id: jobId }
     });
-
+    
     if (!existingJob) {
       return NextResponse.json(
         { success: false, error: 'Job not found' },
         { status: 404 }
       );
     }
-
+    
     // Delete the job
     await prisma.jobs.delete({
       where: { job_id: jobId }
     });
-
+    
     return NextResponse.json({ success: true, message: 'Job deleted successfully' });
   } catch (error) {
     console.error('Error deleting job:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete job' },
+      { success: false, error: 'An error occurred while deleting the job' },
       { status: 500 }
     );
   }
