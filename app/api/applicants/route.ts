@@ -396,10 +396,25 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Log the incoming request
+    console.log('Received applicant creation request');
+    
+    // Safely parse the request body
+    let body;
+    try {
+      body = await request.json();
+      console.log('Request body parsed successfully:', body);
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid request body', details: 'Could not parse JSON data' },
+        { status: 400 }
+      );
+    }
     
     // Validate required fields
     if (!body.email || !body.firstName || !body.lastName) {
+      console.error('Missing required fields in request:', body);
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -414,6 +429,7 @@ export async function POST(request: NextRequest) {
     });
     
     if (existingUser) {
+      console.log('Email already exists:', body.email);
       return NextResponse.json(
         { error: 'Email already exists' },
         { status: 400 }
@@ -447,7 +463,9 @@ export async function POST(request: NextRequest) {
       }
     });
     
-    return NextResponse.json({
+    console.log('New user created successfully:', newUser.user_id);
+    
+    const responseData = {
       applicant: {
         id: newUser.user_id,
         firstName: newUser.first_name,
@@ -459,7 +477,9 @@ export async function POST(request: NextRequest) {
         program: newUser.program === 'ONE_ZERO_ONE' ? '101' : newUser.program?.toString() || 'ALUMNI',
         isArchived: newUser.is_archived
       }
-    });
+    };
+    
+    return NextResponse.json(responseData);
   } catch (error: unknown) {
     console.error('Error creating applicant:', error);
     

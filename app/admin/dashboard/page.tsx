@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Building, Briefcase, Plus } from "lucide-react";
-import { StatsOverview, QuickActions, DashboardSection, UpcomingInterviews } from "@/components/Admin/Dashboard";
+import { StatsOverview, QuickActions, DashboardSection } from "@/components/Admin/Dashboard";
 import { extendedPalette } from "@/lib/colors";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/feedback/skeleton";
@@ -25,8 +25,8 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-gray-500">Monitor job activities and applicant statistics</p>
           </div>
-          <Link href="/admin/jobs/create">
-            <Button className="flex items-center gap-2 bg-launchpadGreen hover:bg-launchpadGreen/90">
+          <Link href="/admin/jobs">
+          <Button className="flex items-center gap-2 bg-launchpadGreen hover:bg-launchpadGreen/90">
               <Plus size={16} />
               Create New Job
             </Button>
@@ -89,24 +89,10 @@ export default function AdminDashboard() {
         </div>
         
         {/* Bottom Content Row - Balanced layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Quick Actions - Takes 2/4 of the space */}
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 gap-6">
+          {/* Quick Actions - Takes full width now that upcoming interviews is removed */}
+          <div className="w-full">
             <QuickActions />
-          </div>
-          
-          {/* Upcoming Interviews - Takes 2/4 of the space */}
-          <div className="lg:col-span-2">
-            <Suspense fallback={<div className="bg-white rounded-lg p-5 shadow-sm space-y-4">
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>}>
-              <ErrorBoundaryWrapper>
-                <UpcomingInterviews />
-              </ErrorBoundaryWrapper>
-            </Suspense>
           </div>
         </div>
       </div>

@@ -140,8 +140,29 @@ export default function ApplicantsPage() {
       });
       
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create user');
+        // Check if the response has content
+        const text = await response.text();
+        
+        // Only try to parse as JSON if there's actual content
+        if (text) {
+          try {
+            const data = JSON.parse(text);
+            throw new Error(data.error || 'Failed to create user');
+          } catch (jsonError) {
+            throw new Error('Invalid server response. Please try again.');
+          }
+        } else {
+          throw new Error('Empty server response. Please try again.');
+        }
+      }
+      
+      // Parse response data - wrap in try/catch to handle JSON parsing errors
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error("Error parsing response:", jsonError);
+        throw new Error('Failed to parse server response. Please try again.');
       }
       
       setCreateUserModalOpen(false);

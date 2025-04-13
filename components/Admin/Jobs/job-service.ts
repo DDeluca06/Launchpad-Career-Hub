@@ -66,12 +66,25 @@ export async function fetchJobsByArchiveStatus(archived: boolean = false) {
 
 export async function createJob(jobData: NewJob) {
   try {
+    // The API requires 'company' property not 'company_id'
+    // We need to transform the data to match what the API expects
+    const transformedData = {
+      title: jobData.title,
+      company: jobData.company, // This needs to be a string with the company name
+      job_type: jobData.job_type,
+      description: jobData.description,
+      location: jobData.location,
+      website: jobData.website,
+      partner_id: jobData.partner_id,
+      tags: jobData.tags
+    };
+    
     const response = await fetch('/api/jobs', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(jobData),
+      body: JSON.stringify(transformedData),
     });
     
     if (!response.ok) {
@@ -90,12 +103,24 @@ export async function createJob(jobData: NewJob) {
  */
 export async function updateJob(jobId: number, jobData: Partial<NewJob>) {
   try {
-    const response = await fetch(`/api/jobs/${jobId}`, {
+    // Transform the data to match what the API expects
+    const transformedData = {
+      title: jobData.title,
+      company: jobData.company, // The company name is needed for the API
+      job_type: jobData.job_type,
+      description: jobData.description,
+      location: jobData.location,
+      website: jobData.website,
+      partner_id: jobData.partner_id,
+      tags: jobData.tags
+    };
+    
+    const response = await fetch(`/api/jobs?id=${jobId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(jobData),
+      body: JSON.stringify(transformedData),
     });
     
     if (!response.ok) {
