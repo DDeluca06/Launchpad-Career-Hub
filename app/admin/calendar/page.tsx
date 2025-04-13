@@ -75,22 +75,22 @@ function CalendarContent() {
       const data = await response.json();
 
       if (data.success) {
-        console.log("Loaded interviews:", data.data.length);
+        console.error("Loaded interviews:", data.data.length);
         setInterviews(data.data);
         if (data.users) {
           setUsers(data.users);
         }
         
-        // Check upcoming interviews
-        const upcoming = data.data
-          .filter((interview: any) => {
+        // Debug upcoming interviews count
+        const upcomingCount = data.data
+          .filter((interview: ApiInterview) => {
             const interviewDate = new Date(interview.start_time);
             const now = new Date();
             return interviewDate >= now && interview.status === 'SCHEDULED';
           })
-          .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-          .slice(0, 1);
-        console.log("Upcoming interviews:", upcoming.length, upcoming);
+          .sort((a: ApiInterview, b: ApiInterview) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+          .slice(0, 3);
+        console.error("Upcoming interviews:", upcomingCount.length);
       }
     } catch (error) {
       console.error("Failed to load interviews:", error);
@@ -302,7 +302,7 @@ function CalendarContent() {
                   <CalendarIcon className="h-8 w-8 text-gray-300 mb-2" />
                   <h3 className="text-sm font-medium">No upcoming interviews</h3>
                   <p className="text-xs text-gray-500 mt-1">
-                    Schedule interviews using the "Schedule Interview" button.
+                    Schedule interviews using the &quot;Schedule Interview&quot; button.
                   </p>
                   <Button 
                     size="sm"

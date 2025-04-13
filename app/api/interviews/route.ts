@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     // If no interviews exist, add some sample ones for demo purposes
     let interviewsResponse = interviews;
     if (interviews.length === 0) {
-      console.log("No interviews found, returning sample data");
+      console.error("No interviews found, returning sample data");
       // Create some future and past dates for sample interviews
       const today = new Date();
       const tomorrow = new Date();
@@ -74,6 +74,8 @@ export async function GET(request: Request) {
           candidate_name: "Alex Johnson",
           position: "Forward Research Designer",
           status: "SCHEDULED",
+          interview_type: "VIDEO",
+          notes: "Candidate has 3 years of experience in UX research.",
           created_at: today,
           updated_at: null,
           users: {
@@ -93,6 +95,8 @@ export async function GET(request: Request) {
           candidate_name: "Taylor Wilson",
           position: "International Security Planner",
           status: "COMPLETED",
+          interview_type: "IN_PERSON",
+          notes: "Strong candidate with background in security operations.",
           created_at: new Date(lastWeek.getTime() - 7 * 24 * 60 * 60 * 1000),
           updated_at: lastWeek,
           users: {

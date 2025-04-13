@@ -46,6 +46,7 @@ export async function GET(request: Request) {
       }
     });
   } catch (error) {
+    console.error('Error retrieving session:', error);
     return NextResponse.json({ user: null }, { status: 500 });
   }
 } 

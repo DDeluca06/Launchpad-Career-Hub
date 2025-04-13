@@ -1,21 +1,14 @@
 "use client";
 
-import { useEffect, useContext } from "react";
+import { useEffect, useContext, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/basic/button";
 import { LoginForm } from "@/components/ui/basic/login-form";
 import { AuthContext } from "./providers";
 
-/**
- * Renders the main home page with a centered login form and development navigation.
- *
- * This component displays a fixed full-screen layout with a subtle grid-patterned background, a centered login
- * form, and temporary navigation links to the Admin Dashboard and Student Dashboard. It also includes a fixed footer
- * with copyright information and global fade-in animations. Note that the development navigation is intended solely
- * for testing and will be removed in production.
- */
-export default function Home() {
+// Client component that uses the useSearchParams hook
+function HomeContent() {
   const { session, loading } = useContext(AuthContext);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,31 +16,31 @@ export default function Home() {
 
   useEffect(() => {
     if (loading) {
-      console.log('Session loading...');
+      console.error('Session loading...');
       return;
     }
 
-    console.log('Session loaded:', session);
+    console.error('Session loaded:', session);
 
     // Check if we have a valid session with user information
     if (session?.user?.id) {
-      console.log('User found in session, redirecting to dashboard. User ID:', session.user.id);
-      console.log('Is admin?', session.user.isAdmin);
+      console.error('User found in session, redirecting to dashboard. User ID:', session.user.id);
+      console.error('Is admin?', session.user.isAdmin);
       
       // Force a hard redirect using window.location to ensure a fresh page load
       const dashboardUrl = session.user.isAdmin ? "/admin/dashboard" : "/applicant/dashboard";
-      console.log('Redirecting to:', dashboardUrl);
+      console.error('Redirecting to:', dashboardUrl);
       
       // Use the router for client-side navigation
       router.push(dashboardUrl);
     } else {
-      console.log('No valid user in session, showing login form');
+      console.error('No valid user in session, showing login form');
     }
   }, [session, loading, router]);
 
   useEffect(() => {
     if (timestamp) {
-      console.log('Page loaded with timestamp param, triggering fresh session check');
+      console.error('Page loaded with timestamp param, triggering fresh session check');
       // This could trigger a reload of the auth state if needed
     }
   }, [timestamp]);
@@ -114,5 +107,21 @@ export default function Home() {
         }
       `}</style>
     </div>
+  );
+}
+
+/**
+ * Main Home page component that wraps the content with Suspense
+ * to handle the useSearchParams hook correctly
+ */
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

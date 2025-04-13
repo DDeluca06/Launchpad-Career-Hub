@@ -4,9 +4,22 @@ import { ReactNode, createContext, useState, useEffect } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getClientSession } from "@/lib/auth-client";
 
+// Define the session and user types
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isAdmin: boolean;
+}
+
+interface Session {
+  user: User | null;
+}
+
 // Create an auth context for Better Auth
 export const AuthContext = createContext<{
-  session: any;
+  session: Session | null;
   loading: boolean;
 }>({
   session: null,
@@ -14,7 +27,7 @@ export const AuthContext = createContext<{
 });
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

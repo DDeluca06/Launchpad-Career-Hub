@@ -1,5 +1,3 @@
-import { prisma } from '@/lib/prisma';
-
 // Simplified auth implementation
 export const auth = {
   api: {
@@ -46,10 +44,12 @@ export const auth = {
             } else {
               return null;
             }
-          } catch (jsonError) {
+          } catch (jsonParseError) {
+            console.error('Failed to parse session JSON:', jsonParseError);
             return null;
           }
-        } catch (error) {
+        } catch (sessionError) {
+          console.error('Error retrieving session:', sessionError);
           return null;
         }
       }

@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { Button } from "@/components/ui/basic/button";
 import { Input } from "@/components/ui/form/input";
 import { Label } from "@/components/ui/basic/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { extendedPalette } from "@/lib/colors";
 import { UserCircle, Lock } from "lucide-react";
 import { toast } from "@/components/ui/feedback/use-toast";
@@ -26,7 +25,6 @@ export function LoginForm() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loginMode, setLoginMode] = useState<LoginMode>('student');
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,9 +65,10 @@ export function LoginForm() {
         const timestamp = Date.now();
         window.location.href = `${dashboardUrl}?t=${timestamp}`;
       }
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error('Login error:', err);
-      setError(err.message || 'Invalid email or password');
+      const errorMessage = err instanceof Error ? err.message : 'Invalid email or password';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 
@@ -8,7 +7,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    const { email, password, loginType } = body;
+    const { email, password } = body;
     
     if (!email || !password) {
       return NextResponse.json({
@@ -55,9 +54,7 @@ export async function POST(request: Request) {
         }, { status: 401 });
       }
       
-      // Check if user type matches the loginType
-      const isAdmin = user.is_admin === true;
-      const isStudentLogin = loginType === 'student';
+      // Removed unused variables
       
       // Skip loginType check for now to debug password issue
       /*
@@ -73,7 +70,8 @@ export async function POST(request: Request) {
         );
       }
       */
-    } catch (err) {
+    } catch (authError) {
+      console.error('Authentication error:', authError);
       return NextResponse.json({
         error: 'Authentication error'
       }, { status: 500 });
@@ -112,6 +110,7 @@ export async function POST(request: Request) {
     return response;
     
   } catch (error) {
+    console.error('Login failed:', error);
     return NextResponse.json({ 
       error: 'Login failed. Please check your credentials and try again.' 
     }, { status: 500 });
