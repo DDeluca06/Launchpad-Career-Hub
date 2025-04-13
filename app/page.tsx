@@ -57,24 +57,7 @@ function HomeContent() {
         <div className="w-full max-w-md">
           <LoginForm />
 
-          {/* Development navigation - to be removed in production */}
-          <div className="mt-6 p-4 border rounded-md bg-white/80 backdrop-blur-sm w-full shadow-sm">
-            <div className="text-xs text-center mb-2 font-medium text-slate-500">
-              Development Navigation (will be removed)
-            </div>
-            <div className="flex justify-center gap-4">
-              <Link href="/admin/dashboard">
-                <Button variant="outline" size="sm">
-                  Admin Dashboard
-                </Button>
-              </Link>
-              <Link href="/applicant/dashboard">
-                <Button variant="outline" size="sm">
-                  Student Dashboard
-                </Button>
-              </Link>
-            </div>
-          </div>
+
         </div>
       </main>
 
