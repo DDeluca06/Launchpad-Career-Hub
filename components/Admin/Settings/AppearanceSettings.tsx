@@ -1,6 +1,10 @@
 import { Card, CardContent } from "@/components/ui/basic/card";
 import { ThemeSwitcher } from "./ThemeSwitcher";
-import { AppearanceSettingsProps } from "./types";
+
+// Remove the import and define the interface directly
+interface AppearanceSettingsProps {
+  isLoading?: boolean;
+}
 
 /**
  * Component for managing appearance settings like theme

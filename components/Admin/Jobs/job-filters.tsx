@@ -26,7 +26,8 @@ const DEFAULT_FILTERS: JobFilterInterface = {
   locations: [],
   remoteOnly: false,
   keywords: "",
-  tags: []
+  tags: [],
+  partnerOnly: false,
 };
 
 const JOB_TYPES = [

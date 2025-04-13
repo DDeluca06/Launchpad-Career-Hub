@@ -19,11 +19,15 @@ interface PlacementsByProgramChartProps {
     partner: string;
     placements: number;
   }>;
-  barColor: string;
+  barColor?: string;
+  colors?: string[];
   isLoading: boolean;
 }
 
-export function PlacementsByProgramChart({ data, barColor, isLoading }: PlacementsByProgramChartProps) {
+export function PlacementsByProgramChart({ data, barColor, colors, isLoading }: PlacementsByProgramChartProps) {
+  // Use the first color from colors array if barColor is not provided
+  const fillColor = barColor || (colors && colors.length > 0 ? colors[0] : '#4338CA');
+  
   return (
     <Card>
       <CardHeader>
@@ -51,7 +55,7 @@ export function PlacementsByProgramChart({ data, barColor, isLoading }: Placemen
               <Bar
                 dataKey="placements"
                 name="Placements"
-                fill={barColor}
+                fill={fillColor}
               />
             </BarChart>
           </ResponsiveContainer>

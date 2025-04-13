@@ -20,7 +20,8 @@ export async function GET() {
       // Count active job listings
       prisma.jobs.count({
         where: {
-          is_active: true
+          job_type: 'INTERNSHIP',
+          archived: false
         }
       }),
       

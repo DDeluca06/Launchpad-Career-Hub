@@ -8,7 +8,7 @@
  */
 
 import { validateApplicantDatabase } from '../lib/db-validation';
-import dotenv from 'dotenv';
+const dotenv = require('dotenv');
 
 // Load environment variables
 dotenv.config();
@@ -22,8 +22,8 @@ async function main() {
     if (result.success) {
       console.log('✅ Database validation successful!');
       console.log(`- Connection: OK`);
-      console.log(`- Schema: ${result.schema.tablesExist ? 'OK' : 'Missing tables'}`);
-      console.log(`- Relationships: ${result.schema.relationshipsValid ? 'OK' : 'Invalid'}`);
+      console.log(`- Schema: ${result.schema?.tablesExist ? 'OK' : 'Missing tables'}`);
+      console.log(`- Relationships: ${result.schema?.relationshipsValid ? 'OK' : 'Invalid'}`);
       console.log('\nDetails:', JSON.stringify(result, null, 2));
       process.exit(0);
     } else {

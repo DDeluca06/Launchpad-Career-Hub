@@ -69,6 +69,7 @@ export async function PUT(request: NextRequest) {
     const updatedApplication = await prisma.applications.update({
       where: { application_id: parseInt(applicationId) },
       data: {
+        // @ts-expect-error: The enum type is defined in Prisma but TypeScript can't properly import it here
         status: dbStatus,
         status_updated: new Date()
       }

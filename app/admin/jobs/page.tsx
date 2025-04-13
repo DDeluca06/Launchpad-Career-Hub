@@ -56,13 +56,12 @@ export default function AdminJobListings() {
   const [editingJob, setEditingJob] = useState<ExtendedJob | null>(null);
   const [newJob, setNewJob] = useState<NewJob>({
     title: "",
-    company: "",
+    company_id: 0,
     location: "",
     job_type: "FULL_TIME",
     description: "",
     website: "",
     tags: [],
-    partner_id: null
   });
 
   // Filter state
@@ -72,6 +71,7 @@ export default function AdminJobListings() {
     remoteOnly: false,
     keywords: "",
     tags: [],
+    partnerOnly: false,
   });
 
   // Add ref for job filters
@@ -199,9 +199,9 @@ export default function AdminJobListings() {
         const keywordsLower = activeFilters.keywords.toLowerCase();
         const matchesKeyword = 
           job.title.toLowerCase().includes(keywordsLower) ||
-          job.company.toLowerCase().includes(keywordsLower) ||
-          (job.description || "").toLowerCase().includes(keywordsLower) ||
-          (job.location || "").toLowerCase().includes(keywordsLower) ||
+          job.companies?.name?.toLowerCase().includes(keywordsLower) ||
+          job.description?.toLowerCase().includes(keywordsLower) ||
+          job.location?.toLowerCase().includes(keywordsLower) ||
           job.tags?.some(tag => tag.toLowerCase().includes(keywordsLower));
         
         if (!matchesKeyword) {
@@ -255,6 +255,7 @@ export default function AdminJobListings() {
       remoteOnly: false,
       keywords: "",
       tags: [],
+      partnerOnly: false,
     };
     setActiveFilters(defaultFilters);
     
@@ -306,7 +307,7 @@ export default function AdminJobListings() {
 
   const handleAddJob = async () => {
     // Validate required fields
-    if (!newJob.title || !newJob.company || !newJob.location) {
+    if (!newJob.title || !newJob.location) {
       alert("Please fill in all required fields");
       return;
     }
@@ -335,13 +336,12 @@ export default function AdminJobListings() {
       // Reset form
       setNewJob({
         title: "",
-        company: "",
+        company_id: 0,
         location: "",
         job_type: "FULL_TIME",
         description: "",
         website: "",
         tags: [],
-        partner_id: null
       });
       
       // Select the newly created job
@@ -362,7 +362,6 @@ export default function AdminJobListings() {
       // Update job via API
       const result = await updateJob(editingJob.job_id, {
         title: editingJob.title,
-        company: editingJob.company,
         location: editingJob.location || undefined,
         job_type: editingJob.job_type,
         description: editingJob.description || undefined,
@@ -442,7 +441,6 @@ export default function AdminJobListings() {
             if (value) {
               switch(header.toLowerCase()) {
                 case 'title': job.title = value; break;
-                case 'company': job.company = value; break;
                 case 'location': job.location = value; break;
                 case 'type': job.job_type = value as JobType; break;
                 case 'description': job.description = value; break;
@@ -450,7 +448,7 @@ export default function AdminJobListings() {
                 case 'tags': job.tags = value.split(';') as JobTag[]; break;
                 case 'partnerid': {
                   const partnerId = parseInt(value);
-                  job.partner_id = isNaN(partnerId) ? undefined : partnerId; 
+                  job.company_id = isNaN(partnerId) ? undefined : partnerId; 
                   break;
                 }
               }
@@ -458,7 +456,7 @@ export default function AdminJobListings() {
           });
           
           // Validate required fields
-          if (job.title && job.company && job.location) {
+          if (job.title && job.location) {
             try {
               // Create job via API
               const result = await createJob(job as NewJob);
@@ -570,17 +568,24 @@ export default function AdminJobListings() {
         // Create a demo job from "scraping"
         const jobData = {
           title: "Web Developer (Scraped)",
-          company: new URL(scrapingUrl).hostname.replace('www.', ''),
+          company_id: newJob.company_id,
           location: "Philadelphia, PA",
           job_type: "FULL_TIME" as JobType,
           description: "This is a simulated job scraped from " + scrapingUrl,
           website: scrapingUrl,
           tags: ["FRONT_END", "FULLY_REMOTE"] as JobTag[],
-          partner_id: newJob.partner_id // Use the partner ID from the form
         };
         
         // Create the job via API
-        const result = await createJob(jobData);
+        const result = await createJob({
+          title: jobData.title,
+          company_id: jobData.company_id,
+          location: jobData.location,
+          job_type: jobData.job_type,
+          description: jobData.description,
+          website: jobData.website,
+          tags: jobData.tags
+        });
         const createdJob = result.job;
         
         // Update UI

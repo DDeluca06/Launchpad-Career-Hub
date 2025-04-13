@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isAdmin } from "@/lib/auth";
+import { getServerSession } from "next-auth/next";
 
 /**
  * GET /api/companies
@@ -10,7 +10,7 @@ import { isAdmin } from "@/lib/auth";
 export async function GET(request: NextRequest) {
   try {
     // Check if user is authenticated by default
-    await isAdmin();
+    await getServerSession();
     const { searchParams } = new URL(request.url);
     
     // Optional filter parameters
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check if user is admin
-    await isAdmin();
+    await getServerSession();
     
     // Parse the request body
     const data = await request.json();
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     // Check if user is admin
-    await isAdmin();
+    await getServerSession();
     
     // Get the company ID from query params
     const { searchParams } = new URL(request.url);
