@@ -70,6 +70,8 @@ interface FilterOptions {
   location: string[];
   isRemote: boolean | null;
   industry: string[];
+  showSavedOnly: boolean;
+  hideAppliedJobs: boolean;
 }
 
 // Application tracking interfaces
@@ -80,7 +82,7 @@ interface Application {
   company: string;
   companyLogoUrl: string;
   appliedDate: string;
-  status: 'submitted' | 'reviewing' | 'interviewing' | 'rejected' | 'offered' | 'accepted';
+  status: 'submitted' | 'reviewing' | 'interviewing' | 'offered' | 'accepted' | 'rejected';
   notes?: string;
   nextSteps?: string;
   interviewDate?: string;
@@ -259,8 +261,11 @@ export default function JobsPage() {
     location: [],
     isRemote: null,
     industry: [],
+    showSavedOnly: false,
+    hideAppliedJobs: true,
   });
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
+  const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
   const [applicationData, setApplicationData] = useState({
     firstName: "",
     lastName: "",
@@ -274,6 +279,16 @@ export default function JobsPage() {
   const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
   const [isLoadingResumes, setIsLoadingResumes] = useState(false);
   const [quickViewJob, setQuickViewJob] = useState<UIJob | null>(null);
+
+  // Create a mapping between dashboard Kanban columns and job application statuses to maintain consistency
+  const DASHBOARD_TO_APPLICATION_STATUS: Record<string, Application['status']> = {
+    'interested': 'submitted',
+    'applied': 'submitted',  
+    'interview': 'interviewing',
+    'offer': 'offered',
+    'accepted': 'accepted',
+    'rejected': 'rejected'
+  };
 
   // Load data from database
   useEffect(() => {
@@ -421,6 +436,17 @@ export default function JobsPage() {
     loadData();
   }, [session, isAuthLoading]);
 
+  // Add a new effect to refresh saved jobs whenever the user returns to the page
+  useEffect(() => {
+    // Only run this if the user is logged in and we have successfully loaded the jobs
+    if (session?.user?.id && !loading && !isAuthLoading) {
+      // If the tab is "jobs", refresh the saved jobs
+      if (activeTab === "jobs") {
+        fetchUserApplications();
+      }
+    }
+  }, [activeTab, session, loading, isAuthLoading]);
+
   // Handle the jobId parameter when navigating from the dashboard
   useEffect(() => {
     // Extract jobId from URL query parameters
@@ -443,20 +469,25 @@ export default function JobsPage() {
     }
   }, [jobs, loading]);
 
-  // Map backend status to UI status
+  // Map backend database status to UI status aligned with dashboard Kanban columns
   const mapStatusToUI = (status: string): Application['status'] => {
+    // First map the database status to dashboard Kanban column
+    let dashboardStatus: string;
     switch (status) {
-      case "INTERESTED": return "submitted";
-      case "APPLIED": return "submitted";
+      case "INTERESTED": dashboardStatus = 'interested'; break;
+      case "APPLIED": dashboardStatus = 'applied'; break;
       case "PHONE_SCREENING": 
       case "INTERVIEW_STAGE": 
-      case "FINAL_INTERVIEW_STAGE": return "interviewing";
-      case "REJECTED": return "rejected";
+      case "FINAL_INTERVIEW_STAGE": dashboardStatus = 'interview'; break;
       case "OFFER_EXTENDED": 
-      case "NEGOTIATION": return "offered";
-      case "OFFER_ACCEPTED": return "accepted";
-      default: return "submitted";
+      case "NEGOTIATION": dashboardStatus = 'offer'; break;
+      case "OFFER_ACCEPTED": dashboardStatus = 'accepted'; break;
+      case "REJECTED": dashboardStatus = 'rejected'; break;
+      default: dashboardStatus = 'interested';
     }
+    
+    // Then map the dashboard status to application status
+    return DASHBOARD_TO_APPLICATION_STATUS[dashboardStatus] || 'submitted';
   };
 
   // Fetch user applications to keep the list in sync with the database
@@ -470,41 +501,56 @@ export default function JobsPage() {
       
       if (userApplicationsData.success) {
         console.log("Applications data:", userApplicationsData.applications);
-        // Transform applications to match UI format
-        const transformedApplications: Application[] = userApplicationsData.applications.map((app: {
-          application_id: number;
-          job_id: number;
-          jobs: {
-            title: string;
-            company: string;
-          };
-          applied_at: string;
-          status: string;
-        }) => {
-          return {
-            id: app.application_id.toString(),
-            jobId: app.job_id.toString(),
-            jobTitle: app.jobs.title,
-            company: app.jobs.company,
-            companyLogoUrl: "https://placehold.co/150",
-            appliedDate: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
-            status: mapStatusToUI(app.status),
-            notes: "",
-            nextSteps: app.status === "INTERVIEW_STAGE" ? "Interview scheduled" : "",
-            interviewDate: app.status === "INTERVIEW_STAGE" ? 
-              new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
-          };
-        });
-        
-        setApplications(transformedApplications);
         
         // Load user's saved jobs (INTERESTED status means saved)
         const savedJobIds = userApplicationsData.applications
           .filter((app: { status: string; job_id: number }) => app.status === "INTERESTED")
           .map((app: { job_id: number }) => app.job_id.toString());
         
+        // Track jobs the user has already applied for (any status except INTERESTED)
+        const appliedJobIds = userApplicationsData.applications
+          .filter((app: { status: string; job_id: number }) => app.status !== "INTERESTED")
+          .map((app: { job_id: number }) => app.job_id.toString());
+        
         console.log("Saved job IDs:", savedJobIds);
+        console.log("Applied job IDs:", appliedJobIds);
+        
         setSavedJobs(savedJobIds);
+        setAppliedJobs(appliedJobIds);
+        
+        // Transform applications to match UI format - but exclude INTERESTED status
+        // as these are shown separately in saved jobs
+        const transformedApplications: Application[] = userApplicationsData.applications
+          .filter((app: { status: string }) => app.status !== "INTERESTED")
+          .map((app: {
+            application_id: number;
+            job_id: number;
+            jobs: {
+              title: string;
+              company: string;
+            };
+            applied_at: string;
+            status: string;
+          }) => {
+            return {
+              id: app.application_id.toString(),
+              jobId: app.job_id.toString(),
+              jobTitle: app.jobs.title,
+              company: app.jobs.company,
+              companyLogoUrl: "https://placehold.co/150",
+              appliedDate: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
+              status: mapStatusToUI(app.status),
+              notes: "",
+              nextSteps: app.status === "INTERVIEW_STAGE" ? "Interview scheduled" : "",
+              interviewDate: app.status === "INTERVIEW_STAGE" ? 
+                new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
+            };
+          });
+        
+        setApplications(transformedApplications);
+        
+        // Reapply filters to ensure accurate display
+        applyFilters(jobs, filterOptions);
       }
     } catch (error) {
       console.error("Error loading applications:", error);
@@ -553,6 +599,16 @@ export default function JobsPage() {
   const applyFilters = (jobsToFilter: UIJob[], filters: FilterOptions) => {
     let results = [...jobsToFilter];
     
+    // Apply saved jobs filter first if enabled
+    if (filters.showSavedOnly) {
+      results = results.filter(job => savedJobs.includes(job.id));
+    }
+    
+    // Hide jobs the user has already applied for if enabled
+    if (filters.hideAppliedJobs) {
+      results = results.filter(job => !appliedJobs.includes(job.id));
+    }
+    
     if (searchTerm) {
       results = results.filter(job => 
         job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -584,6 +640,38 @@ export default function JobsPage() {
     setFilteredJobs(results);
   };
 
+  const toggleSavedJobsFilter = () => {
+    const updatedFilters = { 
+      ...filterOptions,
+      showSavedOnly: !filterOptions.showSavedOnly 
+    };
+    setFilterOptions(updatedFilters);
+    applyFilters(jobs, updatedFilters);
+  };
+
+  const toggleHideAppliedJobsFilter = () => {
+    const updatedFilters = { 
+      ...filterOptions,
+      hideAppliedJobs: !filterOptions.hideAppliedJobs 
+    };
+    setFilterOptions(updatedFilters);
+    applyFilters(jobs, updatedFilters);
+  };
+
+  const resetFilters = () => {
+    setFilterOptions({
+      jobType: [],
+      experienceLevel: [],
+      location: [],
+      isRemote: null,
+      industry: [],
+      showSavedOnly: false,
+      hideAppliedJobs: true,
+    });
+    setSearchTerm("");
+    setFilteredJobs(jobs.filter(job => !appliedJobs.includes(job.id)));
+  };
+
   const toggleSaveJob = (jobId: string) => {
     if (!currentUser) {
       toast.error("Please log in to save jobs");
@@ -608,6 +696,11 @@ export default function JobsPage() {
             toast.success("Job removed from saved jobs");
             // Refresh applications to sync with Kanban board
             fetchUserApplications();
+            
+            // If showing saved only, reapply filters to remove this job
+            if (filterOptions.showSavedOnly) {
+              applyFilters(jobs, filterOptions);
+            }
           } else {
             toast.error(data.error || "Failed to remove job from saved jobs");
           }
@@ -675,18 +768,6 @@ export default function JobsPage() {
     setApplyModalOpen(true);
   };
 
-  const resetFilters = () => {
-    setFilterOptions({
-      jobType: [],
-      experienceLevel: [],
-      location: [],
-      isRemote: null,
-      industry: [],
-    });
-    setSearchTerm("");
-    setFilteredJobs(jobs);
-  };
-
   // Submit job application
   const handleSubmitApplication = async () => {
     if (!selectedJob || !currentUser || !selectedResumeId) return;
@@ -744,7 +825,17 @@ export default function JobsPage() {
         notes: applicationData.idealCandidate
       };
       
+      // Update local state
       setApplications(prev => [...prev, newUIApplication]);
+      
+      // Add to applied jobs list
+      setAppliedJobs(prev => [...prev, selectedJob.id]);
+      
+      // If showing filtered jobs, update filtered list
+      if (filterOptions.hideAppliedJobs) {
+        setFilteredJobs(prev => prev.filter(job => job.id !== selectedJob.id));
+      }
+      
       setApplyModalOpen(false);
       
       // Reset form
@@ -757,13 +848,25 @@ export default function JobsPage() {
         idealCandidate: ""
       });
       
+      // Update saved jobs status if the job was saved before applying
+      if (savedJobs.includes(selectedJob.id)) {
+        // If the job was saved, remove it from saved jobs (since it's now applied)
+        setSavedJobs(prev => prev.filter(id => id !== selectedJob.id));
+      }
+      
+      // Refresh applications to ensure latest state from database
+      fetchUserApplications();
+      
       // Switch to applications tab
       setActiveTab("applications");
       
       // Select the newly created application
       setSelectedApplication(newUIApplication);
+      
+      toast.success("Application submitted successfully!");
     } catch (error) {
       console.error("Error submitting application:", error);
+      toast.error("Error submitting application. Please try again.");
     }
   };
 
@@ -807,24 +910,36 @@ export default function JobsPage() {
       );
     }
 
+    const hasApplied = appliedJobs.includes(job.id);
+
     return (
       <div className="p-6">
         <div className="flex justify-between items-start mb-6">
-          <h2 className="text-2xl font-bold">{job.title}</h2>
+          <div>
+            <h2 className="text-2xl font-bold">{job.title}</h2>
+            {hasApplied && (
+              <Badge className="mt-2 bg-green-100 text-green-800">
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                You've Applied
+              </Badge>
+            )}
+          </div>
           <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleToggleSave(job.id)}
-              className={isJobSaved(job.id) ? "text-yellow-500" : ""}
-              title={isJobSaved(job.id) ? "Remove from saved jobs" : "Save job"}
-              disabled={saving}
-            >
-              {saving ? 
-                <RefreshCw className="h-5 w-5 animate-spin" /> : 
-                (isJobSaved(job.id) ? <Bookmark className="h-5 w-5 fill-current" /> : <BookmarkPlus className="h-5 w-5" />)
-              }
-            </Button>
+            {!hasApplied && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleToggleSave(job.id)}
+                className={isJobSaved(job.id) ? "text-yellow-500" : ""}
+                title={isJobSaved(job.id) ? "Remove from saved jobs" : "Save job"}
+                disabled={saving}
+              >
+                {saving ? 
+                  <RefreshCw className="h-5 w-5 animate-spin" /> : 
+                  (isJobSaved(job.id) ? <Bookmark className="h-5 w-5 fill-current" /> : <BookmarkPlus className="h-5 w-5" />)
+                }
+              </Button>
+            )}
             {isJobSaved(job.id) && (
               <Button
                 variant="outline"
@@ -837,8 +952,50 @@ export default function JobsPage() {
                 View in Kanban
               </Button>
             )}
+            {hasApplied && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveTab("applications")}
+                className="text-sm"
+                title="View your application"
+              >
+                <FileText className="h-4 w-4 mr-1" />
+                View Application
+              </Button>
+            )}
           </div>
         </div>
+        
+        {/* Applied notification */}
+        {hasApplied && (
+          <div className="bg-green-50 p-4 rounded-md mb-6 border border-green-200">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-green-800 mb-1">Application Submitted</p>
+                <p className="text-sm text-green-700">
+                  You've already applied for this position. You can view the status of your application in the "My Applications" tab.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Important notice about job status tracking */}
+        {isJobSaved(job.id) && !hasApplied && (
+          <div className="bg-yellow-50 p-4 rounded-md mb-6 border border-yellow-200">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-yellow-800 mb-1">Job Saved</p>
+                <p className="text-sm text-yellow-700">
+                  This job is saved to your dashboard in the "Interested" column. You can track your application status by dragging the card between columns in the Kanban board.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
@@ -923,12 +1080,23 @@ export default function JobsPage() {
         </div>
         
         <div className="mt-8">
-          <Button 
-            onClick={() => openApplyModal(job)}
-            className="w-full md:w-auto"
-          >
-            Apply Now
-          </Button>
+          {hasApplied ? (
+            <Button 
+              variant="outline"
+              onClick={() => setActiveTab("applications")}
+              className="w-full md:w-auto"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              View Your Application
+            </Button>
+          ) : (
+            <Button 
+              onClick={() => openApplyModal(job)}
+              className="w-full md:w-auto"
+            >
+              Apply Now
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -936,17 +1104,17 @@ export default function JobsPage() {
 
   // Application tracking component
   function ApplicationsTracker() {
-    // Status badge with appropriate colors
+    // Status badge with appropriate colors to match Kanban columns
     const getStatusBadge = (status: Application['status']) => {
       switch (status) {
         case 'submitted':
-          return <Badge className="bg-blue-100 text-blue-800">Submitted</Badge>;
+          return <Badge className="bg-blue-100 text-blue-800">Interested/Applied</Badge>;
         case 'reviewing':
           return <Badge className="bg-purple-100 text-purple-800">Under Review</Badge>;
         case 'interviewing':
-          return <Badge className="bg-green-100 text-green-800">Interviewing</Badge>;
+          return <Badge className="bg-violet-100 text-violet-800">Interviewing</Badge>;
         case 'offered':
-          return <Badge className="bg-yellow-100 text-yellow-800">Offer Received</Badge>;
+          return <Badge className="bg-yellow-100 text-yellow-800">Offer Stage</Badge>;
         case 'accepted':
           return <Badge className="bg-green-100 text-green-800">Accepted</Badge>;
         case 'rejected':
@@ -964,7 +1132,7 @@ export default function JobsPage() {
         case 'reviewing':
           return <Clock className="h-5 w-5 text-purple-500" />;
         case 'interviewing':
-          return <Briefcase className="h-5 w-5 text-green-500" />;
+          return <Briefcase className="h-5 w-5 text-violet-500" />;
         case 'offered':
           return <FileText className="h-5 w-5 text-yellow-500" />;
         case 'accepted':
@@ -1211,11 +1379,46 @@ export default function JobsPage() {
                   <FilterX className="h-4 w-4" />
                   {showFilters ? "Hide Filters" : "Show Filters"}
                 </Button>
+                
+                <Button
+                  variant={filterOptions.showSavedOnly ? "default" : "outline"}
+                  className="gap-1"
+                  onClick={toggleSavedJobsFilter}
+                >
+                  <Bookmark className="h-4 w-4" />
+                  {filterOptions.showSavedOnly ? "All Jobs" : "Saved Jobs Only"}
+                </Button>
+                
+                <Button
+                  variant={filterOptions.hideAppliedJobs ? "default" : "outline"}
+                  className="gap-1"
+                  onClick={toggleHideAppliedJobsFilter}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {filterOptions.hideAppliedJobs ? "Show All" : "Hide Applied Jobs"}
+                </Button>
               </div>
             )}
           </div>
           
           <TabsContent value="jobs" className="mt-6">
+            {/* Helper info about applied jobs filter */}
+            {filterOptions.hideAppliedJobs && appliedJobs.length > 0 && (
+              <div className="bg-blue-50 p-3 rounded mb-4 text-sm text-blue-700 flex items-center gap-2">
+                <Info className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                <p>
+                  <strong>{appliedJobs.length}</strong> jobs you've applied for are currently hidden. 
+                  <Button 
+                    variant="link" 
+                    onClick={toggleHideAppliedJobsFilter} 
+                    className="p-0 h-auto text-blue-700 font-medium"
+                  >
+                    Show them
+                  </Button>
+                </p>
+              </div>
+            )}
+            
             {/* Search and Filters for Jobs Tab */}
             <div className="flex flex-wrap gap-3 mb-6">
               <div className="relative flex-1 min-w-[260px]">
@@ -1232,7 +1435,9 @@ export default function JobsPage() {
                 filterOptions.experienceLevel.length > 0 || 
                 filterOptions.location.length > 0 || 
                 filterOptions.industry.length > 0 || 
-                filterOptions.isRemote !== null) && (
+                filterOptions.isRemote !== null ||
+                filterOptions.showSavedOnly ||
+                !filterOptions.hideAppliedJobs) && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -1330,7 +1535,8 @@ export default function JobsPage() {
                             key={job.id} 
                             className={cn(
                               "cursor-pointer hover:shadow transition-shadow",
-                              selectedJob?.id === job.id && "ring-2 ring-blue-400 border-l-4 border-blue-400"
+                              selectedJob?.id === job.id && "ring-2 ring-blue-400 border-l-4 border-blue-400",
+                              appliedJobs.includes(job.id) && "border-l-4 border-green-400"
                             )}
                             onClick={() => setSelectedJob(job)}
                           >
@@ -1357,6 +1563,12 @@ export default function JobsPage() {
                                       <Badge variant="outline" className="text-xs flex items-center gap-1">
                                         <Globe className="h-3 w-3" />
                                         Remote
+                                      </Badge>
+                                    )}
+                                    {appliedJobs.includes(job.id) && (
+                                      <Badge className="bg-green-100 text-green-800 text-xs flex items-center gap-1">
+                                        <CheckCircle2 className="h-3 w-3" />
+                                        Applied
                                       </Badge>
                                     )}
                                   </div>
