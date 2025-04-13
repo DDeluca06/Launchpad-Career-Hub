@@ -1,5 +1,3 @@
-import { auth } from './auth';
-
 // Get the client session
 export const getClientSession = async () => {
   try {
@@ -14,15 +12,14 @@ export const getClientSession = async () => {
     
     // Check if response is ok
     if (!response.ok) {
-      console.error('Session response not OK:', response.status, response.statusText);
       return null;
     }
     
     // Parse response
     const data = await response.json();
     return data;
-  } catch (error) {
-    console.error('Error getting client session:', error);
+  } catch (clientError) {
+    console.error('Error fetching session:', clientError);
     return null;
   }
 };
@@ -53,8 +50,8 @@ export const logoutUser = async () => {
     
     // Force a complete page reload to clear all browser state
     window.location.href = `/?t=${timestamp}`;
-  } catch (error) {
-    console.error('Error logging out:', error);
+  } catch (logoutError) {
+    console.error('Error logging out:', logoutError);
     window.location.href = '/'; // Fallback to basic redirect
   }
 }; 

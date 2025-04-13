@@ -1,5 +1,3 @@
-import { prisma } from '@/lib/prisma';
-
 // Simplified auth implementation
 export const auth = {
   api: {
@@ -8,10 +6,8 @@ export const auth = {
         try {
           // Get session token from cookies
           const cookieHeader = request.headers.get('cookie');
-          console.log('Cookie header:', cookieHeader);
           
           if (!cookieHeader) {
-            console.log('No cookie header found');
             return null;
           }
           
@@ -22,29 +18,21 @@ export const auth = {
             return acc;
           }, {} as Record<string, string>);
           
-          console.log('Parsed cookies:', cookies);
-          
           const sessionId = cookies['session-id'];
           if (!sessionId) {
-            console.log('No session-id cookie found');
             return null;
           }
-          
-          console.log('Found session ID:', sessionId);
           
           // Try to parse as JSON
           try {
             // Decode URI component first to handle URL encoding
             const decodedSessionId = decodeURIComponent(sessionId);
-            console.log('Decoded session ID:', decodedSessionId);
             
             // Convert from base64 to string
             const decodedString = Buffer.from(decodedSessionId, 'base64').toString();
-            console.log('Decoded string:', decodedString);
             
             // Parse the JSON
             const sessionData = JSON.parse(decodedString);
-            console.log('Parsed session data:', sessionData);
             
             if (sessionData && typeof sessionData === 'object' && 'id' in sessionData) {
               return {
@@ -54,15 +42,15 @@ export const auth = {
                 }
               };
             } else {
-              console.log('Invalid session data format:', sessionData);
               return null;
             }
-          } catch (jsonError) {
-            console.error('Error parsing session:', jsonError);
+          } catch (jsonParseError) {
+            console.error('Failed to parse session JSON:', jsonParseError);
             return null;
           }
-        } catch (error) {
-          console.error('Session error:', error);
+        } catch (sessionError) {
+          console.error('Error retrieving session:', sessionError);
+
           return null;
         }
       }

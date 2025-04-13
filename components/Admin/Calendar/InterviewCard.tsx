@@ -15,7 +15,7 @@ interface InterviewCardProps {
   onStatusUpdate?: (interview: Interview, status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED') => void;
 }
 
-export function InterviewCard({ interview, onEdit, onCancel, onComplete }: InterviewCardProps) {
+export function InterviewCard({ interview, onEdit, onStatusUpdate }: InterviewCardProps) {
   const getStatusColor = (status: string = 'SCHEDULED') => {
     switch (status) {
       case 'SCHEDULED':
@@ -27,6 +27,15 @@ export function InterviewCard({ interview, onEdit, onCancel, onComplete }: Inter
       default:
         return 'bg-gray-100 text-gray-700';
     }
+  };
+
+  // Handler functions for the buttons
+  const handleComplete = () => {
+    onStatusUpdate?.(interview, 'COMPLETED');
+  };
+
+  const handleCancel = () => {
+    onStatusUpdate?.(interview, 'CANCELLED');
   };
 
   return (
@@ -71,7 +80,7 @@ export function InterviewCard({ interview, onEdit, onCancel, onComplete }: Inter
               size="sm"
               className="flex-1"
               style={{ borderColor: extendedPalette.primaryGreen, color: extendedPalette.primaryGreen }}
-              onClick={() => onComplete?.(interview)}
+              onClick={handleComplete}
             >
               Complete
             </Button>
@@ -80,7 +89,7 @@ export function InterviewCard({ interview, onEdit, onCancel, onComplete }: Inter
               size="sm"
               className="flex-1"
               style={{ borderColor: extendedPalette.primaryOrange, color: extendedPalette.primaryOrange }}
-              onClick={() => onCancel?.(interview)}
+              onClick={handleCancel}
             >
               Cancel
             </Button>

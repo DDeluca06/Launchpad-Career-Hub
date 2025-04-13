@@ -1,15 +1,15 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useContext } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/basic/card"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card"
 import { Button } from "@/components/ui/basic/button"
 import { Input } from "@/components/ui/form/input"
 import { Label } from "@/components/ui/basic/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
 import { Check, Save, Camera } from "lucide-react"
-import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { AuthContext } from "@/app/providers"
 
 type ProgramType = "FOUNDATIONS" | "ONE_ZERO_ONE" | "LIFTOFF" | "ALUMNI";
 
@@ -34,12 +34,7 @@ export default function ApplicantSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   
-  const { data: session, status } = useSession({
-    required: true,
-    onUnauthenticated() {
-      router.push('/login')
-    }
-  })
+  const { session, loading } = useContext(AuthContext);
 
   // User settings state
   const [userSettings, setUserSettings] = useState({
@@ -52,18 +47,21 @@ export default function ApplicantSettingsPage() {
   })
 
   useEffect(() => {
-    if (status === "loading") return;
+    if (loading) return;
     
-    if (session?.user) {
-      // Pre-fill form with user data
-      setUserSettings(prev => ({
-        ...prev,
-        email: session.user.email || "",
-        program: session.user.program || "foundations",
-        last_name: session.user.last_name || ""
-      }));
-   }
-  }, [session, status]);
+    if (!session?.user) {
+      router.push('/login');
+      return;
+    }
+    
+    // Pre-fill form with user data
+    setUserSettings(prev => ({
+      ...prev,
+      email: session.user!.email || "",
+      program: session.user!.isAdmin ? "ALUMNI" : "FOUNDATIONS", // Fallback for missing program
+      last_name: session.user!.lastName || ""
+    }));
+  }, [session, loading, router]);
 
   // Handle setting change
   const handleSettingChange = (key: string, value: string | boolean) => {
@@ -77,13 +75,15 @@ export default function ApplicantSettingsPage() {
     if (!session?.user) return;
 
     try {
-      const response = await fetch('/api/users/me', {
+      const response = await fetch('/api/users', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: userSettings.email,
+          firstName: session.user!.firstName,
+          lastName: userSettings.last_name,
           program: userSettings.program,
         }),
       });
@@ -127,7 +127,7 @@ export default function ApplicantSettingsPage() {
     fileInputRef.current?.click();
   }
 
-  if (status === "loading") {
+  if (loading) {
     return (
       <DashboardLayout>
         <div className="flex min-h-screen items-center justify-center">
@@ -137,7 +137,7 @@ export default function ApplicantSettingsPage() {
     );
   }
 
-  if (!session) {
+  if (!session?.user) {
     return null;
   }
 
@@ -248,45 +248,40 @@ export default function ApplicantSettingsPage() {
             </div>
           </div>
         </Card>
-
-        <Card className="mt-4">
+        
+        {/* Password Card */}
+        <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Password</CardTitle>
+            <CardTitle>Security</CardTitle>
             <CardDescription>Update your password</CardDescription>
           </CardHeader>
           <div className="p-6 border-t">
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="current-password">Current Password</Label>
-                <Input id="current-password" type="password" />
+                <Label htmlFor="password">New Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={userSettings.password}
+                  onChange={(e) => handleSettingChange('password', e.target.value)}
+                />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={userSettings.password}
-                    onChange={(e) => handleSettingChange('password', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={userSettings.confirmPassword}
-                    onChange={(e) => handleSettingChange('confirmPassword', e.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={userSettings.confirmPassword}
+                  onChange={(e) => handleSettingChange('confirmPassword', e.target.value)}
+                />
               </div>
             </div>
+            <div className="mt-4">
+              <Button size="sm" variant="outline">Change Password</Button>
+            </div>
           </div>
-          <CardFooter className="bg-gray-50 border-t">
-            <Button variant="outline" size="sm">Update Password</Button>
-          </CardFooter>
         </Card>
       </div>
     </DashboardLayout>
-  )
+  );
 }

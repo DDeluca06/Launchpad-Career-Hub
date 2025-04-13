@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/basic/button";
 import { motion } from "framer-motion";
@@ -141,7 +141,6 @@ function NavSection({ title, items, pathname }: NavSectionProps) {
  */
 export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const baseUrl = isAdmin ? "/admin" : "/applicant";
 
   const mainNavItems: NavItem[] = [
