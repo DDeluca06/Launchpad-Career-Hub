@@ -30,7 +30,7 @@ export interface NewCompany {
  */
 export async function fetchCompanies() {
   try {
-    const companies = await prisma.company.findMany({
+    const companies = await prisma.companies.findMany({
       orderBy: { name: 'asc' },
     });
     return companies;
@@ -45,7 +45,7 @@ export async function fetchCompanies() {
  */
 export async function getCompanyById(id: number) {
   try {
-    const company = await prisma.company.findUnique({
+    const company = await prisma.companies.findUnique({
       where: { company_id: id },
     });
     return company;
@@ -62,7 +62,7 @@ export async function getCompanyById(id: number) {
 export async function findCompanyByName(name: string) {
   try {
     // Use a case-insensitive search
-    const companies = await prisma.company.findMany({
+    const companies = await prisma.companies.findMany({
       where: {
         name: {
           mode: 'insensitive',
@@ -95,7 +95,7 @@ export async function createCompany(companyData: NewCompany) {
     }
     
     // Create the company if no duplicates exist
-    const company = await prisma.company.create({
+    const company = await prisma.companies.create({
       data: companyData,
     });
     
@@ -120,7 +120,7 @@ export async function updateCompany(id: number, companyData: Partial<NewCompany>
       const existingCompanies = await findCompanyByName(companyData.name);
       
       // If we found a company with this name that's not the one we're updating
-      const duplicate = existingCompanies.find(c => c.company_id !== id);
+      const duplicate = existingCompanies.find((c: { company_id: number }) => c.company_id !== id);
       
       if (duplicate) {
         return {
@@ -131,7 +131,7 @@ export async function updateCompany(id: number, companyData: Partial<NewCompany>
       }
     }
     
-    const company = await prisma.company.update({
+    const company = await prisma.companies.update({
       where: { company_id: id },
       data: companyData,
     });
@@ -152,7 +152,7 @@ export async function updateCompany(id: number, companyData: Partial<NewCompany>
  */
 export async function linkCompanyToPartner(companyId: number, partnerId: number) {
   try {
-    const company = await prisma.company.update({
+    const company = await prisma.companies.update({
       where: { company_id: companyId },
       data: { is_partner: true },
     });

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import Link from "next/link";
-import { BarChart3, Briefcase, Building, ChevronRight, Users, Plus, List } from "lucide-react";
+import { Building, ChevronRight, Users, Plus, List } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 
 /**

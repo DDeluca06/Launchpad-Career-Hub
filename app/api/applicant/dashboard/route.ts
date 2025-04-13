@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     }
 
     // First try using NextAuth
-    let session = await getServerSession();
+    const session = await getServerSession();
     let email = session?.user?.email;
     
     // If NextAuth fails, try the custom auth implementation
@@ -33,19 +33,19 @@ export async function GET(request: Request) {
         });
         if (user) {
           email = user.email;
-          console.log('Using custom auth with email:', email);
+          console.warn('Using custom auth with email:', email);
         }
       }
     }
 
-    console.log('Session data:', session); // Debug log
+    console.warn('Session data:', session); // Debug log
     
     if (!email) {
-      console.log('No user email in session'); // Debug log
+      console.warn('No user email in session'); // Debug log
       return NextResponse.json({ error: 'Unauthorized', message: 'No user email found in session' }, { status: 401 });
     }
 
-    console.log('Fetching data for email:', email); // Debug log
+    console.warn('Fetching data for email:', email); // Debug log
 
     const applicant = await prisma.users.findFirst({
       where: {
@@ -69,12 +69,12 @@ export async function GET(request: Request) {
     });
 
     if (!applicant) {
-      console.log('No applicant found for email:', email); // Debug log
+      console.warn('No applicant found for email:', email); // Debug log
       return NextResponse.json({ error: 'Applicant not found', message: 'User exists but no applicant record found' }, { status: 404 });
     }
 
     // Verify that we have applications data
-    console.log(`Found ${applicant.applications.length} applications for user ID: ${applicant.user_id}`);
+    console.warn(`Found ${applicant.applications.length} applications for user ID: ${applicant.user_id}`);
 
     type ApplicationWithJob = Prisma.applicationsGetPayload<{
       include: { jobs: true }
@@ -104,7 +104,7 @@ export async function GET(request: Request) {
       }
     };
 
-    console.log('Successfully retrieved dashboard data for user ID:', applicant.user_id);
+    console.warn('Successfully retrieved dashboard data for user ID:', applicant.user_id);
     return NextResponse.json(response);
   } catch (error) {
     console.error('Dashboard API Error:', error);

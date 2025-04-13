@@ -96,7 +96,7 @@ export function CreateUserModal({
               placeholder="••••••••"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              If left blank, default password will be 'Changeme'
+              If left blank, default password will be &apos;Changeme&apos;
             </p>
           </div>
         )}

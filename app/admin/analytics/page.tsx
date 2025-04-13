@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/basic/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
-import { BarChart2, Download, FileText, Users, Briefcase, Award, Percent } from "lucide-react";
+import { Download, FileText, Users, Briefcase, Award, Percent } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 
 // Import modular components

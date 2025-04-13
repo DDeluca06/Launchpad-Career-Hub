@@ -1,6 +1,6 @@
 "use client";
 
-import { User, UserAccessSettingsProps } from "./types";
+import { User } from "./types";
 import { UserAccessManager } from "./UserAccessManager";
 
 interface SettingsTabsProps {

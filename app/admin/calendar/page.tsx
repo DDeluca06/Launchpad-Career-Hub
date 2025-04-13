@@ -75,7 +75,7 @@ function CalendarContent() {
       const data = await response.json();
 
       if (data.success) {
-        console.log("Loaded interviews:", data.data.length);
+        console.warn("Loaded interviews:", data.data.length);
         setInterviews(data.data);
         if (data.users) {
           setUsers(data.users);
@@ -90,7 +90,7 @@ function CalendarContent() {
           })
           .sort((a: ApiInterview, b: ApiInterview) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
           .slice(0, 3);
-        console.log("Upcoming interviews:", upcomingCount.length);
+        console.warn("Upcoming interviews:", upcomingCount.length);
       }
     } catch (error) {
       console.error("Failed to load interviews:", error);
