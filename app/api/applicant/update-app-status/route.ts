@@ -4,19 +4,19 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { ApplicationStatus } from '@/lib/prisma-enums';
 
-// Map Kanban status to database status
-const STATUS_MAP: Record<string, ApplicationStatus> = {
+// Define the status mappings from UI columns to database values
+const COLUMN_TO_DB_STATUS: Record<string, ApplicationStatus> = {
   'interested': ApplicationStatus.INTERESTED,
   'applied': ApplicationStatus.APPLIED,
-  'interview': ApplicationStatus.INTERVIEW_STAGE,
-  'offer': ApplicationStatus.OFFER_EXTENDED,
+  'interview': ApplicationStatus.INTERVIEW_STAGE, // Default if no sub-stage
+  'offer': ApplicationStatus.OFFER_EXTENDED, // Default if no sub-stage
   'accepted': ApplicationStatus.OFFER_ACCEPTED,
   'rejected': ApplicationStatus.REJECTED,
   'referrals': ApplicationStatus.INTERESTED
 };
 
-// Map sub-stages to specific database statuses
-const SUB_STAGE_MAP: Record<string, ApplicationStatus> = {
+// Define the sub-stage mappings
+const SUB_STAGE_TO_DB_STATUS: Record<string, ApplicationStatus> = {
   'phone_screening': ApplicationStatus.PHONE_SCREENING,
   'interview_stage': ApplicationStatus.INTERVIEW_STAGE,
   'final_interview_stage': ApplicationStatus.FINAL_INTERVIEW_STAGE,
@@ -27,10 +27,7 @@ const SUB_STAGE_MAP: Record<string, ApplicationStatus> = {
 /**
  * API endpoint to update an application status from the Kanban board
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
     // Auth check
     let email;
@@ -59,29 +56,35 @@ export async function PATCH(
       }, { status: 401 });
     }
     
-    // Get the application ID from the route parameter
-    const applicationId = params.id;
-    
     // Get the request body
     const data = await request.json();
-    const { status, subStage } = data;
+    const { applicationId, columnStatus, subStage } = data;
     
-    if (!status) {
+    if (!applicationId || !columnStatus) {
       return NextResponse.json({ 
         success: false, 
-        error: 'Status is required' 
+        error: 'Application ID and column status are required' 
       }, { status: 400 });
     }
     
-    // Determine the database status based on the main status and sub-stage
+    // Determine the database status based on the column and sub-stage
     let dbStatus: ApplicationStatus;
     
-    // If we have a sub-stage, use it to determine the status
-    if (subStage && SUB_STAGE_MAP[subStage]) {
-      dbStatus = SUB_STAGE_MAP[subStage];
+    // If we have a sub-stage that can override the column status, use it
+    if (subStage && SUB_STAGE_TO_DB_STATUS[subStage]) {
+      dbStatus = SUB_STAGE_TO_DB_STATUS[subStage];
+      console.log(`Using sub-stage mapping: ${subStage} -> ${dbStatus}`);
     } else {
-      // Otherwise, map from the main status
-      dbStatus = STATUS_MAP[status] || ApplicationStatus.APPLIED;
+      // Otherwise use the column status mapping
+      dbStatus = COLUMN_TO_DB_STATUS[columnStatus];
+      console.log(`Using column mapping: ${columnStatus} -> ${dbStatus}`);
+    }
+    
+    if (!dbStatus) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `Invalid status combination: Column=${columnStatus}, SubStage=${subStage || 'none'}` 
+      }, { status: 400 });
     }
     
     // Get the user ID
@@ -119,12 +122,14 @@ export async function PATCH(
       });
     }
     
+    console.log(`Updating application ${applicationId} to status: ${dbStatus}, subStage: ${subStage || 'none'}`);
+    
     // Update the application status
     const updatedApplication = await prisma.applications.update({
       where: { application_id: parseInt(applicationId) },
       data: {
         status: dbStatus,
-        sub_stage: subStage,
+        sub_stage: subStage || null,
         status_updated: new Date()
       }
     });
@@ -143,7 +148,8 @@ export async function PATCH(
       message: 'Application status updated successfully',
       application: {
         id: updatedApplication.application_id,
-        status: updatedApplication.status
+        status: updatedApplication.status,
+        subStage: updatedApplication.sub_stage
       }
     });
   } catch (error) {

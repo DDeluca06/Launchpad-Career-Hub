@@ -72,6 +72,21 @@ export default function ApplicantDashboard() {
   const [error, setError] = useState<ApiError | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
+  // Prevent default form submissions and navigation
+  useEffect(() => {
+    const preventSubmit = (e: Event) => {
+      if ((e.target as HTMLElement).tagName === 'FORM') {
+        e.preventDefault();
+        console.log('Form submission prevented');
+      }
+    };
+    
+    document.addEventListener('submit', preventSubmit);
+    return () => {
+      document.removeEventListener('submit', preventSubmit);
+    };
+  }, []);
+
   // Load dashboard data from our API
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -140,69 +155,41 @@ export default function ApplicantDashboard() {
     });
   };
 
+  // Transform applications for Kanban
+  const kanbanApplications = transformForKanban(data?.applications);
+
   // Add a handler for status changes
   const handleStatusChange = async (applicationId: string, newStatus: string, subStage?: string) => {
     try {
-      // Find the appropriate API status based on the new status and subStage
-      let apiStatus = Object.keys(STATUS_MAP).find(
-        key => STATUS_MAP[key] === newStatus && 
-              (newStatus === 'accepted' || newStatus === 'rejected' || 
-               (!subStage || SUB_STAGE_MAP[key] === subStage))
-      );
-
-      // If we couldn't find a perfect match, use a default based on column
-      if (!apiStatus) {
-        switch (newStatus) {
-          case 'interested':
-            apiStatus = 'INTERESTED';
-            break;
-          case 'applied':
-            apiStatus = 'APPLIED';
-            break;
-          case 'interview':
-            apiStatus = subStage === 'phone_screening' ? 'PHONE_SCREENING' :
-                       subStage === 'interview_stage' ? 'INTERVIEW_STAGE' :
-                       subStage === 'final_interview_stage' ? 'FINAL_INTERVIEW_STAGE' :
-                       'INTERVIEW_STAGE';
-            break;
-          case 'offer':
-            apiStatus = subStage === 'negotiation' ? 'NEGOTIATION' :
-                       subStage === 'offer_extended' ? 'OFFER_EXTENDED' :
-                       'OFFER_EXTENDED';
-            break;
-          case 'accepted':
-            apiStatus = 'OFFER_ACCEPTED';
-            break;
-          case 'rejected':
-            apiStatus = 'REJECTED';
-            break;
-          case 'referrals':
-            apiStatus = 'INTERESTED';
-            break;
-          default:
-            apiStatus = 'APPLIED';
-        }
-      }
-
-      // Update in the API
-      const response = await fetch(`/api/applicant/applications/${applicationId}/status`, {
-        method: 'PATCH',
+      console.log(`Attempting to update application ${applicationId} to: ${newStatus} (${subStage || 'no sub-stage'})`);
+      
+      // Direct API call with exactly what columns need
+      const response = await fetch(`/api/applicant/update-app-status`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          status: apiStatus
+          applicationId,
+          columnStatus: newStatus,
+          subStage
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update application status');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update application status');
       }
 
       // Refresh the dashboard data
       setRetryCount(prev => prev + 1);
+      
+      // Return a resolved promise to indicate success
+      return Promise.resolve();
     } catch (error) {
       console.error('Error updating application status:', error);
+      // Return a rejected promise to indicate failure
+      return Promise.reject(error);
     }
   };
 
@@ -292,9 +279,6 @@ export default function ApplicantDashboard() {
     );
   }
 
-  // Transform applications for Kanban
-  const kanbanApplications = transformForKanban(data?.applications);
-
   return (
     <DashboardLayout>
       <div className="container py-6 px-4 mx-auto pb-24">
@@ -307,7 +291,7 @@ export default function ApplicantDashboard() {
               )}
             </div>
             <div className="flex space-x-2">
-              <Button onClick={() => router.push('/applicant/jobs')}>
+              <Button type="button" onClick={() => router.push('/applicant/jobs')}>
                 Find Jobs
               </Button>
             </div>
@@ -332,6 +316,7 @@ export default function ApplicantDashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Application Status</h2>
               <Button 
+                type="button"
                 onClick={() => router.push('/applicant/jobs')} 
                 size="sm"
                 className="flex items-center gap-1"
