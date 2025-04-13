@@ -196,7 +196,8 @@ export default function ApplicantDashboard() {
   // Handle clicking on job details
   const handleViewJobDetails = (applicationId: string, jobId?: string | number) => {
     if (jobId) {
-      router.push(`/applicant/jobs/${jobId}`);
+      // Navigate to the jobs page with the specific job selected
+      router.push(`/applicant/jobs?jobId=${jobId}`);
     } else {
       // If no job ID is available, perhaps show application details instead
       console.log(`View application details: ${applicationId}`);

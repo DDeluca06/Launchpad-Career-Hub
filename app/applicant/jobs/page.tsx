@@ -15,6 +15,7 @@ import {
   FileText,
   FilterX,
   Globe, 
+  Info,
   MapPin, 
   RefreshCw,
   Search, 
@@ -28,9 +29,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/naviga
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/data-display/skeleton";
 import { cn } from "@/lib/utils";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { toast } from "sonner";
 import { AuthContext } from "@/app/providers";
+import { useRouter } from "next/navigation";
 
 // Types
 interface UIJob {
@@ -251,6 +252,7 @@ export default function JobsPage() {
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"jobs" | "applications">("jobs");
   const [applyModalOpen, setApplyModalOpen] = useState<boolean>(false);
+  const router = useRouter();
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     jobType: [],
     experienceLevel: [],
@@ -271,6 +273,7 @@ export default function JobsPage() {
   const [userResumes, setUserResumes] = useState<Resume[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
   const [isLoadingResumes, setIsLoadingResumes] = useState(false);
+  const [quickViewJob, setQuickViewJob] = useState<UIJob | null>(null);
 
   // Load data from database
   useEffect(() => {
@@ -383,49 +386,7 @@ export default function JobsPage() {
       
       // Load user's applications if user is logged in
       if (session?.user?.id) {
-        try {
-          const userApplicationsResponse = await fetch(`/api/applications?userId=${session.user.id}`);
-          const userApplicationsData = await userApplicationsResponse.json();
-          
-          if (userApplicationsData.success) {
-            // Transform applications to match UI format
-            const transformedApplications: Application[] = userApplicationsData.applications.map((app: {
-              application_id: number;
-              job_id: number;
-              jobs: {
-                title: string;
-                company: string;
-              };
-              applied_at: string;
-              status: string;
-            }) => {
-              return {
-                id: app.application_id.toString(),
-                jobId: app.job_id.toString(),
-                jobTitle: app.jobs.title,
-                company: app.jobs.company,
-                companyLogoUrl: "https://placehold.co/150",
-                appliedDate: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
-                status: mapStatusToUI(app.status),
-                notes: "",
-                nextSteps: app.status === "INTERVIEW_STAGE" ? "Interview scheduled" : "",
-                interviewDate: app.status === "INTERVIEW_STAGE" ? 
-                  new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
-              };
-            });
-            
-            setApplications(transformedApplications);
-            
-            // Load user's saved jobs (we'll use a convention where "INTERESTED" status means saved)
-            const savedJobIds = userApplicationsData.applications
-              .filter((app: { status: string; job_id: number }) => app.status === "INTERESTED")
-              .map((app: { job_id: number }) => app.job_id.toString());
-            
-            setSavedJobs(savedJobIds);
-          }
-        } catch (error) {
-          console.error("Error loading applications:", error);
-        }
+        fetchUserApplications();
       }
       
       // Load user's resumes if user is logged in
@@ -460,9 +421,32 @@ export default function JobsPage() {
     loadData();
   }, [session, isAuthLoading]);
 
+  // Handle the jobId parameter when navigating from the dashboard
+  useEffect(() => {
+    // Extract jobId from URL query parameters
+    const queryParams = new URLSearchParams(window.location.search);
+    const jobId = queryParams.get('jobId');
+    
+    // If jobId is present and jobs are loaded
+    if (jobId && jobs.length > 0 && !loading) {
+      // Find the job with the matching ID
+      const job = jobs.find(j => j.id === jobId);
+      if (job) {
+        // Select the job and ensure we're on the jobs tab
+        setSelectedJob(job);
+        setActiveTab('jobs');
+        
+        // Remove the query parameter from the URL to avoid issues with browser refreshing
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, [jobs, loading]);
+
   // Map backend status to UI status
   const mapStatusToUI = (status: string): Application['status'] => {
     switch (status) {
+      case "INTERESTED": return "submitted";
       case "APPLIED": return "submitted";
       case "PHONE_SCREENING": 
       case "INTERVIEW_STAGE": 
@@ -471,8 +455,59 @@ export default function JobsPage() {
       case "OFFER_EXTENDED": 
       case "NEGOTIATION": return "offered";
       case "OFFER_ACCEPTED": return "accepted";
-      case "INTERESTED": return "submitted";
       default: return "submitted";
+    }
+  };
+
+  // Fetch user applications to keep the list in sync with the database
+  const fetchUserApplications = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      console.log("Fetching applications for user ID:", session.user.id);
+      const userApplicationsResponse = await fetch(`/api/applications?userId=${session.user.id}`);
+      const userApplicationsData = await userApplicationsResponse.json();
+      
+      if (userApplicationsData.success) {
+        console.log("Applications data:", userApplicationsData.applications);
+        // Transform applications to match UI format
+        const transformedApplications: Application[] = userApplicationsData.applications.map((app: {
+          application_id: number;
+          job_id: number;
+          jobs: {
+            title: string;
+            company: string;
+          };
+          applied_at: string;
+          status: string;
+        }) => {
+          return {
+            id: app.application_id.toString(),
+            jobId: app.job_id.toString(),
+            jobTitle: app.jobs.title,
+            company: app.jobs.company,
+            companyLogoUrl: "https://placehold.co/150",
+            appliedDate: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
+            status: mapStatusToUI(app.status),
+            notes: "",
+            nextSteps: app.status === "INTERVIEW_STAGE" ? "Interview scheduled" : "",
+            interviewDate: app.status === "INTERVIEW_STAGE" ? 
+              new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
+          };
+        });
+        
+        setApplications(transformedApplications);
+        
+        // Load user's saved jobs (INTERESTED status means saved)
+        const savedJobIds = userApplicationsData.applications
+          .filter((app: { status: string; job_id: number }) => app.status === "INTERESTED")
+          .map((app: { job_id: number }) => app.job_id.toString());
+        
+        console.log("Saved job IDs:", savedJobIds);
+        setSavedJobs(savedJobIds);
+      }
+    } catch (error) {
+      console.error("Error loading applications:", error);
     }
   };
 
@@ -550,34 +585,80 @@ export default function JobsPage() {
   };
 
   const toggleSaveJob = (jobId: string) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      toast.error("Please log in to save jobs");
+      return;
+    }
     
     const numericJobId = parseInt(jobId);
     
     // Update local state
     setSavedJobs(prevSavedJobs => {
-      if (prevSavedJobs.includes(jobId)) {
-        // Remove from saved jobs
-        
-        // Find and delete the "interested" application in database
-        fetch(`/api/applications/${numericJobId}`, {
+      const isCurrentlySaved = prevSavedJobs.includes(jobId);
+      
+      if (isCurrentlySaved) {
+        // Use our new endpoint to remove saved job by job_id
+        fetch(`/api/applications/job/${numericJobId}?userId=${currentUser.user_id}`, {
           method: "DELETE",
+        })
+        .then(async response => {
+          const data = await response.json();
+          
+          if (response.ok && data.success) {
+            toast.success("Job removed from saved jobs");
+            // Refresh applications to sync with Kanban board
+            fetchUserApplications();
+          } else {
+            toast.error(data.error || "Failed to remove job from saved jobs");
+          }
+        })
+        .catch(error => {
+          console.error("Error removing saved job:", error);
+          toast.error("Error removing job from saved jobs");
         });
         
         return prevSavedJobs.filter(id => id !== jobId);
       } else {
-        // Add to saved jobs
+        // Add to saved jobs with INTERESTED status to show in Kanban
+        const selectedJob = jobs.find(job => job.id === jobId);
         
-        // Create a new "interested" application in database
+        if (!selectedJob) {
+          toast.error("Job not found");
+          return prevSavedJobs;
+        }
+        
+        // Add the job position to match the API expectation
         fetch("/api/applications", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            jobId: numericJobId,
-            status: "interested",
+            user_id: parseInt(currentUser.user_id.toString()),
+            job_id: numericJobId,
+            status: "INTERESTED", // Use INTERESTED status to show in Kanban
+            position: selectedJob.title
           }),
+        })
+        .then(async response => {
+          const data = await response.json();
+          
+          if (response.ok && data.success) {
+            toast.success("Job saved to your dashboard");
+            // Refresh applications to sync with Kanban board
+            fetchUserApplications();
+          } else {
+            // Handle the case where the job might already be saved
+            if (data.error && data.error.includes("already applied")) {
+              toast.info("This job is already in your dashboard");
+            } else {
+              toast.error(data.error || "Failed to save job");
+            }
+          }
+        })
+        .catch(error => {
+          console.error("Error saving job:", error);
+          toast.error("Error saving job");
         });
         
         return [...prevSavedJobs, jobId];
@@ -686,8 +767,32 @@ export default function JobsPage() {
     }
   };
 
+  // Quick view job details in a popover
+  const openQuickView = (job: UIJob, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setQuickViewJob(job);
+  };
+  
+  // Close quick view
+  const closeQuickView = () => {
+    setQuickViewJob(null);
+  };
+
   // Job Detail View Component
   function JobDetails({ job }: { job: UIJob | null }) {
+    const [saving, setSaving] = useState(false);
+    
+    // Wrapper function for toggleSaveJob that adds loading state
+    const handleToggleSave = (jobId: string) => {
+      setSaving(true);
+      try {
+        toggleSaveJob(jobId);
+      } finally {
+        // Use a timeout to prevent UI flickering when operation is quick
+        setTimeout(() => setSaving(false), 500);
+      }
+    };
+    
     if (!job) {
       return (
         <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -706,14 +811,33 @@ export default function JobsPage() {
       <div className="p-6">
         <div className="flex justify-between items-start mb-6">
           <h2 className="text-2xl font-bold">{job.title}</h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => toggleSaveJob(job.id)}
-            className={isJobSaved(job.id) ? "text-yellow-500" : ""}
-          >
-            {isJobSaved(job.id) ? <Bookmark className="h-5 w-5 fill-current" /> : <BookmarkPlus className="h-5 w-5" />}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleToggleSave(job.id)}
+              className={isJobSaved(job.id) ? "text-yellow-500" : ""}
+              title={isJobSaved(job.id) ? "Remove from saved jobs" : "Save job"}
+              disabled={saving}
+            >
+              {saving ? 
+                <RefreshCw className="h-5 w-5 animate-spin" /> : 
+                (isJobSaved(job.id) ? <Bookmark className="h-5 w-5 fill-current" /> : <BookmarkPlus className="h-5 w-5" />)
+              }
+            </Button>
+            {isJobSaved(job.id) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/applicant/dashboard')}
+                className="text-sm"
+                title="View this job in your application board"
+              >
+                <Briefcase className="h-4 w-4 mr-1" />
+                View in Kanban
+              </Button>
+            )}
+          </div>
         </div>
         
         <div className="flex items-center gap-4 mb-6">
@@ -729,6 +853,19 @@ export default function JobsPage() {
           <div>
             <h3 className="font-medium text-lg">{job.company}</h3>
             <span className="text-gray-500 block">{job.location}</span>
+          </div>
+        </div>
+        
+        {/* Important notice to users */}
+        <div className="bg-blue-50 p-4 rounded-md mb-6 border border-blue-200">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-blue-800 mb-1">Important Notice</p>
+              <p className="text-sm text-blue-700">
+                Please read the full job description before applying. You may also need to register on the company's website to complete your application.
+              </p>
+            </div>
           </div>
         </div>
         
@@ -920,7 +1057,19 @@ export default function JobsPage() {
           </div>
           
           <div className="mt-8 flex gap-3">
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                // Find the matching job and display its details
+                const job = jobs.find(job => job.id === application.jobId);
+                if (job) {
+                  setSelectedJob(job);
+                  setActiveTab("jobs");
+                } else {
+                  toast.error("Job details not found");
+                }
+              }}
+            >
               <FileText className="h-4 w-4 mr-2" />
               View Job Details
             </Button>
