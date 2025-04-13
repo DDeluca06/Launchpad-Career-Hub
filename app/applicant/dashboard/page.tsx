@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/basic/button";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/basic/card";
 import { Plus, RefreshCw, Info } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/feedback/alert";
 
 // Define types for our dashboard data
 interface Application {
@@ -21,6 +22,8 @@ interface Application {
     location?: string;
     type?: string;
   };
+  subStage?: string | null;
+  isRecommendation?: boolean;
 }
 
 interface DashboardData {
@@ -62,7 +65,8 @@ const SUB_STAGE_MAP: Record<string, string | null> = {
   'OFFER_EXTENDED': 'offer_extended',
   'NEGOTIATION': 'negotiation',
   'OFFER_ACCEPTED': null, // No sub-stage needed as it's a main stage now
-  'REJECTED': null // No sub-stage needed as it's a main stage now
+  'REJECTED': null, // No sub-stage needed as it's a main stage now
+  'referrals': 'referrals' // Keep referrals as a sub-stage
 };
 
 export default function ApplicantDashboard() {
@@ -71,6 +75,7 @@ export default function ApplicantDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [hasRecommendations, setHasRecommendations] = useState(false);
 
   // Prevent default form submissions and navigation
   useEffect(() => {
@@ -110,6 +115,12 @@ export default function ApplicantDashboard() {
         console.log('Dashboard data:', responseData); // Debug log
         setData(responseData);
         setError(null); // Clear any previous errors
+        
+        // Check if there are any recommendations
+        const hasRecs = responseData.applications.some((app: Application) => 
+          app.subStage === 'referrals'
+        );
+        setHasRecommendations(hasRecs);
       } catch (error) {
         console.error("Error loading dashboard data:", error);
         setError({
@@ -132,6 +143,27 @@ export default function ApplicantDashboard() {
   // Transform applications for Kanban - update to match new component
   const transformForKanban = (applications: Application[] = []) => {
     return applications.map(app => {
+      // Special handling for referrals/recommendations
+      if (app.subStage === 'referrals') {
+        return {
+          id: app.id,
+          status: 'referrals', // Use dedicated column for referrals
+          subStage: 'referrals',
+          job: {
+            title: app.job?.title || 'Unknown Position',
+            company: app.job?.company || 'Unknown Company',
+            id: app.job?.id
+          },
+          // Fallbacks in case job is undefined
+          title: app.job?.title || 'Unknown Position',
+          company: app.job?.company || 'Unknown Company',
+          updatedAt: app.updatedAt,
+          jobId: app.job?.id,
+          isRecommendation: true
+        };
+      }
+      
+      // Regular application handling
       // Map API status to Kanban status
       const status = STATUS_MAP[app.status] || 'applied';
       // Get sub-stage if applicable
@@ -286,65 +318,71 @@ export default function ApplicantDashboard() {
         <div className="flex flex-col space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold">Dashboard</h1>
-              {data?.profile && (
-                <p className="text-gray-600">Welcome back, {data.profile.firstName}!</p>
-              )}
+              <h1 className="text-2xl font-bold">Application Board</h1>
+              <p className="text-gray-500">Track your job applications</p>
             </div>
-            <div className="flex space-x-2">
-              <Button type="button" onClick={() => router.push('/applicant/jobs')}>
-                Find Jobs
-              </Button>
-            </div>
+            <Button 
+              onClick={() => router.push('/applicant/jobs')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Find Jobs
+            </Button>
           </div>
 
-          {/* Dashboard Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <Card className="p-6">
-              <h3 className="font-semibold mb-2">Active Applications</h3>
-              <p className="text-3xl font-bold">
-                {data?.applications?.filter(a => a.status !== 'REJECTED').length || 0}
-              </p>
-            </Card>
-            <Card className="p-6">
-              <h3 className="font-semibold mb-2">Saved Jobs</h3>
-              <p className="text-3xl font-bold">{data?.savedJobs?.length || 0}</p>
-            </Card>
-          </div>
+          {/* Recommendation alert */}
+          {hasRecommendations && (
+            <Alert className="bg-amber-50 border-amber-200">
+              <Info className="h-5 w-5 text-amber-500" />
+              <AlertTitle className="text-amber-800">New Job Recommendations</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                Your Career Launch advisor has recommended jobs for you. Check the "Referrals" column to see them.
+              </AlertDescription>
+            </Alert>
+          )}
 
-          {/* Kanban Board - add the job details handler */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Application Status</h2>
-              <div className="flex gap-2">
-                <Button 
-                  type="button"
-                  onClick={() => router.push('/applicant/jobs')} 
-                  size="sm"
-                  className="flex items-center gap-1"
-                >
-                  <Plus className="h-4 w-4" /> Find & Track Jobs
-                </Button>
+          {/* Error state */}
+          {error && (
+            <Card className="p-6 bg-red-50 border-red-200">
+              <div className="flex flex-col space-y-4">
+                <div className="flex items-center">
+                  <div className="mr-4 flex-shrink-0 rounded-full bg-red-100 p-2">
+                    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-red-800">{(error as ApiError).error}</h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <p>{(error as ApiError).message || 'An error occurred while loading your data.'}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="pl-12">
+                  <Button 
+                    onClick={handleRetry}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Retry
+                  </Button>
+                </div>
               </div>
+            </Card>
+          )}
+          
+          {/* Kanban board */}
+          {!error && (
+            <div className="mt-4">
+              <KanbanBoard 
+                applications={kanbanApplications}
+                isLoading={loading}
+                onStatusChange={handleStatusChange}
+                onViewJobDetails={handleViewJobDetails}
+              />
             </div>
-            
-            {/* Add a helper message to guide users about the Interested column */}
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4 text-sm text-blue-700 flex items-center gap-2">
-              <Info className="h-4 w-4 text-blue-500 flex-shrink-0" />
-              <p>
-                Jobs you save from the Jobs page will appear in the <strong>Interested</strong> column. 
-                Drag items between columns to update your application status.
-              </p>
-            </div>
-            
-            {/* Remove the div with min-width to allow proper mobile responsiveness */}
-            <KanbanBoard 
-              applications={kanbanApplications} 
-              isLoading={loading}
-              onStatusChange={handleStatusChange}
-              onViewJobDetails={handleViewJobDetails}
-            />
-          </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

@@ -47,6 +47,7 @@ interface Application {
   subStage?: string | null;
   updatedAt: string;
   jobId?: string | number;
+  isRecommendation?: boolean;
 }
 
 interface KanbanBoardProps {
@@ -338,7 +339,14 @@ export default function KanbanBoard({
               
               <div className="flex-grow"></div>
 
-              {app.subStage && (
+              {/* Recommendation badge */}
+              {(app.isRecommendation || app.status === 'referrals' || app.subStage === 'referrals') && (
+                <div className="mt-2 inline-block px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-800 font-medium">
+                  Recommended by Staff
+                </div>
+              )}
+
+              {app.subStage && app.subStage !== 'referrals' && (
                 <div className="mt-3 inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
                   {app.status === 'interview' && SUB_STAGES.interview.find(s => s.id === app.subStage)?.label}
                   {app.status === 'offer' && SUB_STAGES.offer.find(s => s.id === app.subStage)?.label}
@@ -622,35 +630,14 @@ export default function KanbanBoard({
   // Get column title with icon
   const getColumnTitle = (status: string) => {
     switch(status) {
-      case 'accepted':
-        return (
-          <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full bg-emerald-400 mr-2"></span>
-            <CheckCircle className="h-4 w-4 mr-1.5 text-emerald-500" />
-            <span>Accepted</span>
-          </div>
-        );
-      case 'rejected':
-        return (
-          <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full bg-red-400 mr-2"></span>
-            <XCircle className="h-4 w-4 mr-1.5 text-red-500" />
-            <span>Rejected</span>
-          </div>
-        );
-      default:
-        return (
-          <div className="flex items-center">
-            <span className={`w-3 h-3 rounded-full mr-2 ${
-              status === 'interested' ? 'bg-blue-400' :
-              status === 'applied' ? 'bg-indigo-400' :
-              status === 'interview' ? 'bg-purple-400' :
-              status === 'offer' ? 'bg-green-400' :
-              status === 'referrals' ? 'bg-amber-400' : 'bg-gray-400'
-            }`}></span>
-            <span className="capitalize">{status}</span>
-          </div>
-        );
+      case 'interested': return 'Interested';
+      case 'applied': return 'Applied';
+      case 'interview': return 'Interview';
+      case 'offer': return 'Offer';
+      case 'referrals': return 'Referrals';
+      case 'accepted': return 'Accepted';
+      case 'rejected': return 'Rejected';
+      default: return status.charAt(0).toUpperCase() + status.slice(1);
     }
   };
 

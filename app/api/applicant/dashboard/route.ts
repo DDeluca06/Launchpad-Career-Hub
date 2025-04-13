@@ -86,6 +86,7 @@ export async function GET(request: Request) {
         status: app.status,
         appliedAt: app.applied_at,
         updatedAt: app.status_updated,
+        subStage: app.sub_stage,
         job: app.jobs ? {
           id: app.jobs.job_id,
           title: app.jobs.title,

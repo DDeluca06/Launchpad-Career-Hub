@@ -18,6 +18,7 @@ export interface Application {
   id: number;
   jobId: number;
   jobTitle: string;
+  position: string;
   company: string;
   status: string;
   notes: string;

@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/basic/switch";
 import { Badge } from "@/components/ui/basic/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/basic/avatar";
 import { Card, CardContent } from "@/components/ui/basic/card";
-import { Shield, Search, UserPlus, KeyRound, Tag, FileText, Info } from "lucide-react";
+import { Shield, Search, UserPlus, KeyRound, Tag, FileText, Info, Briefcase } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { User, UserAccessSettingsProps } from "./types";
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/basic/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/form/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
+import { JobRecommendationModal } from "./JobRecommendationModal";
 
 export function UserAccessManager({ 
   users, 
@@ -39,6 +40,9 @@ export function UserAccessManager({
   });
   const [viewApplicationsDialogOpen, setViewApplicationsDialogOpen] = useState(false);
   const [selectedUserForApplications, setSelectedUserForApplications] = useState<User | null>(null);
+  // New states for job recommendation
+  const [recommendJobModalOpen, setRecommendJobModalOpen] = useState(false);
+  const [selectedUserForRecommendation, setSelectedUserForRecommendation] = useState<User | null>(null);
 
   // Update local users when props change
   useEffect(() => {
@@ -241,6 +245,12 @@ export function UserAccessManager({
     setViewApplicationsDialogOpen(true);
   };
 
+  // Function to open the job recommendation modal
+  const openRecommendJobModal = (user: User) => {
+    setSelectedUserForRecommendation(user);
+    setRecommendJobModalOpen(true);
+  };
+
   // Format application status for display
   const formatApplicationStatus = (status: string) => {
     return status
@@ -415,7 +425,6 @@ export function UserAccessManager({
                                 <KeyRound className="h-4 w-4" />
                               </Button>
 
-                              {/* New button for viewing applications with notes */}
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -428,6 +437,23 @@ export function UserAccessManager({
                                   <span className="absolute -top-1 -right-1 h-2 w-2 bg-blue-500 rounded-full"></span>
                                 )}
                               </Button>
+
+                              {/* New button for recommending jobs */}
+                              {!user.isAdmin && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openRecommendJobModal(user)}
+                                  className="p-2"
+                                  title="Recommend Jobs"
+                                  style={{ 
+                                    borderColor: extendedPalette.primaryGreen,
+                                    color: extendedPalette.primaryGreen
+                                  }}
+                                >
+                                  <Briefcase className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -501,25 +527,24 @@ export function UserAccessManager({
                 onValueChange={(value) => setNewUser({...newUser, program: value})}
               >
                 <SelectTrigger id="program">
-                  <SelectValue placeholder="Select program" />
+                  <SelectValue placeholder="Select a program" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="FOUNDATIONS">Foundations</SelectItem>
                   <SelectItem value="ONE_ZERO_ONE">101</SelectItem>
                   <SelectItem value="LIFTOFF">Liftoff</SelectItem>
-                  <SelectItem value="FOUNDATIONS">Foundations</SelectItem>
                   <SelectItem value="ALUMNI">Alumni</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setCreateUserDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setCreateUserDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateUser}>Create User</Button>
+            <Button onClick={handleCreateUser}>
+              Create User
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -528,24 +553,21 @@ export function UserAccessManager({
       <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Reset User Password</DialogTitle>
+            <DialogTitle>Reset Password</DialogTitle>
             <DialogDescription>
               Enter a new password for this user.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div>
-              <Label htmlFor="newPassword" className="mb-1">New Password</Label>
+              <Label htmlFor="new-password" className="mb-1">New Password</Label>
               <Input
-                id="newPassword"
+                id="new-password"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Default password is &quot;Changeme&quot;
-              </p>
             </div>
           </div>
           <DialogFooter>
@@ -555,68 +577,83 @@ export function UserAccessManager({
             >
               Cancel
             </Button>
-            <Button onClick={handleResetPassword}>Reset Password</Button>
+            <Button onClick={handleResetPassword}>
+              Reset Password
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Applications and Notes Dialog */}
-      <Dialog open={viewApplicationsDialogOpen} onOpenChange={setViewApplicationsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedUserForApplications ? 
-                `${selectedUserForApplications.firstName} ${selectedUserForApplications.lastName}'s Applications` : 
-                'Applications'}
-            </DialogTitle>
-            <DialogDescription>
-              View user's job applications and their notes
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4 max-h-[60vh] overflow-y-auto">
-            {selectedUserForApplications?.applications?.length ? (
-              <div className="space-y-4">
-                {selectedUserForApplications.applications.map(app => (
-                  <Card key={app.id} className="border shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between mb-2">
-                        <div>
-                          <h4 className="text-md font-semibold">{app.jobTitle}</h4>
-                          <p className="text-sm text-gray-500">{app.company}</p>
+      {/* Applications Dialog */}
+      {selectedUserForApplications && (
+        <Dialog open={viewApplicationsDialogOpen} onOpenChange={setViewApplicationsDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Applications for {selectedUserForApplications.firstName} {selectedUserForApplications.lastName}</DialogTitle>
+              <DialogDescription>
+                View all applications and notes for this user.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[400px] overflow-y-auto py-4">
+              {selectedUserForApplications.applications && selectedUserForApplications.applications.length > 0 ? (
+                <div className="space-y-4">
+                  {(selectedUserForApplications.applications || []).map((app) => {
+                    // Ensure we have default values for required properties
+                    const safeApp = {
+                      id: app?.id || 0,
+                      jobId: app?.jobId || 0,
+                      position: app?.position || app?.jobTitle || 'Unknown Position',
+                      jobTitle: app?.jobTitle || 'Unknown Job',
+                      company: app?.company || 'Unknown Company',
+                      status: app?.status || 'UNKNOWN',
+                      notes: app?.notes || ''
+                    };
+                    
+                    return (
+                      <div key={safeApp.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className="font-medium">{safeApp.position}</h4>
+                            <p className="text-sm text-gray-500">{safeApp.company}</p>
+                          </div>
+                          <Badge variant="outline" className="ml-2">
+                            {formatApplicationStatus(safeApp.status)}
+                          </Badge>
                         </div>
-                        <Badge className="self-start">
-                          {formatApplicationStatus(app.status)}
-                        </Badge>
+                        {safeApp.notes && (
+                          <div className="mt-2">
+                            <p className="text-sm font-medium text-gray-700">Notes:</p>
+                            <p className="text-sm bg-gray-50 p-2 rounded mt-1">{safeApp.notes}</p>
+                          </div>
+                        )}
                       </div>
-                      
-                      {app.notes ? (
-                        <div className="mt-3 bg-gray-50 p-3 rounded-md border">
-                          <p className="text-sm font-semibold mb-1">Notes:</p>
-                          <p className="text-sm">{app.notes}</p>
-                        </div>
-                      ) : (
-                        <div className="mt-3 bg-gray-50 p-3 rounded-md border text-gray-500 text-sm italic flex items-center gap-2">
-                          <Info className="h-4 w-4" />
-                          No notes added for this application
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                This user has no applications or notes
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button onClick={() => setViewApplicationsDialogOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  No applications found for this user.
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setViewApplicationsDialogOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Job Recommendation Modal */}
+      {selectedUserForRecommendation && (
+        <JobRecommendationModal
+          open={recommendJobModalOpen}
+          onClose={() => setRecommendJobModalOpen(false)}
+          user={selectedUserForRecommendation}
+          adminId={currentUserId}
+        />
+      )}
     </div>
   );
 } 

@@ -3,8 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { auth } from "@/lib/auth";
 import bcrypt from 'bcryptjs';
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 
 interface User {
   user_id: number;
@@ -20,7 +18,7 @@ interface User {
 export async function GET(req: NextRequest) {
   try {
     // Check if the request is from an admin
-    const session = await getServerSession(authOptions);
+    const session = await auth.getSession(req);
     
     if (!session?.user?.isAdmin) {
       return NextResponse.json(
@@ -30,20 +28,20 @@ export async function GET(req: NextRequest) {
     }
     
     // Fetch all users with their basic data
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       select: {
         user_id: true,
         email: true,
         first_name: true,
         last_name: true,
-        role: true,
+        is_admin: true,
         program: true,
         applications: {
           select: {
             application_id: true,
             job_id: true,
             status: true,
-            notes: true,
+            position: true,
             jobs: {
               select: {
                 title: true,
@@ -64,7 +62,7 @@ export async function GET(req: NextRequest) {
       email: user.email,
       firstName: user.first_name || "",
       lastName: user.last_name || "",
-      isAdmin: user.role === "ADMIN",
+      isAdmin: user.is_admin ?? false,
       program: user.program || "",
       applications: user.applications.map(app => ({
         id: app.application_id,
@@ -72,7 +70,7 @@ export async function GET(req: NextRequest) {
         jobTitle: app.jobs.title,
         company: app.jobs.company,
         status: app.status,
-        notes: app.notes || ""
+        notes: "Notes not available - Prisma client may need to be regenerated"
       }))
     }));
     
