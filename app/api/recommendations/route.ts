@@ -10,7 +10,7 @@ import { ApplicationStatus } from '@/lib/prisma-enums';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, jobId, adminId, notes } = body;
+    const { userId, jobId, adminId } = body;
     
     console.log(`Creating job recommendation: User ID ${userId}, Job ID ${jobId}, Admin ID ${adminId}`);
     

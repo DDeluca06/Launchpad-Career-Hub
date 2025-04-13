@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, useEffect, useContext } from "react";
+import { useState, Suspense, useEffect, useContext, useCallback } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { Button } from "@/components/ui/basic/button";
@@ -278,7 +278,6 @@ export default function JobsPage() {
   const [userResumes, setUserResumes] = useState<Resume[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
   const [isLoadingResumes, setIsLoadingResumes] = useState(false);
-  const [quickViewJob, setQuickViewJob] = useState<UIJob | null>(null);
 
   // Create a mapping between dashboard Kanban columns and job application statuses to maintain consistency
   const DASHBOARD_TO_APPLICATION_STATUS: Record<string, Application['status']> = {
@@ -289,6 +288,96 @@ export default function JobsPage() {
     'accepted': 'accepted',
     'rejected': 'rejected'
   };
+
+  // Map backend database status to UI status aligned with dashboard Kanban columns
+  const mapStatusToUI = (status: string): Application['status'] => {
+    // First map the database status to dashboard Kanban column
+    let dashboardStatus: string;
+    switch (status) {
+      case "INTERESTED": dashboardStatus = 'interested'; break;
+      case "APPLIED": dashboardStatus = 'applied'; break;
+      case "PHONE_SCREENING": 
+      case "INTERVIEW_STAGE": 
+      case "FINAL_INTERVIEW_STAGE": dashboardStatus = 'interview'; break;
+      case "OFFER_EXTENDED": 
+      case "NEGOTIATION": dashboardStatus = 'offer'; break;
+      case "OFFER_ACCEPTED": dashboardStatus = 'accepted'; break;
+      case "REJECTED": dashboardStatus = 'rejected'; break;
+      default: dashboardStatus = 'interested';
+    }
+    
+    // Then map the dashboard status to application status
+    return DASHBOARD_TO_APPLICATION_STATUS[dashboardStatus] || 'submitted';
+  };
+
+  // Fetch user applications to keep the list in sync with the database
+  const fetchUserApplications = useCallback(async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      // Use console.error for logging in production to comply with linting rules
+      console.error("Fetching applications for user ID:", session.user.id);
+      const userApplicationsResponse = await fetch(`/api/applications?userId=${session.user.id}`);
+      const userApplicationsData = await userApplicationsResponse.json();
+      
+      if (userApplicationsData.success) {
+        console.error("Applications data:", userApplicationsData.applications);
+        
+        // Load user's saved jobs (INTERESTED status means saved)
+        const savedJobIds = userApplicationsData.applications
+          .filter((app: { status: string; job_id: number }) => app.status === "INTERESTED")
+          .map((app: { job_id: number }) => app.job_id.toString());
+        
+        // Track jobs the user has already applied for (any status except INTERESTED)
+        const appliedJobIds = userApplicationsData.applications
+          .filter((app: { status: string; job_id: number }) => app.status !== "INTERESTED")
+          .map((app: { job_id: number }) => app.job_id.toString());
+        
+        console.error("Saved job IDs:", savedJobIds);
+        console.error("Applied job IDs:", appliedJobIds);
+        
+        setSavedJobs(savedJobIds);
+        setAppliedJobs(appliedJobIds);
+        
+        // Transform applications to match UI format - but exclude INTERESTED status
+        // as these are shown separately in saved jobs
+        const transformedApplications: Application[] = userApplicationsData.applications
+          .filter((app: { status: string }) => app.status !== "INTERESTED")
+          .map((app: {
+            application_id: number;
+            job_id: number;
+            jobs: {
+              title: string;
+              company: string;
+            };
+            applied_at: string;
+            status: string;
+            notes?: string;
+          }) => {
+            return {
+              id: app.application_id.toString(),
+              jobId: app.job_id.toString(),
+              jobTitle: app.jobs.title,
+              company: app.jobs.company,
+              companyLogoUrl: "https://placehold.co/150",
+              appliedDate: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
+              status: mapStatusToUI(app.status),
+              notes: app.notes || "",
+              nextSteps: app.status === "INTERVIEW_STAGE" ? "Interview scheduled" : "",
+              interviewDate: app.status === "INTERVIEW_STAGE" ? 
+                new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
+            };
+          });
+        
+        setApplications(transformedApplications);
+        
+        // Reapply filters to ensure accurate display
+        applyFilters(jobs, filterOptions);
+      }
+    } catch (error) {
+      console.error("Error loading applications:", error);
+    }
+  }, [session, jobs, filterOptions, mapStatusToUI]);
 
   // Load data from database
   useEffect(() => {
@@ -434,7 +523,7 @@ export default function JobsPage() {
     };
     
     loadData();
-  }, [session, isAuthLoading]);
+  }, [session, isAuthLoading, fetchUserApplications]);
 
   // Add a new effect to refresh saved jobs whenever the user returns to the page
   useEffect(() => {
@@ -445,7 +534,7 @@ export default function JobsPage() {
         fetchUserApplications();
       }
     }
-  }, [activeTab, session, loading, isAuthLoading]);
+  }, [activeTab, session, loading, isAuthLoading, fetchUserApplications]);
 
   // Handle the jobId parameter when navigating from the dashboard
   useEffect(() => {
@@ -469,102 +558,13 @@ export default function JobsPage() {
     }
   }, [jobs, loading]);
 
-  // Map backend database status to UI status aligned with dashboard Kanban columns
-  const mapStatusToUI = (status: string): Application['status'] => {
-    // First map the database status to dashboard Kanban column
-    let dashboardStatus: string;
-    switch (status) {
-      case "INTERESTED": dashboardStatus = 'interested'; break;
-      case "APPLIED": dashboardStatus = 'applied'; break;
-      case "PHONE_SCREENING": 
-      case "INTERVIEW_STAGE": 
-      case "FINAL_INTERVIEW_STAGE": dashboardStatus = 'interview'; break;
-      case "OFFER_EXTENDED": 
-      case "NEGOTIATION": dashboardStatus = 'offer'; break;
-      case "OFFER_ACCEPTED": dashboardStatus = 'accepted'; break;
-      case "REJECTED": dashboardStatus = 'rejected'; break;
-      default: dashboardStatus = 'interested';
-    }
-    
-    // Then map the dashboard status to application status
-    return DASHBOARD_TO_APPLICATION_STATUS[dashboardStatus] || 'submitted';
-  };
-
-  // Fetch user applications to keep the list in sync with the database
-  const fetchUserApplications = async () => {
-    if (!session?.user?.id) return;
-    
-    try {
-      console.log("Fetching applications for user ID:", session.user.id);
-      const userApplicationsResponse = await fetch(`/api/applications?userId=${session.user.id}`);
-      const userApplicationsData = await userApplicationsResponse.json();
-      
-      if (userApplicationsData.success) {
-        console.log("Applications data:", userApplicationsData.applications);
-        
-        // Load user's saved jobs (INTERESTED status means saved)
-        const savedJobIds = userApplicationsData.applications
-          .filter((app: { status: string; job_id: number }) => app.status === "INTERESTED")
-          .map((app: { job_id: number }) => app.job_id.toString());
-        
-        // Track jobs the user has already applied for (any status except INTERESTED)
-        const appliedJobIds = userApplicationsData.applications
-          .filter((app: { status: string; job_id: number }) => app.status !== "INTERESTED")
-          .map((app: { job_id: number }) => app.job_id.toString());
-        
-        console.log("Saved job IDs:", savedJobIds);
-        console.log("Applied job IDs:", appliedJobIds);
-        
-        setSavedJobs(savedJobIds);
-        setAppliedJobs(appliedJobIds);
-        
-        // Transform applications to match UI format - but exclude INTERESTED status
-        // as these are shown separately in saved jobs
-        const transformedApplications: Application[] = userApplicationsData.applications
-          .filter((app: { status: string }) => app.status !== "INTERESTED")
-          .map((app: {
-            application_id: number;
-            job_id: number;
-            jobs: {
-              title: string;
-              company: string;
-            };
-            applied_at: string;
-            status: string;
-            notes?: string;
-          }) => {
-            return {
-              id: app.application_id.toString(),
-              jobId: app.job_id.toString(),
-              jobTitle: app.jobs.title,
-              company: app.jobs.company,
-              companyLogoUrl: "https://placehold.co/150",
-              appliedDate: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
-              status: mapStatusToUI(app.status),
-              notes: app.notes || "",
-              nextSteps: app.status === "INTERVIEW_STAGE" ? "Interview scheduled" : "",
-              interviewDate: app.status === "INTERVIEW_STAGE" ? 
-                new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
-            };
-          });
-        
-        setApplications(transformedApplications);
-        
-        // Reapply filters to ensure accurate display
-        applyFilters(jobs, filterOptions);
-      }
-    } catch (error) {
-      console.error("Error loading applications:", error);
-    }
-  };
-
   // Add effect to reload application data when notes are updated
   useEffect(() => {
     if (selectedApplication?.id) {
       // Refresh applications to get updated notes
       fetchUserApplications();
     }
-  }, [selectedApplication?.notes]);
+  }, [selectedApplication?.notes, selectedApplication?.id, fetchUserApplications]);
 
   // Update the handleSearch function to preserve notes when filtering
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -885,17 +885,6 @@ export default function JobsPage() {
     }
   };
 
-  // Quick view job details in a popover
-  const openQuickView = (job: UIJob, event: React.MouseEvent) => {
-    event.stopPropagation();
-    setQuickViewJob(job);
-  };
-  
-  // Close quick view
-  const closeQuickView = () => {
-    setQuickViewJob(null);
-  };
-
   // Job Detail View Component
   function JobDetails({ job }: { job: UIJob | null }) {
     const [saving, setSaving] = useState(false);
@@ -935,7 +924,7 @@ export default function JobsPage() {
             {hasApplied && (
               <Badge className="mt-2 bg-green-100 text-green-800">
                 <CheckCircle2 className="h-4 w-4 mr-1" />
-                You've Applied
+                You&apos;ve Applied
               </Badge>
             )}
           </div>
@@ -990,7 +979,7 @@ export default function JobsPage() {
               <div>
                 <p className="font-medium text-green-800 mb-1">Application Submitted</p>
                 <p className="text-sm text-green-700">
-                  You've already applied for this position. You can view the status of your application in the "My Applications" tab.
+                  You&apos;ve already applied for this position. You can view the status of your application in the &quot;My Applications&quot; tab.
                 </p>
               </div>
             </div>
@@ -1005,7 +994,7 @@ export default function JobsPage() {
               <div>
                 <p className="font-medium text-yellow-800 mb-1">Job Saved</p>
                 <p className="text-sm text-yellow-700">
-                  This job is saved to your dashboard in the "Interested" column. You can track your application status by dragging the card between columns in the Kanban board.
+                  This job is saved to your dashboard in the &quot;Interested&quot; column. You can track your application status by dragging the card between columns in the Kanban board.
                 </p>
               </div>
             </div>
@@ -1035,7 +1024,7 @@ export default function JobsPage() {
             <div>
               <p className="font-medium text-blue-800 mb-1">Important Notice</p>
               <p className="text-sm text-blue-700">
-                Please read the full job description before applying. You may also need to register on the company's website to complete your application.
+                Please read the full job description before applying. You may also need to register on the company&apos;s website to complete your application.
               </p>
             </div>
           </div>
@@ -1186,7 +1175,7 @@ export default function JobsPage() {
         setIsSaving(true);
         
         try {
-          console.log("Saving notes for application:", application.id, "User ID:", currentUser.user_id);
+          console.error("Saving notes for application:", application.id, "User ID:", currentUser.user_id);
           // Update application notes in the database
           const response = await fetch(`/api/applications/${application.id}/notes`, {
             method: "PUT",
@@ -1347,7 +1336,7 @@ export default function JobsPage() {
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <Textarea
-                  placeholder= "Add notes about interviews, follow-ups, or any other information about this application..."
+                  placeholder="Add notes about interviews, follow-ups, or any other information about this application..."
                   value={applicationNotes}
                   onChange={(e) => setApplicationNotes(e.target.value)}
                   rows={5}
@@ -1523,7 +1512,7 @@ export default function JobsPage() {
               <div className="bg-blue-50 p-3 rounded mb-4 text-sm text-blue-700 flex items-center gap-2">
                 <Info className="h-4 w-4 text-blue-500 flex-shrink-0" />
                 <p>
-                  <strong>{appliedJobs.length}</strong> jobs you've applied for are currently hidden. 
+                  <strong>{appliedJobs.length}</strong> jobs you&apos;ve applied for are currently hidden. 
                   <Button 
                     variant="link" 
                     onClick={toggleHideAppliedJobsFilter} 

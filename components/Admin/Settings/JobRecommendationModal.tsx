@@ -5,8 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/basic/button";
 import { Input } from "@/components/ui/form/input";
 import { Textarea } from "@/components/ui/form/textarea";
-import { ComboboxPopover } from "@/components/ui/form/combobox-popover";
-import { Briefcase, Search, Building } from "lucide-react";
+import { Search, Building } from "lucide-react";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { extendedPalette } from "@/lib/colors";
 
