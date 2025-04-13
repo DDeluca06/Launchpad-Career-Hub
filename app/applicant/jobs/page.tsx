@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, useEffect } from "react";
+import { useState, Suspense, useEffect, useContext } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { Button } from "@/components/ui/basic/button";
@@ -28,7 +28,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/naviga
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/data-display/skeleton";
 import { cn } from "@/lib/utils";
-import { jobService, applicationService, userService, resumeService, User, userProfileService, UserProfile } from "@/lib/local-storage";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { toast } from "sonner";
+import { AuthContext } from "@/app/providers";
 
 // Types
 interface UIJob {
@@ -48,6 +50,12 @@ interface UIJob {
   companyLogoUrl: string;
   industry: string;
   isRemote: boolean;
+  partner?: {
+    name: string;
+    industry?: string | null;
+    location?: string | null;
+  } | null;
+  applicationCount?: number;
 }
 
 interface JobFilter {
@@ -75,6 +83,25 @@ interface Application {
   notes?: string;
   nextSteps?: string;
   interviewDate?: string;
+}
+
+// Resume interface
+interface Resume {
+  resume_id: number;
+  user_id: number;
+  file_path: string;
+  file_name: string;
+  is_default: boolean;
+  created_at?: string | Date;
+}
+
+// User Profile interface
+interface UserProfile {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
 }
 
 // Skeleton loader for job listings
@@ -213,6 +240,7 @@ function JobDetailsSkeleton() {
 
 export default function JobsPage() {
   // State
+  const { session, loading: isAuthLoading } = useContext(AuthContext);
   const [jobs, setJobs] = useState<UIJob[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<UIJob[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -239,144 +267,211 @@ export default function JobsPage() {
     coverLetter: "",
     idealCandidate: ""
   });
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [userResumes, setUserResumes] = useState<Array<{resume_id: number, file_name: string, is_default: boolean | null}>>([]);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [userResumes, setUserResumes] = useState<Resume[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
   const [isLoadingResumes, setIsLoadingResumes] = useState(false);
 
-  // Load data from local storage
+  // Load data from database
   useEffect(() => {
+    if (isAuthLoading) return;
+    
     const loadData = async () => {
-      if (typeof window === 'undefined') return;
-      
       setLoading(true);
       
-      // Get current user
-      const user = userService.getCurrentUser() || userService.getById(2) || null;
-      setCurrentUser(user);
-      
-      // Get user profile if user exists
-      if (user) {
-        const profile = userProfileService.getByUserId(user.user_id);
-        setUserProfile(profile || null);
-        
-        // If profile exists, populate the form with profile data
-        if (profile) {
-          setApplicationData(prev => ({
-            ...prev,
-            firstName: profile.first_name,
-            lastName: profile.last_name,
-            email: profile.email || prev.email,
-            phone: profile.phone || prev.phone
-          }));
+      // Get current user from session
+      if (session?.user?.id) {
+        try {
+          const userResponse = await fetch(`/api/profile?userId=${session.user.id}`);
+          const userData = await userResponse.json();
+          
+          if (userData.success) {
+            setCurrentUser(userData.profile);
+            
+            // If profile exists, populate the form with profile data
+            setApplicationData(prev => ({
+              ...prev,
+              firstName: userData.profile.first_name || "",
+              lastName: userData.profile.last_name || "",
+              email: userData.profile.email || "",
+              phone: userData.profile.phone || ""
+            }));
+          }
+        } catch (error) {
+          console.error("Error loading user profile:", error);
         }
       }
       
-      // Load jobs from local storage
-      const storageJobs = jobService.getAll();
-      
-      // Transform jobs to match the UI format
-      const transformedJobs: UIJob[] = storageJobs.map(job => ({
-        id: job.job_id.toString(),
-        title: job.title,
-        company: job.company,
-        location: job.location,
-        jobType: job.job_type,
-        experienceLevel: job.tags?.includes("Senior") ? "Senior" : 
-                         job.tags?.includes("Mid-level") ? "Mid-level" : "Entry-level",
-        salary: "$80,000 - $150,000", // Mock salary since it's not in the storage schema
-        description: job.description,
-        responsibilities: [
-          "Design and implement features",
-          "Write clean, maintainable code",
-          "Collaborate with cross-functional teams",
-          "Ensure technical feasibility of designs",
-          "Optimize for performance"
-        ],
-        qualifications: job.tags || ["JavaScript", "React", "TypeScript"],
-        benefits: [
-          "Competitive salary",
-          "Health insurance",
-          "Flexible work hours",
-          "Professional development",
-          "Remote work options"
-        ],
-        postedDate: job.created_at,
-        applicationDeadline: job.created_at 
-          ? new Date(new Date(job.created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
-          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        companyLogoUrl: job.companyLogo || "https://placehold.co/150",
-        industry: job.tags?.[0] || "Technology",
-        isRemote: job.location?.toLowerCase().includes("remote") || false
-      }));
-      
-      setJobs(transformedJobs);
-      setFilteredJobs(transformedJobs);
-      
-      if (transformedJobs.length > 0) {
-        setSelectedJob(transformedJobs[0]);
+      // Load jobs from database
+      try {
+        const response = await fetch("/api/jobs");
+        const data = await response.json();
+        
+        if (data.success) {
+          // Transform jobs to match the UI format
+          const transformedJobs: UIJob[] = data.jobs.map((job: {
+            job_id: number;
+            title: string;
+            company?: string;
+            location?: string;
+            job_type?: string;
+            tags?: string[];
+            description?: string;
+            created_at?: string;
+            partners?: {
+              name: string;
+              industry?: string | null;
+              location?: string | null;
+            } | null;
+            _count?: {
+              applications?: number;
+            };
+          }) => {
+            const experienceLevel = job.tags?.includes("SENIOR") ? "Senior" : job.tags?.includes("MID_LEVEL") ? "Mid-level" : "Entry-level";
+            return {
+              id: job.job_id.toString(),
+              title: job.title,
+              company: job.company || job.partners?.name || "Unknown Company",
+              location: job.location || "Remote",
+              jobType: job.job_type,
+              experienceLevel,
+              salary: "$80,000 - $150,000", // Mock salary since it's not in the schema
+              description: job.description,
+              responsibilities: [
+                "Design and implement features",
+                "Write clean, maintainable code",
+                "Collaborate with cross-functional teams",
+                "Ensure technical feasibility of designs",
+                "Optimize for performance"
+              ],
+              qualifications: job.tags || ["JavaScript", "React", "TypeScript"],
+              benefits: [
+                "Competitive salary",
+                "Health insurance",
+                "Flexible work hours",
+                "Professional development",
+                "Remote work options"
+              ],
+              postedDate: job.created_at ? new Date(job.created_at).toISOString() : new Date().toISOString(),
+              applicationDeadline: job.created_at 
+                ? new Date(new Date(job.created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+                : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              companyLogoUrl: "https://placehold.co/150",
+              industry: job.tags?.[0] || "Technology",
+              isRemote: job.location?.toLowerCase().includes("remote") || job.tags?.includes("FULLY_REMOTE") || false,
+              partner: job.partners ? {
+                name: job.partners.name,
+                industry: job.partners.industry,
+                location: job.partners.location
+              } : null,
+              applicationCount: job._count?.applications || 0
+            };
+          });
+          
+          setJobs(transformedJobs);
+          setFilteredJobs(transformedJobs);
+          
+          if (transformedJobs.length > 0) {
+            setSelectedJob(transformedJobs[0]);
+          }
+        } else {
+          console.error("Error loading jobs:", data.error);
+        }
+      } catch (error) {
+        console.error("Error loading jobs:", error);
       }
       
-      // Load user's applications
-      const userApplications = applicationService.getByUserId(user?.user_id || 2);
+      // Load user's applications if user is logged in
+      if (session?.user?.id) {
+        try {
+          const userApplicationsResponse = await fetch(`/api/applications?userId=${session.user.id}`);
+          const userApplicationsData = await userApplicationsResponse.json();
+          
+          if (userApplicationsData.success) {
+            // Transform applications to match UI format
+            const transformedApplications: Application[] = userApplicationsData.applications.map((app: {
+              application_id: number;
+              job_id: number;
+              jobs: {
+                title: string;
+                company: string;
+              };
+              applied_at: string;
+              status: string;
+            }) => {
+              return {
+                id: app.application_id.toString(),
+                jobId: app.job_id.toString(),
+                jobTitle: app.jobs.title,
+                company: app.jobs.company,
+                companyLogoUrl: "https://placehold.co/150",
+                appliedDate: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
+                status: mapStatusToUI(app.status),
+                notes: "",
+                nextSteps: app.status === "INTERVIEW_STAGE" ? "Interview scheduled" : "",
+                interviewDate: app.status === "INTERVIEW_STAGE" ? 
+                  new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
+              };
+            });
+            
+            setApplications(transformedApplications);
+            
+            // Load user's saved jobs (we'll use a convention where "INTERESTED" status means saved)
+            const savedJobIds = userApplicationsData.applications
+              .filter((app: { status: string; job_id: number }) => app.status === "INTERESTED")
+              .map((app: { job_id: number }) => app.job_id.toString());
+            
+            setSavedJobs(savedJobIds);
+          }
+        } catch (error) {
+          console.error("Error loading applications:", error);
+        }
+      }
       
-      // Transform applications to match UI format
-      const transformedApplications: Application[] = userApplications.map(app => {
-        const relatedJob = storageJobs.find(j => j.job_id === app.job_id);
-        
-        return {
-          id: app.application_id.toString(),
-          jobId: app.job_id.toString(),
-          jobTitle: relatedJob?.title || "Unknown Job",
-          company: relatedJob?.company || "Unknown Company",
-          companyLogoUrl: relatedJob?.companyLogo || "https://via.placeholder.com/150",
-          appliedDate: app.applied_at,
-          status: mapStatusToUI(app.status),
-          notes: "",
-          nextSteps: app.status === "interview" ? "Interview scheduled" : "",
-          interviewDate: app.status === "interview" ? 
-            new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
-        };
-      });
-      
-      setApplications(transformedApplications);
-      
-      // Load user's saved jobs (we'll use a convention where "interested" status means saved)
-      const savedJobIds = userApplications
-        .filter(app => app.status === "interested")
-        .map(app => app.job_id.toString());
-      
-      setSavedJobs(savedJobIds);
-      
-      // Load user's resumes
-      const userResumesData = resumeService.getByUserId(user?.user_id || 2);
-      
-      setUserResumes(userResumesData.map(resume => ({
-        resume_id: resume.resume_id,
-        file_name: resume.file_name,
-        is_default: resume.isDefault
-      })));
-      
-      if (userResumesData.length > 0) {
-        const defaultResume = userResumesData.find(r => r.isDefault) || userResumesData[0];
-        setSelectedResumeId(defaultResume.resume_id);
+      // Load user's resumes if user is logged in
+      if (session?.user?.id) {
+        try {
+          setIsLoadingResumes(true);
+          const userResumesResponse = await fetch(`/api/resumes?userId=${session.user.id}`);
+          const userResumesData = await userResumesResponse.json();
+          
+          if (userResumesData.success && Array.isArray(userResumesData.resumes)) {
+            setUserResumes(userResumesData.resumes);
+            
+            if (userResumesData.resumes.length > 0) {
+              const defaultResume = userResumesData.resumes.find((resume: Resume) => resume.is_default);
+              setSelectedResumeId(defaultResume?.resume_id || userResumesData.resumes[0].resume_id);
+            }
+          } else {
+            console.error("Error loading resumes or invalid data format:", userResumesData.error || "No resumes found");
+            setUserResumes([]);
+          }
+        } catch (error) {
+          console.error("Error loading resumes:", error);
+          setUserResumes([]);
+        } finally {
+          setIsLoadingResumes(false);
+        }
       }
       
       setLoading(false);
     };
     
     loadData();
-  }, []);
+  }, [session, isAuthLoading]);
 
   // Map backend status to UI status
   const mapStatusToUI = (status: string): Application['status'] => {
     switch (status) {
-      case "applied": return "submitted";
-      case "interview": return "interviewing";
-      case "rejected": return "rejected";
-      case "offer": return "offered";
-      case "accepted": return "accepted";
+      case "APPLIED": return "submitted";
+      case "PHONE_SCREENING": 
+      case "INTERVIEW_STAGE": 
+      case "FINAL_INTERVIEW_STAGE": return "interviewing";
+      case "REJECTED": return "rejected";
+      case "OFFER_EXTENDED": 
+      case "NEGOTIATION": return "offered";
+      case "OFFER_ACCEPTED": return "accepted";
+      case "INTERESTED": return "submitted";
       default: return "submitted";
     }
   };
@@ -464,30 +559,26 @@ export default function JobsPage() {
       if (prevSavedJobs.includes(jobId)) {
         // Remove from saved jobs
         
-        // Find and delete the "interested" application in local storage
-        const existingApp = applicationService.getByUserId(currentUser.user_id)
-          .find(app => app.job_id === numericJobId && app.status === "interested");
-        
-        if (existingApp) {
-          applicationService.delete(existingApp.application_id);
-        }
+        // Find and delete the "interested" application in database
+        fetch(`/api/applications/${numericJobId}`, {
+          method: "DELETE",
+        });
         
         return prevSavedJobs.filter(id => id !== jobId);
       } else {
         // Add to saved jobs
         
-        // Create a new "interested" application in local storage
-        const job = jobService.getById(numericJobId);
-        
-        if (job) {
-          applicationService.create({
-            user_id: currentUser.user_id,
-            job_id: numericJobId,
+        // Create a new "interested" application in database
+        fetch("/api/applications", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            jobId: numericJobId,
             status: "interested",
-            resume_id: selectedResumeId || 0,
-            position: job.title
-          });
-        }
+          }),
+        });
         
         return [...prevSavedJobs, jobId];
       }
@@ -521,21 +612,42 @@ export default function JobsPage() {
     
     try {
       // Create a new application
-      const newApplication = applicationService.create({
-        user_id: currentUser.user_id,
-        job_id: parseInt(selectedJob.id), // Convert string id to number
-        status: "submitted",
-        resume_id: selectedResumeId,
-        position: selectedJob.title,
+      const response = await fetch("/api/applications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: currentUser.user_id,
+          job_id: parseInt(selectedJob.id), // Convert string id to number
+          status: "APPLIED",
+          resume_id: selectedResumeId,
+          position: selectedJob.title,
+        }),
       });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || "Failed to create application");
+      }
+      
+      const newApplication = data.application;
       
       // Save or update user profile information
       if (currentUser) {
-        userProfileService.createOrUpdate(currentUser.user_id, {
-          first_name: applicationData.firstName,
-          last_name: applicationData.lastName,
-          email: applicationData.email,
-          phone: applicationData.phone
+        await fetch("/api/profile", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: currentUser.user_id,
+            firstName: applicationData.firstName,
+            lastName: applicationData.lastName,
+            email: applicationData.email,
+            phone: applicationData.phone
+          }),
         });
       }
       
@@ -545,8 +657,8 @@ export default function JobsPage() {
         jobId: selectedJob.id,
         jobTitle: selectedJob.title,
         company: selectedJob.company,
-        companyLogoUrl: selectedJob.companyLogoUrl,
-        appliedDate: newApplication.applied_at,
+        companyLogoUrl: selectedJob.companyLogoUrl || "https://placehold.co/150",
+        appliedDate: newApplication.applied_at ? new Date(newApplication.applied_at).toISOString() : new Date().toISOString(),
         status: "submitted",
         notes: applicationData.idealCandidate
       };
@@ -556,10 +668,10 @@ export default function JobsPage() {
       
       // Reset form
       setApplicationData({
-        firstName: userProfile?.first_name || "",
-        lastName: userProfile?.last_name || "",
-        email: userProfile?.email || "",
-        phone: userProfile?.phone || "",
+        firstName: currentUser?.first_name || "",
+        lastName: currentUser?.last_name || "",
+        email: currentUser?.email || "",
+        phone: currentUser?.phone || "",
         coverLetter: "",
         idealCandidate: ""
       });
@@ -887,32 +999,42 @@ export default function JobsPage() {
       const fetchUserResumes = async () => {
         setIsLoadingResumes(true);
         try {
-          // For now, we'll use a placeholder user ID of 1
-          const userId = 1; // Replace with actual user ID from authentication
+          // Get the user ID from the session
+          const userId = session?.user?.id || 1;
           const response = await fetch(`/api/resumes?userId=${userId}`);
           if (response.ok) {
             const data = await response.json();
-            setUserResumes(data);
             
-            // If there's a default resume, select it automatically
-            const defaultResume = data.find((resume: {resume_id: number, file_name: string, is_default: boolean | null}) => resume.is_default);
-            if (defaultResume) {
-              setSelectedResumeId(defaultResume.resume_id);
-            } else if (data.length > 0) {
-              // Otherwise select the first resume
-              setSelectedResumeId(data[0].resume_id);
+            if (data.success && Array.isArray(data.resumes)) {
+              setUserResumes(data.resumes);
+              
+              // If there's a default resume, select it automatically
+              const defaultResume = data.resumes.find((resume: Resume) => resume.is_default);
+              if (defaultResume) {
+                setSelectedResumeId(defaultResume.resume_id);
+              } else if (data.resumes.length > 0) {
+                // Otherwise select the first resume
+                setSelectedResumeId(data.resumes[0].resume_id);
+              }
+            } else {
+              console.error("Invalid resume data format:", data.error || "No resumes found");
+              setUserResumes([]);
             }
+          } else {
+            console.error("Failed to fetch resumes: API returned status", response.status);
+            setUserResumes([]);
           }
         } catch (error) {
           console.error("Failed to fetch resumes:", error);
+          setUserResumes([]);
         } finally {
           setIsLoadingResumes(false);
         }
       };
-
+      
       fetchUserResumes();
     }
-  }, [applyModalOpen]);
+  }, [applyModalOpen, session]);
 
   return (
     <DashboardLayout>

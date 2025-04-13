@@ -19,12 +19,19 @@ export type Stage =
 export interface JobApplication {
   id: string;
   title: string;
+  company: string;
   description: string;
   stage: Stage;
   subStage: SubStage;
   status: 'interested' | 'applied' | 'interview' | 'offer' | 'referrals';
+  date?: string;
   tags?: string[];
   archived?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  logo?: string;
+  location?: string;
+  salary?: string;
+  url?: string;
+  notes?: string;
 }

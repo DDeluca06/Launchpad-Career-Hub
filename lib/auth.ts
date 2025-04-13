@@ -8,6 +8,7 @@ export const auth = {
           const cookieHeader = request.headers.get('cookie');
           
           if (!cookieHeader) {
+            console.error("No cookie header found");
             return null;
           }
           
@@ -20,8 +21,11 @@ export const auth = {
           
           const sessionId = cookies['session-id'];
           if (!sessionId) {
+            console.error("No session-id cookie found");
             return null;
           }
+          
+          console.error("Found session-id cookie");
           
           // Try to parse as JSON
           try {
@@ -35,6 +39,7 @@ export const auth = {
             const sessionData = JSON.parse(decodedString);
             
             if (sessionData && typeof sessionData === 'object' && 'id' in sessionData) {
+              console.error("Valid session data found:", sessionData.id);
               return {
                 user: {
                   id: sessionData.id.toString(),
@@ -42,6 +47,7 @@ export const auth = {
                 }
               };
             } else {
+              console.error("Invalid session data format:", sessionData);
               return null;
             }
           } catch (jsonParseError) {

@@ -245,7 +245,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Don't update if status hasn't changed
-    if (existingApplication.status === newStatus && !body.resume_id && !body.position) {
+    if (existingApplication.status === newStatus && !body.resume_id && !body.position && !body.sub_stage) {
       return NextResponse.json({ 
         success: true, 
         message: 'No changes to apply',
@@ -260,7 +260,8 @@ export async function PUT(request: NextRequest) {
         status: newStatus || undefined,
         status_updated: newStatus ? new Date() : undefined,
         resume_id: body.resume_id || undefined,
-        position: body.position || undefined
+        position: body.position || undefined,
+        isArchived: body.archived || undefined
       }
     });
 

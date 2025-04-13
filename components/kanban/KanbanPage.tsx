@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { JobApplication } from '@/types/application-stages';
 import { ApplicationPipeline } from './KanbanBoard';
 import { Button } from '@/components/ui/basic/button';
@@ -43,6 +43,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
+import { AuthContext } from '@/app/providers';
 
 // Job form schema
 const jobFormSchema = z.object({
@@ -57,42 +58,218 @@ const jobFormSchema = z.object({
 type JobFormValues = z.infer<typeof jobFormSchema>;
 
 export function KanbanPage() {
+  // Get user session
+  const { session } = useContext(AuthContext);
+  
   // Replace useAppStore with local state
   const [jobs, setJobs] = useState<JobApplication[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Set isClient to true when component mounts (client-side only)
   useEffect(() => {
     setIsClient(true);
   }, []);
   
-  // Load data from localStorage on component mount
+  // Load data from API on component mount
   useEffect(() => {
-    // Check if we have jobs in localStorage
-    const savedJobs = localStorage.getItem('kanban_jobs');
-    if (savedJobs) {
-      setJobs(JSON.parse(savedJobs));
-    }
-  }, []);
-  
-  // Save jobs to localStorage whenever they change
-  useEffect(() => {
-    if (jobs.length > 0) {
-      localStorage.setItem('kanban_jobs', JSON.stringify(jobs));
-    }
-  }, [jobs]);
+    const fetchApplications = async () => {
+      if (!session?.user?.id) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/applications?userId=${session.user.id}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          // Transform applications to match UI format
+          const transformedApplications: JobApplication[] = data.applications.map((app: { application_id: string; position: string; jobs: { title: string; company: string; description: string; company_logo_url: string; location: string; salary: string; url: string; }; applied_at: string; status: string; sub_stage: string; tags: string; archived: boolean; notes: string; }) => {
+            return {
+              id: app.application_id.toString(),
+              title: app.position || app.jobs?.title || "Unknown Position",
+              company: app.jobs?.company || "Unknown Company",
+              description: app.jobs?.description || "",
+              status: mapStatusFromDB(app.status, app),
+              subStage: app.sub_stage || null,
+              stage: mapStatusFromDB(app.status, app),
+              date: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
+              tags: app.tags ? JSON.parse(app.tags) : [],
+              archived: app.archived || false,
+              logo: app.jobs?.company_logo_url || "https://placehold.co/150",
+              location: app.jobs?.location || "",
+              salary: app.jobs?.salary || "",
+              url: app.jobs?.url || "",
+              notes: app.notes || "",
+            };
+          });
+          
+          setJobs(transformedApplications);
+        } else {
+          console.error("Error loading applications:", data.error);
+          toast.error("Failed to load applications");
+        }
+      } catch (error) {
+        console.error("Error loading applications:", error);
+        toast.error("Failed to load applications");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchApplications();
+  }, [session?.user?.id]);
 
-  // Create functions to replace useAppStore functions
-  const updateJob = (jobId: string, updates: Partial<JobApplication>) => {
-    setJobs(prevJobs => 
-      prevJobs.map(job => 
-        job.id === jobId ? { ...job, ...updates } : job
-      )
-    );
+  // Helper function to map database status to UI status
+  const mapStatusFromDB = (dbStatus: string, app: { sub_stage?: string }): 'interested' | 'applied' | 'interview' | 'offer' | 'referrals' => {
+    const statusMap: Record<string, 'interested' | 'applied' | 'interview' | 'offer' | 'referrals'> = {
+      'INTERESTED': 'interested',
+      'APPLIED': 'applied',
+      'PHONE_SCREENING': 'interview',
+      'INTERVIEW_STAGE': 'interview',
+      'FINAL_INTERVIEW_STAGE': 'interview',
+      'OFFER_EXTENDED': 'offer',
+      'NEGOTIATION': 'offer',
+      'OFFER_ACCEPTED': 'offer',
+      'REJECTED': 'applied', // Default to applied if rejected
+    };
+    
+    // Special case: If the application has a sub_stage of 'referrals', always put it in the referrals column
+    if (app?.sub_stage === 'referrals') {
+      return 'referrals';
+    }
+    
+    return statusMap[dbStatus] || 'interested';
   };
 
-  const archiveJob = (jobId: string) => {
-    setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
+  // Helper function to map UI status to database status
+  const mapStatusToDB = (uiStatus: string): string => {
+    const statusMap: Record<string, string> = {
+      'interested': 'INTERESTED',
+      'applied': 'APPLIED',
+      'interview': 'INTERVIEW_STAGE',
+      'offer': 'OFFER_EXTENDED',
+      'referrals': 'INTERESTED',
+    };
+    
+    return statusMap[uiStatus] || 'INTERESTED';
+  };
+
+  // Create functions to replace useAppStore functions
+  const updateJob = async (jobId: string, updates: Partial<JobApplication>) => {
+    try {
+      // Update in local state first for immediate UI feedback
+      setJobs(prevJobs => 
+        prevJobs.map(job => 
+          job.id === jobId ? { ...job, ...updates } : job
+        )
+      );
+      
+      // Then update in the database
+      const response = await fetch(`/api/applications/${jobId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: updates.status ? mapStatusToDB(updates.status) : undefined,
+          archived: updates.archived,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update application');
+      }
+      
+      toast.success('Job updated successfully');
+    } catch (error) {
+      console.error('Error updating job:', error);
+      toast.error('Failed to update job');
+      
+      // Revert the local state change if the API call failed
+      // This would require re-fetching the data
+      if (session?.user?.id) {
+        const response = await fetch(`/api/applications?userId=${session.user.id}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const transformedApplications = data.applications.map((app: { application_id: string; position: string; jobs: { title: string; company: string; description: string; company_logo_url: string; location: string; salary: string; url: string; }; applied_at: string; status: string; sub_stage: string; tags: string; archived: boolean; notes: string; }) => ({
+            id: app.application_id.toString(),
+            title: app.position || app.jobs?.title || "Unknown Position",
+            company: app.jobs?.company || "Unknown Company",
+            description: app.jobs?.description || "",
+            status: mapStatusFromDB(app.status, app),
+            subStage: app.sub_stage || null,
+            stage: mapStatusFromDB(app.status, app),
+            date: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
+            tags: app.tags ? JSON.parse(app.tags) : [],
+            archived: app.archived || false,
+            logo: app.jobs?.company_logo_url || "https://placehold.co/150",
+            location: app.jobs?.location || "",
+            salary: app.jobs?.salary || "",
+            url: app.jobs?.url || "",
+            notes: app.notes || "",
+          }));
+          
+          setJobs(transformedApplications);
+        }
+      }
+    }
+  };
+
+  const archiveJob = async (jobId: string) => {
+    try {
+      // Remove from local state first for immediate UI feedback
+      setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
+      
+      // Then delete from the database
+      const response = await fetch(`/api/applications/${jobId}`, {
+        method: 'DELETE',
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to delete application');
+      }
+      
+      toast.success('Job deleted successfully');
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      toast.error('Failed to delete job');
+      
+      // Revert the local state change if the API call failed by re-fetching the data
+      if (session?.user?.id) {
+        const response = await fetch(`/api/applications?userId=${session.user.id}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const transformedApplications = data.applications.map((app: { application_id: string; position: string; jobs: { title: string; company: string; description: string; company_logo_url: string; location: string; salary: string; url: string; }; applied_at: string; status: string; sub_stage: string; tags: string; archived: boolean; notes: string; }) => ({
+            id: app.application_id.toString(),
+            title: app.position || app.jobs?.title || "Unknown Position",
+            company: app.jobs?.company || "Unknown Company",
+            description: app.jobs?.description || "",
+            status: mapStatusFromDB(app.status, app),
+            subStage: app.sub_stage || null,
+            stage: mapStatusFromDB(app.status, app),
+            date: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
+            tags: app.tags ? JSON.parse(app.tags) : [],
+            archived: app.archived || false,
+            logo: app.jobs?.company_logo_url || "https://placehold.co/150",
+            location: app.jobs?.location || "",
+            salary: app.jobs?.salary || "",
+            url: app.jobs?.url || "",
+            notes: app.notes || "",
+          }));
+          
+          setJobs(transformedApplications);
+        }
+      }
+    }
   };
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -205,7 +382,7 @@ export function KanbanPage() {
   const displayedJobs = activeTab === 'active' ? activeJobs : archivedJobs;
 
   // Return a loading state or empty div until client-side rendering is ready
-  if (!isClient) {
+  if (!isClient || isLoading) {
     return <div className="p-4">Loading...</div>;
   }
 

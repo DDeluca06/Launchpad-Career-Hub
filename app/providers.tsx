@@ -3,6 +3,7 @@
 import { ReactNode, createContext, useState, useEffect } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getClientSession } from "@/lib/auth-client";
+import { SessionProvider } from "next-auth/react";
 
 // Define the session and user types
 interface User {
@@ -33,10 +34,21 @@ export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadSession = async () => {
       try {
+        console.error("Session loading...");
         const sessionData = await getClientSession();
-        setSession(sessionData);
+        console.error("Session loaded:", sessionData);
+        
+        // Check if we have a valid user in the session
+        if (sessionData?.user?.id) {
+          setSession(sessionData);
+          console.error("Valid user found in session:", sessionData.user.id);
+        } else {
+          console.error("No valid user in session, showing login form");
+          setSession(null);
+        }
       } catch (error) {
         console.error("Failed to load session:", error);
+        setSession(null);
       } finally {
         setLoading(false);
       }
@@ -64,15 +76,17 @@ export function Providers({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, loading }}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="light"
-        enableSystem
-        disableTransitionOnChange
-      >
-        {children}
-      </ThemeProvider>
-    </AuthContext.Provider>
+    <SessionProvider>
+      <AuthContext.Provider value={{ session, loading }}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </AuthContext.Provider>
+    </SessionProvider>
   );
 }

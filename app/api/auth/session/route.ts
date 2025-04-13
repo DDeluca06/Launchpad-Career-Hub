@@ -5,9 +5,12 @@ import { prisma } from '@/lib/prisma';
 // Handler for session requests
 export async function GET(request: Request) {
   try {
+    console.error("Session API called");
     const session = await auth.getSession(request);
+    console.error("Auth session result:", session);
     
     if (!session?.user?.id) {
+      console.error("No user ID in session");
       return NextResponse.json({ user: null });
     }
     
@@ -15,9 +18,11 @@ export async function GET(request: Request) {
     const userId = parseInt(session.user.id);
     
     if (isNaN(userId)) {
+      console.error("Invalid user ID format:", session.user.id);
       return NextResponse.json({ user: null });
     }
     
+    console.error("Looking up user with ID:", userId);
     const user = await prisma.users.findUnique({
       where: { 
         user_id: userId
@@ -32,9 +37,11 @@ export async function GET(request: Request) {
     });
     
     if (!user) {
+      console.error("User not found in database");
       return NextResponse.json({ user: null });
     }
     
+    console.error("User found:", user.email);
     // Return user session
     return NextResponse.json({
       user: {

@@ -1,35 +1,63 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useContext } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card"
 import { Button } from "@/components/ui/basic/button"
 import { FileText, Upload, Trash2 } from "lucide-react"
 import { extendedPalette } from "@/lib/colors"
-import { userService, resumeService, User, Resume } from "@/lib/local-storage"
+import { AuthContext } from "@/app/providers"
+import { toast } from "sonner"
+
+// Define Resume interface to match database schema
+interface Resume {
+  resume_id: number;
+  user_id: number;
+  file_path: string;
+  file_name: string;
+  is_default: boolean;
+  created_at?: string | Date;
+}
 
 export default function ResumePage() {
-  const [user, setUser] = useState<User | null>(null)
+  const { session, loading: isAuthLoading } = useContext(AuthContext);
   const [resumes, setResumes] = useState<Resume[]>([])
   const [newResumeFile, setNewResumeFile] = useState<File | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const resumeInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const loadUserData = async () => {
-      // Get current user or default to user with ID 2 (a non-admin)
-      const currentUser = userService.getCurrentUser() || userService.getById(2);
+    if (isAuthLoading || !session?.user?.id) return;
 
-      if (currentUser) {
-        setUser(currentUser);
-
-        // Load user's resumes from local storage
-        const userResumes = resumeService.getByUserId(currentUser.user_id);
-        setResumes(userResumes);
+    const loadUserResumes = async () => {
+      try {
+        setIsLoading(true);
+        
+        if (!session?.user?.id) {
+          console.error("No user session found");
+          setIsLoading(false);
+          return;
+        }
+        
+        const response = await fetch(`/api/resumes?userId=${session?.user?.id}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setResumes(data.resumes);
+        } else {
+          console.error("Error loading resumes:", data.error);
+          toast.error("Failed to load resumes");
+        }
+      } catch (error) {
+        console.error("Error loading resumes:", error);
+        toast.error("Failed to load resumes");
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
 
-    loadUserData();
-  }, []);
+    loadUserResumes();
+  }, [session?.user?.id, isAuthLoading]);
 
   // Handle resume file upload
   const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,83 +68,224 @@ export default function ResumePage() {
   }
 
   // Upload resume
-  const handleResumeUpload = () => {
-    if (!newResumeFile || !user) return;
+  const handleResumeUpload = async () => {
+    if (!newResumeFile || !session?.user?.id) {
+      toast.error("Please select a file to upload");
+      return;
+    }
 
     // Validate file type
     const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!validTypes.includes(newResumeFile.type)) {
-      // Show error message to user
-      console.error("Invalid file type. Please upload a PDF or Word document.");
+      toast.error("Invalid file type. Please upload a PDF or Word document.");
       return;
     }
 
     try {
-      // Create a new resume in local storage
-      const newResume = resumeService.create({
-        user_id: user.user_id,
-        file_path: `/uploads/resumes/${newResumeFile.name}`,
-        file_name: newResumeFile.name,
-        isDefault: resumes.length === 0 // Make default if it's the first resume
+      setIsLoading(true);
+      
+      // In a real application, you would upload the file to a storage service
+      // and get back a URL. For now, we'll simulate this with a local path.
+      const filePath = `/uploads/resumes/${newResumeFile.name}`;
+      
+      // Create a new resume in the database
+      const response = await fetch('/api/resumes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: parseInt(session?.user?.id),
+          file_path: filePath,
+          file_name: newResumeFile.name,
+          is_default: resumes.length === 0 // Make default if it's the first resume
+        }),
       });
 
-      if (newResume) {
+      const data = await response.json();
+      
+      if (data.success) {
         // Update the UI
-        setResumes(prev => [...prev, newResume]);
+        setResumes(prev => [...prev, data.resume]);
         setNewResumeFile(null);
+        toast.success("Resume uploaded successfully");
 
         // Clear the file input
         if (resumeInputRef.current) {
           resumeInputRef.current.value = '';
         }
+      } else {
+        toast.error(data.error || "Failed to upload resume");
       }
     } catch (error) {
       console.error("Error uploading resume:", error);
+      toast.error("Failed to upload resume");
+    } finally {
+      setIsLoading(false);
     }
   }
 
   // Set default resume
-  const setDefaultResume = (resumeId: number) => {
+  const setDefaultResume = async (resumeId: number) => {
     try {
-      // Update all resumes in local storage
-      resumes.forEach(resume => {
-        const isDefault = resume.resume_id === resumeId;
-
-        if (isDefault !== resume.isDefault) {
-          const updatedResume = { ...resume, isDefault };
-          resumeService.update(updatedResume);
-        }
+      setIsLoading(true);
+      
+      // Update resume in the database
+      const response = await fetch('/api/resumes', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resume_id: resumeId,
+          user_id: session?.user?.id ? parseInt(session.user.id) : null,
+          is_default: true
+        }),
       });
 
-      // Update UI
-      setResumes(prev => prev.map(resume => ({
-        ...resume,
-        isDefault: resume.resume_id === resumeId
-      })));
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update UI
+        setResumes(prev => prev.map(resume => ({
+          ...resume,
+          is_default: resume.resume_id === resumeId
+        })));
+        toast.success("Default resume updated");
+      } else {
+        toast.error(data.error || "Failed to update default resume");
+      }
     } catch (error) {
       console.error("Error setting default resume:", error);
+      toast.error("Failed to update default resume");
+    } finally {
+      setIsLoading(false);
     }
   }
 
   // Delete resume
-  const deleteResume = (resumeId: number) => {
+  const deleteResume = async (resumeId: number) => {
     try {
-      // Delete from local storage
-      resumeService.delete(resumeId);
+      setIsLoading(true);
+      
+      // Delete from database
+      const response = await fetch(`/api/resumes?id=${resumeId}`, {
+        method: 'DELETE',
+      });
 
-      // Update UI
-      const updatedResumes = resumes.filter(resume => resume.resume_id !== resumeId);
-      setResumes(updatedResumes);
-
-      // If we deleted the default resume and have other resumes, set a new default
-      const deletedDefault = resumes.find(r => r.resume_id === resumeId)?.isDefault;
-      if (deletedDefault && updatedResumes.length > 0) {
-        const newDefault = updatedResumes[0];
-        setDefaultResume(newDefault.resume_id);
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update UI
+        setResumes(prev => prev.filter(resume => resume.resume_id !== resumeId));
+        toast.success("Resume deleted successfully");
+      } else {
+        toast.error(data.error || "Failed to delete resume");
       }
     } catch (error) {
       console.error("Error deleting resume:", error);
+      toast.error("Failed to delete resume");
+    } finally {
+      setIsLoading(false);
     }
+  }
+
+  // Render loading state or empty component if no session
+  if (!session) {
+    return (
+      <DashboardLayout>
+        <div className="container py-6 px-4 mx-auto">
+          <div className="text-center py-8">
+            <div className="animate-pulse flex space-x-4 justify-center">
+              <div className="rounded-full bg-slate-200 h-10 w-10"></div>
+              <div className="flex-1 space-y-6 py-1 max-w-xs">
+                <div className="h-2 bg-slate-200 rounded"></div>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="h-2 bg-slate-200 rounded col-span-2"></div>
+                    <div className="h-2 bg-slate-200 rounded col-span-1"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Determine the content to display for resumes list
+  let resumesContent;
+  if (isLoading && resumes.length === 0) {
+    resumesContent = (
+      <div className="text-center py-8">
+        <div className="animate-pulse flex space-x-4 justify-center">
+          <div className="rounded-full bg-slate-200 h-10 w-10"></div>
+          <div className="flex-1 space-y-6 py-1 max-w-xs">
+            <div className="h-2 bg-slate-200 rounded"></div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="h-2 bg-slate-200 rounded col-span-2"></div>
+                <div className="h-2 bg-slate-200 rounded col-span-1"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (resumes.length === 0) {
+    resumesContent = (
+      <div className="text-center py-8">
+        <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+        <h3 className="text-sm font-medium text-gray-600 mb-1">No resumes uploaded yet</h3>
+        <p className="text-xs text-gray-500 max-w-xs mx-auto">
+          You don&apos;t have any resumes uploaded. Add a resume to apply for jobs more quickly.
+        </p>
+      </div>
+    );
+  } else {
+    resumesContent = (
+      <div className="divide-y">
+        {resumes.map((resume) => (
+          <div key={resume.resume_id} className="py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <FileText className="h-8 w-8 text-gray-400" />
+              <div>
+                <p className="font-medium">{resume.file_name}</p>
+                <p className="text-xs text-gray-500">
+                  Uploaded on {new Date(resume.created_at || '').toLocaleDateString()}
+                </p>
+              </div>
+              {resume.is_default && (
+                <span className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded">
+                  Default
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {!resume.is_default && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDefaultResume(resume.resume_id)}
+                  disabled={isLoading}
+                >
+                  Set as Default
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => deleteResume(resume.resume_id)}
+                disabled={isLoading}
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (
@@ -150,11 +319,13 @@ export default function ResumePage() {
                         onChange={handleResumeChange}
                         className="hidden"
                         accept=".pdf,.doc,.docx"
+                        disabled={isLoading}
                       />
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => resumeInputRef.current?.click()}
+                        disabled={isLoading}
                       >
                         Browse Files
                       </Button>
@@ -163,8 +334,9 @@ export default function ResumePage() {
                           size="sm"
                           onClick={handleResumeUpload}
                           style={{ backgroundColor: extendedPalette.primaryBlue }}
+                          disabled={isLoading}
                         >
-                          Upload Resume
+                          {isLoading ? "Uploading..." : "Upload Resume"}
                         </Button>
                       )}
                     </div>
@@ -178,55 +350,7 @@ export default function ResumePage() {
 
                 {/* Existing resumes */}
                 <div className="space-y-3">
-                  {resumes.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <h3 className="text-sm font-medium text-gray-600 mb-1">No resumes uploaded yet</h3>
-                      <p className="text-xs text-gray-500 max-w-xs mx-auto">
-                        You don&apos;t have any resumes uploaded. Add a resume to apply for jobs more quickly.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="divide-y">
-                      {resumes.map((resume) => (
-                        <div key={resume.resume_id} className="py-3 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-8 w-8 text-gray-400" />
-                            <div>
-                              <p className="font-medium">{resume.file_name}</p>
-                              <p className="text-xs text-gray-500">
-                                Uploaded on {new Date(resume.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                            {resume.isDefault && (
-                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                Default
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {!resume.isDefault && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setDefaultResume(resume.resume_id)}
-                              >
-                                Set as Default
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteResume(resume.resume_id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {resumesContent}
                 </div>
               </div>
             </div>
