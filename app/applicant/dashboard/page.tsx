@@ -41,8 +41,7 @@ interface ApiError {
   details?: any;
 }
 
-// Map API statuses to Kanban component statuses
-// Update the status map to match our new Kanban board component
+// Update status map to include the new statuses
 const STATUS_MAP: Record<string, string> = {
   'INTERESTED': 'interested',
   'APPLIED': 'applied',
@@ -51,8 +50,8 @@ const STATUS_MAP: Record<string, string> = {
   'FINAL_INTERVIEW_STAGE': 'interview',
   'OFFER_EXTENDED': 'offer',
   'NEGOTIATION': 'offer',
-  'OFFER_ACCEPTED': 'offer',
-  'REJECTED': 'offer', // Map rejected to offer column with subStage: 'rejected'
+  'OFFER_ACCEPTED': 'accepted', // Map to the new accepted column
+  'REJECTED': 'rejected' // Map to the new rejected column
 };
 
 // Map for sub-stages
@@ -62,8 +61,8 @@ const SUB_STAGE_MAP: Record<string, string | null> = {
   'FINAL_INTERVIEW_STAGE': 'final_interview_stage',
   'OFFER_EXTENDED': 'offer_extended',
   'NEGOTIATION': 'negotiation',
-  'OFFER_ACCEPTED': 'accepted',
-  'REJECTED': 'rejected',
+  'OFFER_ACCEPTED': null, // No sub-stage needed as it's a main stage now
+  'REJECTED': null // No sub-stage needed as it's a main stage now
 };
 
 export default function ApplicantDashboard() {
@@ -129,12 +128,14 @@ export default function ApplicantDashboard() {
         subStage: subStage,
         job: {
           title: app.job?.title || 'Unknown Position',
-          company: app.job?.company || 'Unknown Company'
+          company: app.job?.company || 'Unknown Company',
+          id: app.job?.id
         },
         // Fallbacks in case job is undefined
         title: app.job?.title || 'Unknown Position',
         company: app.job?.company || 'Unknown Company',
-        updatedAt: app.updatedAt
+        updatedAt: app.updatedAt,
+        jobId: app.job?.id
       };
     });
   };
@@ -145,7 +146,8 @@ export default function ApplicantDashboard() {
       // Find the appropriate API status based on the new status and subStage
       let apiStatus = Object.keys(STATUS_MAP).find(
         key => STATUS_MAP[key] === newStatus && 
-              (!subStage || SUB_STAGE_MAP[key] === subStage)
+              (newStatus === 'accepted' || newStatus === 'rejected' || 
+               (!subStage || SUB_STAGE_MAP[key] === subStage))
       );
 
       // If we couldn't find a perfect match, use a default based on column
@@ -159,16 +161,20 @@ export default function ApplicantDashboard() {
             break;
           case 'interview':
             apiStatus = subStage === 'phone_screening' ? 'PHONE_SCREENING' :
-                        subStage === 'interview_stage' ? 'INTERVIEW_STAGE' :
-                        subStage === 'final_interview_stage' ? 'FINAL_INTERVIEW_STAGE' :
-                        'INTERVIEW_STAGE';
+                       subStage === 'interview_stage' ? 'INTERVIEW_STAGE' :
+                       subStage === 'final_interview_stage' ? 'FINAL_INTERVIEW_STAGE' :
+                       'INTERVIEW_STAGE';
             break;
           case 'offer':
             apiStatus = subStage === 'negotiation' ? 'NEGOTIATION' :
-                        subStage === 'offer_extended' ? 'OFFER_EXTENDED' :
-                        subStage === 'accepted' ? 'OFFER_ACCEPTED' :
-                        subStage === 'rejected' ? 'REJECTED' :
-                        'OFFER_EXTENDED';
+                       subStage === 'offer_extended' ? 'OFFER_EXTENDED' :
+                       'OFFER_EXTENDED';
+            break;
+          case 'accepted':
+            apiStatus = 'OFFER_ACCEPTED';
+            break;
+          case 'rejected':
+            apiStatus = 'REJECTED';
             break;
           case 'referrals':
             apiStatus = 'INTERESTED';
@@ -197,6 +203,16 @@ export default function ApplicantDashboard() {
       setRetryCount(prev => prev + 1);
     } catch (error) {
       console.error('Error updating application status:', error);
+    }
+  };
+
+  // Handle clicking on job details
+  const handleViewJobDetails = (applicationId: string, jobId?: string | number) => {
+    if (jobId) {
+      router.push(`/applicant/jobs/${jobId}`);
+    } else {
+      // If no job ID is available, perhaps show application details instead
+      console.log(`View application details: ${applicationId}`);
     }
   };
 
@@ -309,32 +325,28 @@ export default function ApplicantDashboard() {
               <h3 className="font-semibold mb-2">Saved Jobs</h3>
               <p className="text-3xl font-bold">{data?.savedJobs?.length || 0}</p>
             </Card>
-            <Card className="p-6">
-              <h3 className="font-semibold mb-2">Recent Activity</h3>
-              <p className="text-sm text-gray-600">
-                {data?.applications?.[0] ? (
-                  `Last update: ${new Date(data.applications[0].updatedAt).toLocaleDateString()}`
-                ) : (
-                  'No recent activity'
-                )}
-              </p>
-            </Card>
           </div>
 
-          {/* Kanban Board - Replace KanbanPage with KanbanBoard */}
+          {/* Kanban Board - add the job details handler */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Application Status</h2>
+              <Button 
+                onClick={() => router.push('/applicant/jobs')} 
+                size="sm"
+                className="flex items-center gap-1"
+              >
+                <Plus className="h-4 w-4" /> Track New Application
+              </Button>
             </div>
-            <div className="overflow-x-auto">
-              <div className="min-w-[1000px] pb-6">
-                <KanbanBoard 
-                  applications={kanbanApplications} 
-                  isLoading={loading}
-                  onStatusChange={handleStatusChange}
-                />
-              </div>
-            </div>
+            
+            {/* Remove the div with min-width to allow proper mobile responsiveness */}
+            <KanbanBoard 
+              applications={kanbanApplications} 
+              isLoading={loading}
+              onStatusChange={handleStatusChange}
+              onViewJobDetails={handleViewJobDetails}
+            />
           </div>
         </div>
       </div>
