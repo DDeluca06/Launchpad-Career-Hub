@@ -1,22 +1,24 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+// Remove unused import
+// import { auth } from '@/lib/auth';
 
 // Main handler for auth requests
-export async function GET(request: Request) {
+export async function GET() {
   return NextResponse.json({ status: 'ok' });
 }
 
-export async function POST(request: Request) {
+export async function POST() {
+
   // For compatibility with existing code
   return NextResponse.json({ status: 'ok' });
 }
 
-export async function PUT(request: Request) {
+export async function PUT() {
   // For compatibility with existing code
   return NextResponse.json({ status: 'ok' });
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE() {
   // For compatibility with existing code
   return NextResponse.json({ status: 'ok' });
 } 

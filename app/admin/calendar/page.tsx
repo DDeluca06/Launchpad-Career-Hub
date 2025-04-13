@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useContext } from "react";
 import { format } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/basic/button";
@@ -8,8 +8,8 @@ import { CalendarIcon, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { Skeleton } from "@/components/ui/feedback/skeleton";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { AuthContext } from "@/app/providers";
 
 // Import our custom components
 import { CalendarGrid } from "@/components/Admin/Calendar/CalendarGrid";
@@ -46,17 +46,21 @@ function CalendarContent() {
     );
   });
 
-  // Get upcoming interviews (next 3 scheduled interviews)
+  // Get upcoming interviews (next 1 scheduled interview instead of 3)
   const upcomingInterviews = interviews
-    .filter((interview) => new Date(interview.start_time) >= new Date() && interview.status === 'SCHEDULED')
+    .filter((interview) => {
+      const interviewDate = new Date(interview.start_time);
+      const now = new Date();
+      return interviewDate >= now && interview.status === 'SCHEDULED';
+    })
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-    .slice(0, 3);
+    .slice(0, 1);
 
-  // Get recent interviews (last 3 completed interviews)
+  // Get recent interviews (last 1 completed interview instead of 3)
   const recentInterviews = interviews
     .filter((interview) => interview.status === 'COMPLETED')
     .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
-    .slice(0, 3);
+    .slice(0, 1);
 
   // Load interviews for the current month
   const loadInterviews = useCallback(async () => {
@@ -71,10 +75,22 @@ function CalendarContent() {
       const data = await response.json();
 
       if (data.success) {
+        console.error("Loaded interviews:", data.data.length);
         setInterviews(data.data);
         if (data.users) {
           setUsers(data.users);
         }
+        
+        // Debug upcoming interviews count
+        const upcomingCount = data.data
+          .filter((interview: ApiInterview) => {
+            const interviewDate = new Date(interview.start_time);
+            const now = new Date();
+            return interviewDate >= now && interview.status === 'SCHEDULED';
+          })
+          .sort((a: ApiInterview, b: ApiInterview) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+          .slice(0, 3);
+        console.error("Upcoming interviews:", upcomingCount.length);
       }
     } catch (error) {
       console.error("Failed to load interviews:", error);
@@ -269,19 +285,34 @@ function CalendarContent() {
           <Card className="shadow-sm border-0">
             <CardHeader>
               <CardTitle>Upcoming Interviews</CardTitle>
-              <CardDescription>Next 3 scheduled interviews</CardDescription>
+              <CardDescription>Next scheduled interview</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {upcomingInterviews.map((interview) => (
-                <InterviewCard
-                  key={interview.interview_id}
-                  interview={interview}
-                  onEdit={setEditInterview}
-                  onStatusUpdate={handleStatusUpdate}
-                />
-              ))}
-              {upcomingInterviews.length === 0 && (
-                <p className="text-sm text-gray-500">No upcoming interviews</p>
+              {upcomingInterviews.length > 0 ? (
+                upcomingInterviews.map((interview) => (
+                  <InterviewCard
+                    key={interview.interview_id}
+                    interview={interview}
+                    onEdit={setEditInterview}
+                    onStatusUpdate={handleStatusUpdate}
+                  />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <CalendarIcon className="h-8 w-8 text-gray-300 mb-2" />
+                  <h3 className="text-sm font-medium">No upcoming interviews</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Schedule interviews using the &quot;Schedule Interview&quot; button.
+                  </p>
+                  <Button 
+                    size="sm"
+                    className="mt-3 text-white"
+                    style={{ backgroundColor: extendedPalette.primaryBlue }}
+                    onClick={() => setIsCreateModalOpen(true)}
+                  >
+                    <Plus className="h-3 w-3 mr-1" /> Add Interview
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -290,19 +321,26 @@ function CalendarContent() {
           <Card className="shadow-sm border-0">
             <CardHeader>
               <CardTitle>Recent Interviews</CardTitle>
-              <CardDescription>Last 3 completed interviews</CardDescription>
+              <CardDescription>Last completed interview</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentInterviews.map((interview) => (
-                <InterviewCard
-                  key={interview.interview_id}
-                  interview={interview}
-                  onEdit={setEditInterview}
-                  onStatusUpdate={handleStatusUpdate}
-                />
-              ))}
-              {recentInterviews.length === 0 && (
-                <p className="text-sm text-gray-500">No recent interviews</p>
+              {recentInterviews.length > 0 ? (
+                recentInterviews.map((interview) => (
+                  <InterviewCard
+                    key={interview.interview_id}
+                    interview={interview}
+                    onEdit={setEditInterview}
+                    onStatusUpdate={handleStatusUpdate}
+                  />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <CalendarIcon className="h-8 w-8 text-gray-300 mb-2" />
+                  <h3 className="text-sm font-medium">No completed interviews</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Completed interviews will be shown here.
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -326,30 +364,28 @@ function CalendarContent() {
 }
 
 export default function CalendarPage() {
-  const { data: session, status } = useSession({
-    required: true,
-    onUnauthenticated() {
-      router.push('/login');
-    }
-  });
+  const { session, loading } = useContext(AuthContext);
   const router = useRouter();
 
-  if (status === "loading") {
+  // Protect the page
+  useEffect(() => {
+    if (!loading && (!session?.user || !session?.user?.isAdmin)) {
+      router.push('/login');
+    }
+  }, [session, loading, router]);
+
+  if (loading) {
     return (
-      <DashboardLayout isAdmin>
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      </DashboardLayout>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
     );
   }
 
-  if (!session) {
-    return null;
-  }
+  if (!session?.user) return null;
 
   return (
-    <DashboardLayout isAdmin>
+    <DashboardLayout isAdmin={true}>
       <CalendarContent />
     </DashboardLayout>
   );
