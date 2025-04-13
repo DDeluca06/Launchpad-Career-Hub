@@ -13,7 +13,9 @@ interface Job {
 interface Application {
   id: string;
   status: string;
-  job: Job;
+  job?: Job;
+  title?: string;
+  company?: string;
   updatedAt: string;
 }
 
@@ -23,14 +25,21 @@ interface KanbanPageProps {
 }
 
 export function KanbanPage({ applications = [], isLoading = false }: KanbanPageProps) {
-  const [items, setItems] = useState(applications);
+  const processedApplications = applications.map(app => ({
+    ...app,
+    job: app.job || {
+      title: app.title || 'Unknown Position',
+      company: app.company || 'Unknown Company'
+    },
+    status: STATUSES.includes(app.status as any) ? app.status : 'applied'
+  }));
 
-  // Update items when applications prop changes
+  const [items, setItems] = useState(processedApplications);
+
   useEffect(() => {
-    setItems(applications);
+    setItems(processedApplications);
   }, [applications]);
 
-  // Group applications by status
   const columns = STATUSES.reduce((acc, status) => {
     acc[status] = items.filter(item => item.status === status);
     return acc;
@@ -41,7 +50,6 @@ export function KanbanPage({ applications = [], isLoading = false }: KanbanPageP
 
     const { source, destination, draggableId } = result;
 
-    // Don't do anything if dropped in same place
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
@@ -49,7 +57,6 @@ export function KanbanPage({ applications = [], isLoading = false }: KanbanPageP
       return;
     }
 
-    // Update the status locally
     const newItems = [...items];
     const itemIndex = newItems.findIndex(item => item.id === draggableId);
     if (itemIndex !== -1) {
@@ -60,7 +67,6 @@ export function KanbanPage({ applications = [], isLoading = false }: KanbanPageP
       setItems(newItems);
     }
 
-    // Update the status in the database
     try {
       const response = await fetch(`/api/applicant/applications/${draggableId}/status`, {
         method: 'PATCH',
@@ -77,8 +83,7 @@ export function KanbanPage({ applications = [], isLoading = false }: KanbanPageP
       }
     } catch (error) {
       console.error('Error updating application status:', error);
-      // Revert the local state on error
-      setItems(applications);
+      setItems(processedApplications);
     }
   };
 
@@ -137,8 +142,12 @@ export function KanbanPage({ applications = [], isLoading = false }: KanbanPageP
                               {...provided.dragHandleProps}
                               className="p-4 mb-3 bg-white cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
                             >
-                              <h3 className="font-medium">{item.job.title}</h3>
-                              <p className="text-sm text-gray-600">{item.job.company}</p>
+                              <h3 className="font-medium">
+                                {item.job?.title || item.title || 'Unknown Position'}
+                              </h3>
+                              <p className="text-sm text-gray-600">
+                                {item.job?.company || item.company || 'Unknown Company'}
+                              </p>
                               <p className="text-xs text-gray-400 mt-2">
                                 Updated: {new Date(item.updatedAt).toLocaleDateString()}
                               </p>

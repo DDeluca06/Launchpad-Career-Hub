@@ -57,7 +57,12 @@ const jobFormSchema = z.object({
 
 type JobFormValues = z.infer<typeof jobFormSchema>;
 
-export function KanbanPage() {
+type KanbanPageProps = {
+  applications?: any[];
+  isLoading?: boolean;
+};
+
+export function KanbanPage({ applications, isLoading: externalLoading }: KanbanPageProps = {}) {
   // Get user session
   const { session } = useContext(AuthContext);
   
@@ -71,8 +76,35 @@ export function KanbanPage() {
     setIsClient(true);
   }, []);
   
-  // Load data from API on component mount
+  // Use provided applications if available, otherwise fetch from API
   useEffect(() => {
+    if (applications && applications.length > 0) {
+      // Transform provided applications to match UI format
+      const transformedApplications: JobApplication[] = applications.map((app: any) => {
+        return {
+          id: app.id?.toString() || "",
+          title: app.job?.title || "Unknown Position",
+          company: app.job?.company || "Unknown Company",
+          description: app.job?.description || "",
+          status: mapStatusFromDB(app.status || "INTERESTED", app),
+          subStage: app.subStage || null,
+          stage: mapStatusFromDB(app.status || "INTERESTED", app),
+          date: app.updatedAt ? new Date(app.updatedAt).toISOString() : new Date().toISOString(),
+          tags: app.tags || [],
+          archived: app.archived || false,
+          logo: app.job?.logoUrl || "https://placehold.co/150",
+          location: app.job?.location || "",
+          salary: app.job?.salary || "",
+          url: app.job?.url || "",
+          notes: app.notes || "",
+        };
+      });
+      
+      setJobs(transformedApplications);
+      setIsLoading(externalLoading || false);
+      return;
+    }
+    
     const fetchApplications = async () => {
       if (!session?.user?.id) {
         setIsLoading(false);
@@ -167,15 +199,15 @@ export function KanbanPage() {
         )
       );
       
-      // Then update in the database
-      const response = await fetch(`/api/applications/${jobId}`, {
+      // Then update in the database - using our new API endpoint
+      const response = await fetch('/api/applicant/update-application', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          status: updates.status ? mapStatusToDB(updates.status) : undefined,
-          archived: updates.archived,
+          applicationId: jobId,
+          status: updates.status
         }),
       });
       
@@ -185,19 +217,24 @@ export function KanbanPage() {
         throw new Error(data.error || 'Failed to update application');
       }
       
-      toast.success('Job updated successfully');
+      toast.success('Application status updated');
     } catch (error) {
       console.error('Error updating job:', error);
-      toast.error('Failed to update job');
+      toast.error('Failed to update application status');
       
-      // Revert the local state change if the API call failed
-      // This would require re-fetching the data
+      // Refresh the data after error
+      if (applications && applications.length > 0) {
+        // If we're using external applications, no need to reload
+        return;
+      }
+      
+      // Otherwise reload from API
       if (session?.user?.id) {
         const response = await fetch(`/api/applications?userId=${session.user.id}`);
         const data = await response.json();
         
         if (data.success) {
-          const transformedApplications = data.applications.map((app: { application_id: string; position: string; jobs: { title: string; company: string; description: string; company_logo_url: string; location: string; salary: string; url: string; }; applied_at: string; status: string; sub_stage: string; tags: string; archived: boolean; notes: string; }) => ({
+          const transformedApplications = data.applications.map((app: any) => ({
             id: app.application_id.toString(),
             title: app.position || app.jobs?.title || "Unknown Position",
             company: app.jobs?.company || "Unknown Company",

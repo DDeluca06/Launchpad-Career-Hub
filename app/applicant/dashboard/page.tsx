@@ -2,37 +2,76 @@
 
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { KanbanPage } from "@/components/kanban";
+import KanbanBoard from "@/components/kanban-board";
 import { Button } from "@/components/ui/basic/button";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/basic/card";
+import { Plus, RefreshCw } from "lucide-react";
 
 // Define types for our dashboard data
 interface Application {
   id: string;
   status: string;
+  appliedAt?: string;
+  updatedAt: string;
   job: {
+    id: string;
     title: string;
     company: string;
+    location?: string;
+    type?: string;
   };
-  updatedAt: string;
 }
 
 interface DashboardData {
   applications: Application[];
   savedJobs: any[];
   profile: {
+    id: string;
     firstName: string;
     lastName: string;
     email: string;
   };
 }
 
+// Define error types for better error handling
+interface ApiError {
+  error: string;
+  message?: string;
+  details?: any;
+}
+
+// Map API statuses to Kanban component statuses
+// Update the status map to match our new Kanban board component
+const STATUS_MAP: Record<string, string> = {
+  'INTERESTED': 'interested',
+  'APPLIED': 'applied',
+  'PHONE_SCREENING': 'interview',
+  'INTERVIEW_STAGE': 'interview',
+  'FINAL_INTERVIEW_STAGE': 'interview',
+  'OFFER_EXTENDED': 'offer',
+  'NEGOTIATION': 'offer',
+  'OFFER_ACCEPTED': 'offer',
+  'REJECTED': 'offer', // Map rejected to offer column with subStage: 'rejected'
+};
+
+// Map for sub-stages
+const SUB_STAGE_MAP: Record<string, string | null> = {
+  'PHONE_SCREENING': 'phone_screening',
+  'INTERVIEW_STAGE': 'interview_stage',
+  'FINAL_INTERVIEW_STAGE': 'final_interview_stage',
+  'OFFER_EXTENDED': 'offer_extended',
+  'NEGOTIATION': 'negotiation',
+  'OFFER_ACCEPTED': 'accepted',
+  'REJECTED': 'rejected',
+};
+
 export default function ApplicantDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Load dashboard data from our API
   useEffect(() => {
@@ -41,23 +80,125 @@ export default function ApplicantDashboard() {
         setLoading(true);
         const response = await fetch('/api/applicant/dashboard');
         
-        const data = await response.json();
+        const responseData = await response.json();
         
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to load dashboard data');
+          // Handle specific error types
+          if (response.status === 503) {
+            throw new Error('Database connection failed. Please try again later.');
+          } else if (response.status === 401) {
+            throw new Error('Authentication error. Please sign in again.');
+          } else {
+            throw new Error(responseData.message || responseData.error || 'Failed to load dashboard data');
+          }
         }
 
-        setData(data);
-      } catch (error) {
+        console.log('Dashboard data:', responseData); // Debug log
+        setData(responseData);
+        setError(null); // Clear any previous errors
+      } catch (error: any) { // Type assertion for error
         console.error("Error loading dashboard data:", error);
-        setError(error.message || 'Failed to load dashboard data. Please try again later.');
+        setError({
+          error: 'Data loading error',
+          message: error.message || 'Failed to load dashboard data. Please try again later.'
+        });
       } finally {
         setLoading(false);
       }
     };
 
     loadDashboardData();
-  }, []);
+  }, [retryCount]); // Re-run the effect when retryCount changes
+
+  // Handler for manual retry
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+  };
+
+  // Transform applications for Kanban - update to match new component
+  const transformForKanban = (applications: Application[] = []) => {
+    return applications.map(app => {
+      // Map API status to Kanban status
+      const status = STATUS_MAP[app.status] || 'applied';
+      // Get sub-stage if applicable
+      const subStage = SUB_STAGE_MAP[app.status] || null;
+      
+      return {
+        id: app.id,
+        status: status,
+        subStage: subStage,
+        job: {
+          title: app.job?.title || 'Unknown Position',
+          company: app.job?.company || 'Unknown Company'
+        },
+        // Fallbacks in case job is undefined
+        title: app.job?.title || 'Unknown Position',
+        company: app.job?.company || 'Unknown Company',
+        updatedAt: app.updatedAt
+      };
+    });
+  };
+
+  // Add a handler for status changes
+  const handleStatusChange = async (applicationId: string, newStatus: string, subStage?: string) => {
+    try {
+      // Find the appropriate API status based on the new status and subStage
+      let apiStatus = Object.keys(STATUS_MAP).find(
+        key => STATUS_MAP[key] === newStatus && 
+              (!subStage || SUB_STAGE_MAP[key] === subStage)
+      );
+
+      // If we couldn't find a perfect match, use a default based on column
+      if (!apiStatus) {
+        switch (newStatus) {
+          case 'interested':
+            apiStatus = 'INTERESTED';
+            break;
+          case 'applied':
+            apiStatus = 'APPLIED';
+            break;
+          case 'interview':
+            apiStatus = subStage === 'phone_screening' ? 'PHONE_SCREENING' :
+                        subStage === 'interview_stage' ? 'INTERVIEW_STAGE' :
+                        subStage === 'final_interview_stage' ? 'FINAL_INTERVIEW_STAGE' :
+                        'INTERVIEW_STAGE';
+            break;
+          case 'offer':
+            apiStatus = subStage === 'negotiation' ? 'NEGOTIATION' :
+                        subStage === 'offer_extended' ? 'OFFER_EXTENDED' :
+                        subStage === 'accepted' ? 'OFFER_ACCEPTED' :
+                        subStage === 'rejected' ? 'REJECTED' :
+                        'OFFER_EXTENDED';
+            break;
+          case 'referrals':
+            apiStatus = 'INTERESTED';
+            break;
+          default:
+            apiStatus = 'APPLIED';
+        }
+      }
+
+      // Update in the API
+      const response = await fetch(`/api/applicant/applications/${applicationId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: apiStatus
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update application status');
+      }
+
+      // Refresh the dashboard data
+      setRetryCount(prev => prev + 1);
+    } catch (error) {
+      console.error('Error updating application status:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -119,13 +260,24 @@ export default function ApplicantDashboard() {
     return (
       <DashboardLayout>
         <div className="container py-6 px-4 mx-auto">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
+          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded flex flex-col items-center">
+            <h2 className="text-lg font-semibold mb-2">Unable to load dashboard</h2>
+            <p className="mb-4">{error.message}</p>
+            <Button 
+              onClick={handleRetry}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" /> Try Again
+            </Button>
           </div>
         </div>
       </DashboardLayout>
     );
   }
+
+  // Transform applications for Kanban
+  const kanbanApplications = transformForKanban(data?.applications);
 
   return (
     <DashboardLayout>
@@ -150,17 +302,17 @@ export default function ApplicantDashboard() {
             <Card className="p-6">
               <h3 className="font-semibold mb-2">Active Applications</h3>
               <p className="text-3xl font-bold">
-                {data?.applications.filter(a => a.status !== 'rejected').length || 0}
+                {data?.applications?.filter(a => a.status !== 'REJECTED').length || 0}
               </p>
             </Card>
             <Card className="p-6">
               <h3 className="font-semibold mb-2">Saved Jobs</h3>
-              <p className="text-3xl font-bold">{data?.savedJobs.length || 0}</p>
+              <p className="text-3xl font-bold">{data?.savedJobs?.length || 0}</p>
             </Card>
             <Card className="p-6">
               <h3 className="font-semibold mb-2">Recent Activity</h3>
               <p className="text-sm text-gray-600">
-                {data?.applications[0] ? (
+                {data?.applications?.[0] ? (
                   `Last update: ${new Date(data.applications[0].updatedAt).toLocaleDateString()}`
                 ) : (
                   'No recent activity'
@@ -169,15 +321,20 @@ export default function ApplicantDashboard() {
             </Card>
           </div>
 
-          {/* Kanban Board */}
+          {/* Kanban Board - Replace KanbanPage with KanbanBoard */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Application Status</h2>
             </div>
-            <KanbanPage 
-              applications={data?.applications || []} 
-              isLoading={loading}
-            />
+            <div className="overflow-x-auto">
+              <div className="min-w-[1000px] pb-6">
+                <KanbanBoard 
+                  applications={kanbanApplications} 
+                  isLoading={loading}
+                  onStatusChange={handleStatusChange}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
