@@ -8,6 +8,19 @@ export interface User {
   lastName: string;
   isAdmin: boolean;
   program: string;
+  applications?: Application[];
+}
+
+/**
+ * Application interface for user management
+ */
+export interface Application {
+  id: number;
+  jobId: number;
+  jobTitle: string;
+  company: string;
+  status: string;
+  notes: string;
 }
 
 /**
