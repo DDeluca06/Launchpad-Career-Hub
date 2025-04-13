@@ -39,11 +39,11 @@ export function StatsOverview() {
         color={extendedPalette.teal}
       />
       <StatCard 
-        title="Partner Companies" 
+        title="All Companies" 
         value={stats.partnerCompanies} 
-        icon={<Building className="h-5 w-5" style={{ color: extendedPalette.brown }} />} 
+        icon={<Building className="h-5 w-5" style={{ color: extendedPalette.lightBlue }} />} 
         isLoading={statsLoading}
-        color={extendedPalette.brown}
+        color={extendedPalette.lightBlue}
       />
     </div>
   );

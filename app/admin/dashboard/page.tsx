@@ -25,7 +25,7 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-gray-500">Monitor job activities and applicant statistics</p>
           </div>
-          <Link href="/admin/jobs">
+          <Link href="/admin/jobs/">
           <Button className="flex items-center gap-2 bg-launchpadGreen hover:bg-launchpadGreen/90">
               <Plus size={16} />
               Create New Job
@@ -56,7 +56,7 @@ export default function AdminDashboard() {
                   style={{ color: extendedPalette.brown }}
                 />
               }
-              href="/admin/partners"
+              href="/admin/companies"
               stats={[
                 { label: "Total Partners", value: "0" },
                 { label: "Active Partners", value: "0" }

@@ -319,35 +319,22 @@ export default function AdminJobListings() {
     }
     
     try {
-      let companyName = "";
-      
-      // Try to fetch the company details to get the company name
+      // Try to get company name, but don't block job creation if it fails
       try {
         const companyResponse = await fetch(`/api/companies?id=${newJob.company_id}`);
         if (companyResponse.ok) {
           const companyData = await companyResponse.json();
-          companyName = companyData.company?.name || "";
+          if (companyData.company?.name) {
+            newJob.company = companyData.company.name;
+          }
         }
       } catch (companyError) {
-        console.error("Error fetching company details:", companyError);
-        // Continue with fallback
+        console.error("Error fetching company name:", companyError);
+        // Continue without company name, the service will handle it
       }
-      
-      // If company name is empty, use fallback
-      if (!companyName) {
-        console.warn("Company name not found, using fallback");
-        // Try alternative fields from form if available or use placeholder
-        companyName = `Company ID: ${newJob.company_id}`;
-      }
-      
-      // Include company name in the job data
-      const jobData = {
-        ...newJob,
-        company: companyName
-      };
       
       // Create job via API
-      const result = await createJob(jobData);
+      const result = await createJob(newJob);
       const createdJob = result.job;
       
       // Add the new job to the UI state with proper type handling

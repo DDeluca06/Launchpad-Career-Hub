@@ -148,7 +148,7 @@ export default function ApplicantsPage() {
           try {
             const data = JSON.parse(text);
             throw new Error(data.error || 'Failed to create user');
-          } catch (jsonError) {
+          } catch {
             throw new Error('Invalid server response. Please try again.');
           }
         } else {
@@ -157,11 +157,10 @@ export default function ApplicantsPage() {
       }
       
       // Parse response data - wrap in try/catch to handle JSON parsing errors
-      let data;
       try {
-        data = await response.json();
-      } catch (jsonError) {
-        console.error("Error parsing response:", jsonError);
+        await response.json();
+      } catch (error) {
+        console.error("Error parsing response:", error);
         throw new Error('Failed to parse server response. Please try again.');
       }
       
