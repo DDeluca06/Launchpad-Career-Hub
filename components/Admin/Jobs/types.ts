@@ -16,12 +16,18 @@ export interface ExtendedJob {
   job_type: JobType;
   title: string;
   description: string | null;
-  company: string;
+  company_id: number;
   website: string | null;
   location: string | null;
   partner_id: number | null;
   created_at: Date | null;
   tags: JobTag[];
+  companies?: {
+    name: string;
+    is_partner: boolean;
+    location?: string | null;
+    website?: string | null;
+  } | null;
   partners?: {
     name: string;
   } | null;
@@ -50,6 +56,7 @@ export interface JobFilterInterface {
   remoteOnly: boolean;
   keywords: string;
   tags: string[];
+  partnerOnly: boolean;
 }
 
 // Job list component props
@@ -87,7 +94,7 @@ export const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'APPRENTICESHIP'
 // For new job creation
 export interface NewJob {
   title: string;
-  company: string;
+  company_id: number;
   location: string;
   job_type: JobType;
   description: string;

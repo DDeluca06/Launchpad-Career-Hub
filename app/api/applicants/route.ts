@@ -587,4 +587,136 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * DELETE request handler for removing dummy users or specific users
+ * Can be called with ?all=true to remove all non-admin users
+ * Or with ?id=123 to remove a specific user
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const removeAllDummy = searchParams.get('all') === 'true';
+    const userId = searchParams.get('id');
+
+    if (removeAllDummy) {
+      // Remove all non-admin users and their related data
+      
+      // First, delete all applications from non-admin users
+      await prisma.applications.deleteMany({
+        where: {
+          users: {
+            is_admin: false
+          }
+        }
+      });
+      
+      // Then delete all resumes from non-admin users
+      await prisma.resumes.deleteMany({
+        where: {
+          users: {
+            is_admin: false
+          }
+        }
+      });
+      
+      // Delete all interviews for non-admin users
+      await prisma.interviews.deleteMany({
+        where: {
+          users: {
+            is_admin: false
+          }
+        }
+      });
+      
+      // Finally delete all non-admin users
+      const { count } = await prisma.users.deleteMany({
+        where: {
+          is_admin: false
+        }
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: `Successfully removed ${count} dummy users and their related data`,
+        count
+      });
+    } else if (userId) {
+      // Delete a specific user and their related data
+      const id = parseInt(userId);
+      
+      if (isNaN(id)) {
+        return NextResponse.json(
+          { error: 'Invalid user ID' },
+          { status: 400 }
+        );
+      }
+      
+      // Check if this is an admin user
+      const user = await prisma.users.findUnique({
+        where: { user_id: id }
+      });
+      
+      if (!user) {
+        return NextResponse.json(
+          { error: 'User not found' },
+          { status: 404 }
+        );
+      }
+      
+      if (user.is_admin) {
+        return NextResponse.json(
+          { error: 'Cannot delete admin users' },
+          { status: 400 }
+        );
+      }
+      
+      // Delete all applications from this user
+      await prisma.applications.deleteMany({
+        where: { user_id: id }
+      });
+      
+      // Delete all resumes from this user
+      await prisma.resumes.deleteMany({
+        where: { user_id: id }
+      });
+      
+      // Delete all interviews for this user
+      await prisma.interviews.deleteMany({
+        where: { user_id: id }
+      });
+      
+      // Finally delete the user
+      await prisma.users.delete({
+        where: { user_id: id }
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: `Successfully removed user ${id}`
+      });
+    } else {
+      return NextResponse.json(
+        { error: 'Missing required parameters: either "all=true" or "id={userId}"' },
+        { status: 400 }
+      );
+    }
+  } catch (error: unknown) {
+    console.error('Error deleting users:', error);
+    
+    // Safe extraction of error message
+    const errorMessage = 
+      error !== null && 
+      typeof error === 'object' && 
+      'message' in error && 
+      typeof error.message === 'string'
+        ? error.message
+        : 'Unknown error';
+        
+    return NextResponse.json(
+      { error: 'Failed to delete users', details: errorMessage },
+      { status: 500 }
+    );
+  }
 } 

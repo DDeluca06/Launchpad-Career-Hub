@@ -18,6 +18,8 @@ import {
   HelpCircle,
   FileText,
   Calendar,
+  Building,
+  Building2,
 } from "lucide-react";
 
 interface NavItem {
@@ -161,10 +163,16 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
 
   const adminSectionItems: NavItem[] = isAdmin ? [
     {
-      title: "Analytics",
-      href: `${baseUrl}/analytics`,
-      icon: <BarChart2 />,
-      color: extendedPalette.teal
+      title: "Jobs",
+      href: `${baseUrl}/jobs`,
+      icon: <Briefcase />,
+      color: extendedPalette.primaryBlue
+    },
+    {
+      title: "Companies",
+      href: `${baseUrl}/companies`,
+      icon: <Building2 />,
+      color: extendedPalette.lightBlue
     },
     {
       title: "Applicants",
@@ -174,10 +182,10 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
       color: extendedPalette.primaryOrange
     },
     {
-      title: "Partners",
-      href: `${baseUrl}/partners`,
-      icon: <MessageSquare />,
-      color: extendedPalette.brown
+      title: "Analytics",
+      href: `${baseUrl}/analytics`,
+      icon: <BarChart2 />,
+      color: extendedPalette.teal
     },
   ] : [];
 

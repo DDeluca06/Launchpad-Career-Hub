@@ -1,4 +1,4 @@
-import { Briefcase, Calendar, FileSpreadsheet, Users } from "lucide-react";
+import { Briefcase, Calendar, Building, Users } from "lucide-react";
 import { useStats } from "@/hooks/use-stats";
 import { StatCard } from "./StatCard";
 import { extendedPalette } from "@/lib/colors";
@@ -7,7 +7,7 @@ import { extendedPalette } from "@/lib/colors";
  * Renders a responsive grid of dashboard statistics cards.
  * 
  * This component fetches statistics data using the useStats hook and displays
- * four key metrics: Total Jobs, Total Applications, Active Interviews, and Offers Sent.
+ * four key metrics: Total Jobs, Total Applications, Active Interviews, and Partner Companies.
  * Each metric is displayed with an appropriate icon and color.
  * 
  * @returns A React component displaying a grid of stat cards
@@ -39,11 +39,11 @@ export function StatsOverview() {
         color={extendedPalette.teal}
       />
       <StatCard 
-        title="Offers Sent" 
-        value={stats.offersSent} 
-        icon={<FileSpreadsheet className="h-5 w-5" style={{ color: extendedPalette.primaryOrange }} />} 
+        title="Partner Companies" 
+        value={stats.partnerCompanies} 
+        icon={<Building className="h-5 w-5" style={{ color: extendedPalette.brown }} />} 
         isLoading={statsLoading}
-        color={extendedPalette.primaryOrange}
+        color={extendedPalette.brown}
       />
     </div>
   );
