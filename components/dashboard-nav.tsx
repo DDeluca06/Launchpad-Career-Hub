@@ -281,6 +281,13 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
               <p className="text-[11px] text-launchpadDarkGray/70 dark:text-gray-400 leading-tight">
                 Contact our support team for assistance.
               </p>
+              <Link 
+                href="/support" 
+                className="text-[11px] text-launchpadBlue hover:text-launchpadDarkBlue dark:text-launchpadLightBlue inline-flex items-center gap-1 mt-1.5 transition-colors"
+              >
+                <span>Meet our team</span>
+                <span className="text-[8px]">→</span>
+              </Link>
             </div>
           </div>
         </div>

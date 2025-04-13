@@ -10,6 +10,7 @@ const publicPaths = [
   "/api/auth/logout",
   "/api/auth/signup",
   "/api/auth/session",
+  "/support",
 ];
 
 // Paths that should be admin-only

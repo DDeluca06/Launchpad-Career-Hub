@@ -63,6 +63,9 @@ function HomeContent() {
       <footer className="py-3 px-4 relative z-10 mt-auto border-t border-gray-100 bg-white/80 backdrop-blur-sm">
         <div className="text-center text-xs text-gray-500">
           <p>&#169; 2025 Launchpad. All rights reserved.</p>
+          <div className="mt-2">
+            <a href="/support" className="text-blue-500 hover:text-blue-700 transition-colors">Our Team</a>
+          </div>
         </div>
       </footer>
 
