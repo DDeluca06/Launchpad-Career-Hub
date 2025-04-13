@@ -142,50 +142,45 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const { user_id, job_id, status, resume_id, position } = body;
     
-    // Validate required fields
-    if (!body.user_id || !body.job_id) {
+    if (!user_id || !job_id || !status) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: 'Missing required fields: user_id, job_id, status' },
         { status: 400 }
       );
     }
-
-    // Check if the user already applied to this job
+    
+    // Check if application already exists
     const existingApplication = await prisma.applications.findFirst({
       where: {
-        user_id: body.user_id,
-        job_id: body.job_id
+        user_id: user_id,
+        job_id: job_id
       }
     });
-
+    
     if (existingApplication) {
       return NextResponse.json(
-        { success: false, error: 'You have already applied to this job' },
+        { success: false, error: 'User has already applied for this job' },
         { status: 400 }
       );
     }
-
-    // Create the application with default status APPLIED
+    
+    // Create new application
     const application = await prisma.applications.create({
       data: {
-        user_id: body.user_id,
-        job_id: body.job_id,
-        status: body.status || ApplicationStatus.APPLIED,
-        position: body.position,
-        resume_id: body.resume_id
+        user_id: user_id,
+        job_id: job_id,
+        status: status as ApplicationStatus,
+        resume_id: resume_id,
+        position: position || undefined
       }
     });
-
-    // Create application status history entry
-    await prisma.app_status_history.create({
-      data: {
-        application_id: application.application_id,
-        status: mapApplicationStatusToHistoryStatus(body.status || ApplicationStatus.APPLIED)
-      }
+    
+    return NextResponse.json({
+      success: true,
+      application
     });
-
-    return NextResponse.json({ success: true, application });
   } catch (error) {
     console.error('Error creating application:', error);
     return NextResponse.json(
@@ -354,5 +349,88 @@ function mapApplicationStatusToHistoryStatus(status: ApplicationStatus) {
       return 'REJECTED';
     default:
       return 'APPLIED';
+  }
+}
+
+// PATCH: Update application status
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, status, notes, userId } = body;
+    
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required field: id' },
+        { status: 400 }
+      );
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required field: userId' },
+        { status: 400 }
+      );
+    }
+    
+    // Prepare update data
+    const updateData: any = {
+      status_updated: new Date()
+    };
+    
+    // Add status if provided
+    if (status) {
+      updateData.status = status as ApplicationStatus;
+    }
+    
+    // Add notes if provided
+    if (notes !== undefined) {
+      updateData.notes = notes;
+    }
+
+    // Verify the application belongs to the user
+    const application = await prisma.applications.findUnique({
+      where: { application_id: parseInt(id) }
+    });
+
+    if (!application) {
+      return NextResponse.json(
+        { success: false, error: 'Application not found' },
+        { status: 404 }
+      );
+    }
+
+    if (application.user_id !== parseInt(userId.toString())) {
+      return NextResponse.json(
+        { success: false, error: 'You do not have permission to update this application' },
+        { status: 403 }
+      );
+    }
+    
+    // First, make sure the notes column exists
+    try {
+      await prisma.$executeRaw`ALTER TABLE applications ADD COLUMN IF NOT EXISTS notes TEXT`;
+    } catch (error) {
+      console.error("Error ensuring notes column exists:", error);
+      // Continue even if the column already exists
+    }
+    
+    // Update application
+    const updatedApplication = await prisma.applications.update({
+      where: {
+        application_id: parseInt(id)
+      },
+      data: updateData
+    });
+    
+    return NextResponse.json({
+      success: true,
+      application: updatedApplication
+    });
+  } catch (error) {
+    console.error('Error updating application:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to update application' },
+      { status: 500 }
+    );
   }
 } 

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from "@/lib/auth";
 import bcrypt from 'bcryptjs';
+import { NextRequest } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 interface User {
   user_id: number;
@@ -14,112 +17,74 @@ interface User {
 }
 
 // GET: Fetch users (all users, current user, or specific user)
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type'); // 'me' | 'single' | 'all'
-    const userId = searchParams.get('userId');
-
-    // Get current user's profile
-    if (type === 'me') {
-      const session = await auth.getSession(request);
-      if (!session?.user?.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-
-      const user = await prisma.users.findUnique({
-        where: { user_id: parseInt(session.user.id) },
-        select: {
-          user_id: true,
-          email: true,
-          first_name: true,
-          last_name: true,
-          is_admin: true,
-          program: true,
-          created_at: true,
-        },
-      });
-
-      if (!user) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      }
-
-      return NextResponse.json({
-        success: true,
-        user: {
-          id: user.user_id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          isAdmin: user.is_admin ?? false,
-          program: user.program ?? '',
-          createdAt: user.created_at,
-        }
-      });
+    // Check if the request is from an admin
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
     }
-
-    // Get specific user by ID
-    if (type === 'single' && userId) {
-      const user = await prisma.users.findUnique({
-        where: { user_id: parseInt(userId) },
-        select: {
-          user_id: true,
-          email: true,
-          first_name: true,
-          last_name: true,
-          is_admin: true,
-          program: true,
-          created_at: true,
-        },
-      });
-
-      if (!user) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      }
-
-      return NextResponse.json({
-        success: true,
-        user: {
-          id: user.user_id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          isAdmin: user.is_admin ?? false,
-          program: user.program ?? '',
-          createdAt: user.created_at,
-        }
-      });
-    }
-
-    // Get all users (default)
-    const users = await prisma.users.findMany({
+    
+    // Fetch all users with their basic data
+    const users = await prisma.user.findMany({
       select: {
         user_id: true,
         email: true,
         first_name: true,
         last_name: true,
-        is_admin: true,
+        role: true,
         program: true,
-        created_at: true,
+        applications: {
+          select: {
+            application_id: true,
+            job_id: true,
+            status: true,
+            notes: true,
+            jobs: {
+              select: {
+                title: true,
+                company: true
+              }
+            }
+          }
+        }
       },
+      orderBy: {
+        first_name: 'asc'
+      }
     });
-
+    
+    // Transform data for UI
+    const transformedUsers = users.map(user => ({
+      id: user.user_id,
+      email: user.email,
+      firstName: user.first_name || "",
+      lastName: user.last_name || "",
+      isAdmin: user.role === "ADMIN",
+      program: user.program || "",
+      applications: user.applications.map(app => ({
+        id: app.application_id,
+        jobId: app.job_id,
+        jobTitle: app.jobs.title,
+        company: app.jobs.company,
+        status: app.status,
+        notes: app.notes || ""
+      }))
+    }));
+    
     return NextResponse.json({
       success: true,
-      users: users.map((user: User) => ({
-        id: user.user_id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        isAdmin: user.is_admin ?? false,
-        program: user.program ?? '',
-        createdAt: user.created_at,
-      }))
+      users: transformedUsers
     });
+    
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error("Error fetching users:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch users' },
+      { success: false, error: "Failed to fetch users" },
       { status: 500 }
     );
   }

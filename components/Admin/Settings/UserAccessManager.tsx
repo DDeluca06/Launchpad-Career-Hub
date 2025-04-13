@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/basic/switch";
 import { Badge } from "@/components/ui/basic/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/basic/avatar";
 import { Card, CardContent } from "@/components/ui/basic/card";
-import { Shield, Search, UserPlus, KeyRound, Tag } from "lucide-react";
+import { Shield, Search, UserPlus, KeyRound, Tag, FileText, Info } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { User, UserAccessSettingsProps } from "./types";
@@ -37,6 +37,8 @@ export function UserAccessManager({
     password: "Changeme",
     program: "ONE_ZERO_ONE"
   });
+  const [viewApplicationsDialogOpen, setViewApplicationsDialogOpen] = useState(false);
+  const [selectedUserForApplications, setSelectedUserForApplications] = useState<User | null>(null);
 
   // Update local users when props change
   useEffect(() => {
@@ -233,6 +235,22 @@ export function UserAccessManager({
     }
   };
 
+  // Function to open the applications dialog
+  const openApplicationsDialog = (user: User) => {
+    setSelectedUserForApplications(user);
+    setViewApplicationsDialogOpen(true);
+  };
+
+  // Format application status for display
+  const formatApplicationStatus = (status: string) => {
+    return status
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .split(" ")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -331,6 +349,7 @@ export function UserAccessManager({
                       // Generate initials for avatar
                       const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
                       const isCurrentUser = user.id === currentUserId;
+                      const hasApplicationNotes = user.applications?.some(app => app.notes?.trim().length > 0);
 
                       return (
                         <tr
@@ -385,15 +404,31 @@ export function UserAccessManager({
                             />
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openResetPasswordDialog(user.id)}
-                              className="p-2"
-                              title="Reset Password"
-                            >
-                              <KeyRound className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center justify-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openResetPasswordDialog(user.id)}
+                                className="p-2"
+                                title="Reset Password"
+                              >
+                                <KeyRound className="h-4 w-4" />
+                              </Button>
+
+                              {/* New button for viewing applications with notes */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openApplicationsDialog(user)}
+                                className={`p-2 ${hasApplicationNotes ? 'border-blue-500' : ''}`}
+                                title="View Applications and Notes"
+                              >
+                                <FileText className={`h-4 w-4 ${hasApplicationNotes ? 'text-blue-500' : ''}`} />
+                                {hasApplicationNotes && (
+                                  <span className="absolute -top-1 -right-1 h-2 w-2 bg-blue-500 rounded-full"></span>
+                                )}
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -521,6 +556,64 @@ export function UserAccessManager({
               Cancel
             </Button>
             <Button onClick={handleResetPassword}>Reset Password</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Applications and Notes Dialog */}
+      <Dialog open={viewApplicationsDialogOpen} onOpenChange={setViewApplicationsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedUserForApplications ? 
+                `${selectedUserForApplications.firstName} ${selectedUserForApplications.lastName}'s Applications` : 
+                'Applications'}
+            </DialogTitle>
+            <DialogDescription>
+              View user's job applications and their notes
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 max-h-[60vh] overflow-y-auto">
+            {selectedUserForApplications?.applications?.length ? (
+              <div className="space-y-4">
+                {selectedUserForApplications.applications.map(app => (
+                  <Card key={app.id} className="border shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between mb-2">
+                        <div>
+                          <h4 className="text-md font-semibold">{app.jobTitle}</h4>
+                          <p className="text-sm text-gray-500">{app.company}</p>
+                        </div>
+                        <Badge className="self-start">
+                          {formatApplicationStatus(app.status)}
+                        </Badge>
+                      </div>
+                      
+                      {app.notes ? (
+                        <div className="mt-3 bg-gray-50 p-3 rounded-md border">
+                          <p className="text-sm font-semibold mb-1">Notes:</p>
+                          <p className="text-sm">{app.notes}</p>
+                        </div>
+                      ) : (
+                        <div className="mt-3 bg-gray-50 p-3 rounded-md border text-gray-500 text-sm italic flex items-center gap-2">
+                          <Info className="h-4 w-4" />
+                          No notes added for this application
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                This user has no applications or notes
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setViewApplicationsDialogOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

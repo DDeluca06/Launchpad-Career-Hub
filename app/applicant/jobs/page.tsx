@@ -531,6 +531,7 @@ export default function JobsPage() {
             };
             applied_at: string;
             status: string;
+            notes?: string;
           }) => {
             return {
               id: app.application_id.toString(),
@@ -540,7 +541,7 @@ export default function JobsPage() {
               companyLogoUrl: "https://placehold.co/150",
               appliedDate: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
               status: mapStatusToUI(app.status),
-              notes: "",
+              notes: app.notes || "",
               nextSteps: app.status === "INTERVIEW_STAGE" ? "Interview scheduled" : "",
               interviewDate: app.status === "INTERVIEW_STAGE" ? 
                 new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
@@ -557,11 +558,25 @@ export default function JobsPage() {
     }
   };
 
-  // Handler functions
+  // Add effect to reload application data when notes are updated
+  useEffect(() => {
+    if (selectedApplication?.id) {
+      // Refresh applications to get updated notes
+      fetchUserApplications();
+    }
+  }, [selectedApplication?.notes]);
+
+  // Update the handleSearch function to preserve notes when filtering
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
     
+    // Always keep the applications data consistent
+    if (value.trim() === "") {
+      fetchUserApplications();
+    }
+    
+    // Filter jobs based on search
     if (!value.trim()) {
       applyFilters(jobs, filterOptions);
       return;
@@ -1152,6 +1167,78 @@ export default function JobsPage() {
 
     // Application detail view
     function ApplicationDetail({ application }: { application: Application | null }) {
+      const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+      const [applicationNotes, setApplicationNotes] = useState("");
+      const [isSaving, setIsSaving] = useState(false);
+
+      useEffect(() => {
+        if (application) {
+          setApplicationNotes(application.notes || "");
+        }
+      }, [application]);
+
+      const saveNotes = async () => {
+        if (!application || !currentUser) {
+          toast.error("User information not available. Please log in again.");
+          return;
+        }
+        
+        setIsSaving(true);
+        
+        try {
+          console.log("Saving notes for application:", application.id, "User ID:", currentUser.user_id);
+          // Update application notes in the database
+          const response = await fetch(`/api/applications/${application.id}/notes`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              notes: applicationNotes,
+              userId: currentUser.user_id
+            }),
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            console.error("Error response:", data);
+            throw new Error(data.error || "Failed to update notes");
+          }
+          
+          toast.success("Notes updated successfully");
+          
+          // Update local state
+          setApplications(prev => 
+            prev.map(app => 
+              app.id === application.id 
+                ? { ...app, notes: applicationNotes }
+                : app
+            )
+          );
+          
+          // Update the selectedApplication to trigger a refresh
+          if (selectedApplication && selectedApplication.id === application.id) {
+            setSelectedApplication({
+              ...selectedApplication,
+              notes: applicationNotes
+            });
+          }
+          
+          // Refresh applications from the server to ensure data is in sync
+          setTimeout(() => {
+            fetchUserApplications();
+          }, 1000);
+          
+          setNotesDialogOpen(false);
+        } catch (error) {
+          console.error("Error updating notes:", error);
+          toast.error(`Failed to update notes: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+          setIsSaving(false);
+        }
+      };
+
       if (!application) {
         return (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -1241,11 +1328,40 @@ export default function JobsPage() {
               <FileText className="h-4 w-4 mr-2" />
               View Job Details
             </Button>
-            <Button variant="outline">
-              <Briefcase className="h-4 w-4 mr-2" />
-              Contact Recruiter
+            <Button 
+              variant="outline"
+              onClick={() => setNotesDialogOpen(true)}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Update Notes
             </Button>
           </div>
+
+          <Dialog open={notesDialogOpen} onOpenChange={setNotesDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Application Notes</DialogTitle>
+                <DialogDescription>
+                  This is where you or launchpad staff can add notes about your application for {application.jobTitle} at {application.company}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <Textarea
+                  placeholder= "Add notes about interviews, follow-ups, or any other information about this application..."
+                  value={applicationNotes}
+                  onChange={(e) => setApplicationNotes(e.target.value)}
+                  rows={5}
+                  className="w-full"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setNotesDialogOpen(false)}>Cancel</Button>
+                <Button onClick={saveNotes} disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Save Notes"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       );
     }
