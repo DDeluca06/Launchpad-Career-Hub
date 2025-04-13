@@ -10,15 +10,18 @@ import { isAdmin } from "@/lib/auth";
 export async function GET(request: NextRequest) {
   try {
     // Check if user is authenticated by default
-    const user = await isAdmin();
+    await isAdmin();
     const { searchParams } = new URL(request.url);
     
     // Optional filter parameters
     const nameFilter = searchParams.get('name');
     const partnerOnly = searchParams.get('partnerOnly') === 'true';
     
-    // Build the where clause
-    const where: any = {};
+    // Build the where clause with proper typing
+    const where: {
+      name?: { contains: string; mode: 'insensitive' };
+      is_partner?: boolean;
+    } = {};
     
     if (nameFilter) {
       where.name = {
@@ -38,8 +41,9 @@ export async function GET(request: NextRequest) {
     });
     
     return NextResponse.json({ companies });
-  } catch (error: any) {
-    if (error.message === 'Not authenticated' || error.message === 'Not authorized') {
+  } catch (error: unknown) {
+    if (error instanceof Error && 
+        (error.message === 'Not authenticated' || error.message === 'Not authorized')) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
     
@@ -56,7 +60,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check if user is admin
-    const admin = await isAdmin();
+    await isAdmin();
     
     // Parse the request body
     const data = await request.json();
@@ -97,8 +101,9 @@ export async function POST(request: NextRequest) {
     });
     
     return NextResponse.json({ company });
-  } catch (error: any) {
-    if (error.message === 'Not authenticated' || error.message === 'Not authorized') {
+  } catch (error: unknown) {
+    if (error instanceof Error && 
+        (error.message === 'Not authenticated' || error.message === 'Not authorized')) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
     
@@ -115,7 +120,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     // Check if user is admin
-    const admin = await isAdmin();
+    await isAdmin();
     
     // Get the company ID from query params
     const { searchParams } = new URL(request.url);
@@ -165,8 +170,9 @@ export async function PUT(request: NextRequest) {
     });
     
     return NextResponse.json({ company });
-  } catch (error: any) {
-    if (error.message === 'Not authenticated' || error.message === 'Not authorized') {
+  } catch (error: unknown) {
+    if (error instanceof Error && 
+        (error.message === 'Not authenticated' || error.message === 'Not authorized')) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
     

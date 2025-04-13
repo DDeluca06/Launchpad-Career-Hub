@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/form/input';
 import { Button } from '@/components/ui/basic/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/basic/card';
@@ -40,10 +40,36 @@ export default function CompaniesPage() {
   // State for selected company details
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   
+  // Load companies from API
+  const loadCompanies = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/companies');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch companies');
+      }
+      
+      const data = await response.json();
+      setCompanies(data.companies);
+      setFilteredCompanies(data.companies);
+      
+      // Select the first company if none is selected
+      if (data.companies.length > 0 && !selectedCompany) {
+        setSelectedCompany(data.companies[0]);
+      }
+    } catch (error) {
+      console.error('Error loading companies:', error);
+      toast.error('Failed to load companies');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedCompany, toast]);
+  
   // Fetch companies on load
   useEffect(() => {
     loadCompanies();
-  }, []);
+  }, [loadCompanies]);
   
   // Filter companies when search query or tab changes
   useEffect(() => {
@@ -69,32 +95,6 @@ export default function CompaniesPage() {
       setFilteredCompanies(filtered);
     }
   }, [companies, searchQuery, activeTab]);
-  
-  // Load companies from API
-  const loadCompanies = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/companies');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch companies');
-      }
-      
-      const data = await response.json();
-      setCompanies(data.companies);
-      setFilteredCompanies(data.companies);
-      
-      // Select the first company if none is selected
-      if (data.companies.length > 0 && !selectedCompany) {
-        setSelectedCompany(data.companies[0]);
-      }
-    } catch (error) {
-      console.error('Error loading companies:', error);
-      toast.error('Failed to load companies');
-    } finally {
-      setIsLoading(false);
-    }
-  };
   
   // Reset form for new company creation
   const resetCompanyForm = () => {

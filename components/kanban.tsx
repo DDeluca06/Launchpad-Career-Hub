@@ -1,4 +1,4 @@
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Card } from '@/components/ui/basic/card';
 import { useState, useEffect } from 'react';
 
@@ -24,6 +24,19 @@ interface KanbanPageProps {
   isLoading?: boolean;
 }
 
+// Define JobApplication type
+interface JobApplication {
+  id: string;
+  title: string;
+  company: string;
+  status: string;
+  stage?: string;
+  // Add other fields as needed
+}
+
+// Define a type for the function parameter
+type HandleAddJob = (job: Omit<JobApplication, "id">) => void;
+
 export function KanbanPage({ applications = [], isLoading = false }: KanbanPageProps) {
   const processedApplications = applications.map(app => ({
     ...app,
@@ -31,21 +44,21 @@ export function KanbanPage({ applications = [], isLoading = false }: KanbanPageP
       title: app.title || 'Unknown Position',
       company: app.company || 'Unknown Company'
     },
-    status: STATUSES.includes(app.status as any) ? app.status : 'applied'
+    status: STATUSES.includes(app.status as (typeof STATUSES)[number]) ? app.status : 'applied'
   }));
 
   const [items, setItems] = useState(processedApplications);
 
   useEffect(() => {
     setItems(processedApplications);
-  }, [applications]);
+  }, [applications, processedApplications]);
 
   const columns = STATUSES.reduce((acc, status) => {
     acc[status] = items.filter(item => item.status === status);
     return acc;
   }, {} as Record<string, Application[]>);
 
-  const onDragEnd = async (result: any) => {
+  const onDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
@@ -166,4 +179,26 @@ export function KanbanPage({ applications = [], isLoading = false }: KanbanPageP
       </div>
     </div>
   );
+}
+
+// Option 2: Use the parameters if the function is needed
+export function useKanbanBoard(initialJobs: JobApplication[] = [], onAddJob?: HandleAddJob) {
+  const [jobs, setJobs] = useState<JobApplication[]>(initialJobs);
+  
+  // Function to add a new job
+  const addJob = (job: Omit<JobApplication, "id">) => {
+    if (onAddJob) {
+      onAddJob(job);
+    } else {
+      // Generate a unique ID
+      const newJob: JobApplication = {
+        ...job,
+        id: `job-${Date.now()}`
+      };
+      
+      setJobs([...jobs, newJob]);
+    }
+  };
+  
+  return { jobs, setJobs, addJob };
 } 

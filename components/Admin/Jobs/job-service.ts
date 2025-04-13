@@ -1,4 +1,4 @@
-import { ExtendedJob, NewJob } from "./types";
+import { NewJob } from "./types";
 
 /**
  * Fetches job listings from the API
@@ -52,9 +52,9 @@ export async function fetchJobsByArchiveStatus(archived: boolean = false) {
     
     console.log(`Successfully fetched ${data.jobs.length} jobs`);
     return data.jobs;
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
     // Handle timeout error specifically
-    if (error.name === 'AbortError') {
+    if (error instanceof Error && error.name === 'AbortError') {
       console.error('Fetch timeout: The request took too long to complete');
     } else {
       console.error('Error fetching jobs by status:', error);

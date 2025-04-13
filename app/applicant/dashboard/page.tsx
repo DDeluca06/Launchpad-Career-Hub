@@ -25,7 +25,7 @@ interface Application {
 
 interface DashboardData {
   applications: Application[];
-  savedJobs: any[];
+  savedJobs: unknown[];
   profile: {
     id: string;
     firstName: string;
@@ -38,7 +38,7 @@ interface DashboardData {
 interface ApiError {
   error: string;
   message?: string;
-  details?: any;
+  details?: unknown;
 }
 
 // Update status map to include the new statuses
@@ -110,11 +110,11 @@ export default function ApplicantDashboard() {
         console.log('Dashboard data:', responseData); // Debug log
         setData(responseData);
         setError(null); // Clear any previous errors
-      } catch (error: any) { // Type assertion for error
+      } catch (error) {
         console.error("Error loading dashboard data:", error);
         setError({
           error: 'Data loading error',
-          message: error.message || 'Failed to load dashboard data. Please try again later.'
+          message: error instanceof Error ? error.message : 'Failed to load dashboard data. Please try again later.'
         });
       } finally {
         setLoading(false);

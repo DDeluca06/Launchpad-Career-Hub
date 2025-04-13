@@ -77,7 +77,7 @@ export async function GET(request: Request) {
         break;
     }
     
-    console.log(`[Analytics] Fetching data from ${startDate.toISOString()} to ${now.toISOString()}`);
+    console.warn(`[Analytics] Fetching data from ${startDate.toISOString()} to ${now.toISOString()}`);
 
     // Get all partners with their jobs and applications
     const partners = await prisma.partners.findMany({
@@ -178,12 +178,16 @@ export async function GET(request: Request) {
     const monthlyApplications = new Map<string, number>();
     
     // Initialize all months in the selected range with 0
-    let currentMonth = new Date(startDate);
-    while (currentMonth <= now) {
+    const startMonth = new Date(startDate);
+    const totalMonths = (now.getFullYear() - startMonth.getFullYear()) * 12 + (now.getMonth() - startMonth.getMonth()) + 1;
+    
+    // Use Array.from to create a range of months and iterate over them
+    Array.from({ length: totalMonths }).forEach((_, i) => {
+      const currentMonth = new Date(startMonth);
+      currentMonth.setMonth(startMonth.getMonth() + i);
       const monthKey = currentMonth.toLocaleString('default', { month: 'short' });
       monthlyApplications.set(monthKey, 0);
-      currentMonth.setMonth(currentMonth.getMonth() + 1);
-    }
+    });
 
     // Count applications per month
     applications.forEach((app: DbApplication) => {

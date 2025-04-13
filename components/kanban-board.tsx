@@ -89,7 +89,7 @@ export default function KanbanBoard({
       company: app.company || 'Unknown Company',
       id: app.jobId || app.id
     },
-    status: MAIN_STAGES.includes(app.status as any) ? app.status : 'applied'
+    status: MAIN_STAGES.includes(app.status as (typeof MAIN_STAGES)[number]) ? app.status : 'applied'
   }));
   
   // Update local state when applications prop changes
@@ -132,7 +132,7 @@ export default function KanbanBoard({
   };
 
   // Wrap button clicks in preventDefault to ensure no form submissions happen
-  const preventFormSubmission = (callback: (...args: any[]) => void) => (e: React.MouseEvent, ...args: any[]) => {
+  const preventFormSubmission = (callback: ((...args: unknown[]) => void)) => (e: React.MouseEvent, ...args: unknown[]) => {
     e.preventDefault();
     e.stopPropagation();
     callback(...args);
@@ -237,7 +237,7 @@ export default function KanbanBoard({
     if (status === 'offer') return 'border-l-4 border-l-green-400';
     if (status === 'interested') return 'border-l-4 border-l-blue-400';
     if (status === 'applied') return 'border-l-4 border-l-indigo-400';
-    if (status === 'referrals') return 'border-l-4 border-l-amber-400';
+    if (status === 'referrals' || subStage === 'referrals') return 'border-l-4 border-l-amber-400';
     if (status === 'accepted') return 'border-l-4 border-l-emerald-400';
     if (status === 'rejected') return 'border-l-4 border-l-red-400';
     return '';

@@ -12,13 +12,11 @@ import {
   Briefcase,
   BarChart2,
   Users,
-  MessageSquare,
   LogOut,
   Settings,
   HelpCircle,
   FileText,
   Calendar,
-  Building,
   Building2,
 } from "lucide-react";
 

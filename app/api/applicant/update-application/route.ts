@@ -9,7 +9,7 @@ import { auth } from '@/lib/auth';
 export async function PUT(request: NextRequest) {
   try {
     // First try using NextAuth
-    let session = await getServerSession();
+    const session = await getServerSession();
     let email = session?.user?.email;
     
     // If NextAuth fails, try the custom auth implementation
