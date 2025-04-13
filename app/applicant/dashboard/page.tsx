@@ -6,7 +6,7 @@ import KanbanBoard from "@/components/kanban-board";
 import { Button } from "@/components/ui/basic/button";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/basic/card";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Info } from "lucide-react";
 
 // Define types for our dashboard data
 interface Application {
@@ -316,14 +316,25 @@ export default function ApplicantDashboard() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Application Status</h2>
-              <Button 
-                type="button"
-                onClick={() => router.push('/applicant/jobs')} 
-                size="sm"
-                className="flex items-center gap-1"
-              >
-                <Plus className="h-4 w-4" /> Track New Application
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  type="button"
+                  onClick={() => router.push('/applicant/jobs')} 
+                  size="sm"
+                  className="flex items-center gap-1"
+                >
+                  <Plus className="h-4 w-4" /> Find & Track Jobs
+                </Button>
+              </div>
+            </div>
+            
+            {/* Add a helper message to guide users about the Interested column */}
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4 text-sm text-blue-700 flex items-center gap-2">
+              <Info className="h-4 w-4 text-blue-500 flex-shrink-0" />
+              <p>
+                Jobs you save from the Jobs page will appear in the <strong>Interested</strong> column. 
+                Drag items between columns to update your application status.
+              </p>
             </div>
             
             {/* Remove the div with min-width to allow proper mobile responsiveness */}
