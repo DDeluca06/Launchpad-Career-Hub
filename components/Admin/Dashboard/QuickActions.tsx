@@ -19,7 +19,7 @@ export function QuickActions() {
       </CardHeader>
       <CardContent className="px-6 flex-1">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link href="/admin/jobs/create" className="block">
+          <Link href="/admin/jobs/" className="block">
             <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100 h-full">
               <div className="w-10 h-10 rounded-md flex items-center justify-center" style={{ backgroundColor: `${extendedPalette.lightBlue}` }}>
                 <Plus className="h-5 w-5" style={{ color: extendedPalette.primaryBlue }} />

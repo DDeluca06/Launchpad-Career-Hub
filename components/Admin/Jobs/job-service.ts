@@ -66,11 +66,11 @@ export async function fetchJobsByArchiveStatus(archived: boolean = false) {
 
 export async function createJob(jobData: NewJob) {
   try {
-    // The API requires 'company' property not 'company_id'
-    // We need to transform the data to match what the API expects
+    // Prepare the data for the API
+    // If we have a company name, use it, otherwise use a fallback based on company_id
     const transformedData = {
       title: jobData.title,
-      company: jobData.company, // This needs to be a string with the company name
+      company: jobData.company || `Company ID: ${jobData.company_id}`, // Fallback if company name not provided
       job_type: jobData.job_type,
       description: jobData.description,
       location: jobData.location,
