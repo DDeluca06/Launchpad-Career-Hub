@@ -10,6 +10,13 @@ interface PlacementData {
 
 interface DbPartner {
   name: string;
+  description: string | null;
+  location: string | null;
+  partner_id: number;
+  jobs_available: number | null;
+  applicants: number | null;
+  applicants_hired: number | null;
+  industry: string | null;
   jobs: {
     applications: {
       status: string;
@@ -31,7 +38,9 @@ export async function GET() {
     // Get all partners with their jobs and applications
     const partners = await prisma.partners.findMany({
       where: {
-        is_archived: false
+        NOT: {
+          is_archived: true
+        }
       },
       include: {
         jobs: {
