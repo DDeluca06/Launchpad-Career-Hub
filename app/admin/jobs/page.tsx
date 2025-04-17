@@ -67,8 +67,6 @@ export default function AdminJobListings() {
   // Filter state
   const [activeFilters, setActiveFilters] = useState<JobFilterInterface>({
     jobTypes: [],
-    locations: [],
-    remoteOnly: false,
     keywords: "",
     tags: [],
     partnerOnly: false,
@@ -127,8 +125,6 @@ export default function AdminJobListings() {
     
     // Check if we have any active filters
     const hasActiveFilters = activeFilters.jobTypes.length > 0 || 
-                            activeFilters.locations.length > 0 || 
-                            activeFilters.remoteOnly || 
                             activeFilters.keywords.trim() !== "" || 
                             activeFilters.tags.length > 0;
     
@@ -157,51 +153,13 @@ export default function AdminJobListings() {
         }
       }
       
-      // 2. Location filter
-      if (activeFilters.locations.length > 0) {
-        const jobLocationLower = (job.location || "").toLowerCase();
-        const matchesLocation = activeFilters.locations.some(loc => {
-          // Move the switch into a function to avoid the lexical declaration in case block error
-          function getIsMatch(locationType: string): boolean {
-            switch(locationType) {
-              case "remote":
-                return jobLocationLower.includes("remote");
-              case "onsite":
-                return jobLocationLower.includes("onsite") || 
-                    jobLocationLower.includes("on-site") || 
-                    jobLocationLower.includes("on site") ||
-                    (!jobLocationLower.includes("remote") && !jobLocationLower.includes("hybrid"));
-              case "hybrid":
-                return jobLocationLower.includes("hybrid");
-              default:
-                return false;
-            }
-          }
-          
-          return getIsMatch(loc);
-        });
-        
-        if (!matchesLocation) {
-          return false;
-        }
-      }
-      
-      // 3. Remote-only filter
-      if (activeFilters.remoteOnly) {
-        const isRemote = (job.location || "").toLowerCase().includes("remote");
-        if (!isRemote) {
-          return false;
-        }
-      }
-      
-      // 4. Keyword filter
+      // 2. Keyword filter
       if (activeFilters.keywords.trim() !== "") {
         const keywordsLower = activeFilters.keywords.toLowerCase();
         const matchesKeyword = 
           job.title.toLowerCase().includes(keywordsLower) ||
           job.companies?.name?.toLowerCase().includes(keywordsLower) ||
           job.description?.toLowerCase().includes(keywordsLower) ||
-          job.location?.toLowerCase().includes(keywordsLower) ||
           job.tags?.some(tag => tag.toLowerCase().includes(keywordsLower));
         
         if (!matchesKeyword) {
@@ -209,7 +167,7 @@ export default function AdminJobListings() {
         }
       }
       
-      // 5. Tags filter
+      // 3. Tags filter
       if (activeFilters.tags.length > 0) {
         // Need to check if the job has any of the selected tags
         if (!job.tags || job.tags.length === 0) {
@@ -251,8 +209,6 @@ export default function AdminJobListings() {
     console.error("Resetting filters");
     const defaultFilters: JobFilterInterface = {
       jobTypes: [],
-      locations: [],
-      remoteOnly: false,
       keywords: "",
       tags: [],
       partnerOnly: false,
@@ -269,8 +225,6 @@ export default function AdminJobListings() {
   const activeFilterCount = useMemo(() => {
     let count = 0;
     count += activeFilters.jobTypes.length;
-    count += activeFilters.locations.length;
-    if (activeFilters.remoteOnly) count += 1;
     if (activeFilters.keywords.trim() !== "") count += 1;
     count += activeFilters.tags.length;
     return count;
@@ -570,8 +524,8 @@ export default function AdminJobListings() {
   };
 
   const downloadCsvTemplate = () => {
-    const headers = "Title,Company,Location,Type,Description,Website,Tags,PartnerId\n";
-    const exampleRow = "Frontend Developer,Example Company,Philadelphia PA,FULL_TIME,Job description goes here,https://example.com,FRONT_END;FULLY_REMOTE,1\n";
+    const headers = "Title,Company,Location,Type,Description,Website,Tags\n";
+    const exampleRow = "Frontend Developer,Example Company,Philadelphia PA,Full Time,Job description goes here,https://example.com,Front End;Fully Remote\n";
     
     const csvContent = headers + exampleRow;
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

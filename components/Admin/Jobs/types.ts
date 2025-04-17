@@ -22,6 +22,8 @@ export interface ExtendedJob {
   partner_id: number | null;
   created_at: Date | null;
   tags: JobTag[];
+  application_type: 'INTERNAL' | 'EXTERNAL';
+  application_url: string | null;
   companies?: {
     name: string;
     is_partner: boolean;
@@ -52,8 +54,6 @@ export interface ExtendedJob {
 // Job filter interface for filtering jobs
 export interface JobFilterInterface {
   jobTypes: string[];
-  locations: string[];
-  remoteOnly: boolean;
   keywords: string;
   tags: string[];
   partnerOnly: boolean;
@@ -81,15 +81,15 @@ export interface JobDetailsProps {
 
 // Available job tags in the system
 export const JOB_TAGS = [
-  'FULLY_REMOTE', 'HYBRID', 'IN_PERSON', 'FRONT_END', 'BACK_END', 
-  'FULL_STACK', 'NON_PROFIT', 'START_UP', 'EDUCATION', 'HEALTHCARE', 
-  'FINTECH', 'MARKETING', 'DATA_SCIENCE', 'CYBERSECURITY', 'UX_UI_DESIGN', 
-  'IT', 'PRODUCT_MANAGEMENT', 'GAME_DEVELOPMENT', 'AI_ML', 'CLOUD_COMPUTING', 
-  'DEVOPS', 'BUSINESS_ANALYSIS', 'SOCIAL_MEDIA'
+  'Fully Remote', 'Hybrid', 'In Person', 'Front End', 'Back End', 
+  'Full Stack', 'Non Profit', 'Start Up', 'Education', 'Healthcare', 
+  'Fintech', 'Marketing', 'Data Science', 'Cybersecurity', 'UX UI Design', 
+  'IT', 'Product Management', 'Game Development', 'AI ML', 'Cloud Computing', 
+  'DevOps', 'Business Analysis', 'Social Media'
 ] as JobTag[];
 
 // Available job types in the system
-export const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'APPRENTICESHIP', 'INTERNSHIP'] as JobType[];
+export const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'APPRENTICESHIP', 'INTERNSIP'] as JobType[];
 
 // For new job creation
 export interface NewJob {
