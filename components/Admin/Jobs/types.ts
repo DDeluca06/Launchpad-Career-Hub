@@ -89,7 +89,7 @@ export const JOB_TAGS = [
 ] as JobTag[];
 
 // Available job types in the system
-export const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'APPRENTICESHIP', 'INTERNSIP'] as JobType[];
+export const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'APPRENTICESHIP', 'INTERNSHIP'] as JobType[];
 
 // For new job creation
 export interface NewJob {
