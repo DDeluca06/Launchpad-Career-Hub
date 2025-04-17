@@ -23,8 +23,6 @@ export interface JobFiltersRef {
 
 const DEFAULT_FILTERS: JobFilterInterface = {
   jobTypes: [],
-  locations: [],
-  remoteOnly: false,
   keywords: "",
   tags: [],
   partnerOnly: false,
@@ -36,12 +34,6 @@ const JOB_TYPES = [
   { id: "CONTRACT", label: "Contract" },
   { id: "INTERNSHIP", label: "Internship" },
   { id: "APPRENTICESHIP", label: "Apprenticeship" },
-];
-
-const LOCATIONS = [
-  { id: "remote", label: "Remote" },
-  { id: "onsite", label: "On-site" },
-  { id: "hybrid", label: "Hybrid" },
 ];
 
 /**
@@ -79,16 +71,6 @@ export const JobFilters = forwardRef<JobFiltersRef, JobFiltersProps>(
           queryParams.append('jobTypes[]', type);
         });
         
-        // Add locations
-        filters.locations.forEach(location => {
-          queryParams.append('locations[]', location);
-        });
-        
-        // Add remote only
-        if (filters.remoteOnly) {
-          queryParams.append('isRemote', 'true');
-        }
-        
         // Add keywords
         if (filters.keywords) {
           queryParams.append('search', filters.keywords);
@@ -113,18 +95,6 @@ export const JobFilters = forwardRef<JobFiltersRef, JobFiltersProps>(
         ? filters.jobTypes.filter((type) => type !== typeId)
         : [...filters.jobTypes, typeId];
       setFilters((prev) => ({ ...prev, jobTypes: newTypes }));
-    };
-
-    const toggleLocation = (locationId: string) => {
-      const newLocations = filters.locations.includes(locationId)
-        ? filters.locations.filter((loc) => loc !== locationId)
-        : [...filters.locations, locationId];
-      setFilters((prev) => ({ ...prev, locations: newLocations }));
-    };
-
-    const toggleRemoteOnly = () => {
-      const newRemoteOnly = !filters.remoteOnly;
-      setFilters((prev) => ({ ...prev, remoteOnly: newRemoteOnly }));
     };
 
     const toggleTag = (tag: string) => {
@@ -161,73 +131,27 @@ export const JobFilters = forwardRef<JobFiltersRef, JobFiltersProps>(
           </div>
         </div>
 
-        {/* Location Filter */}
+        {/* Tags Filter */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-gray-600" />
+            <Tag className="h-5 w-5 text-gray-600" />
             <Label className="text-base font-medium text-gray-800">
-              Location
+              Tags
             </Label>
           </div>
           <div className="flex flex-wrap gap-2">
-            {LOCATIONS.map((location) => (
-              <Button
-                key={location.id}
-                variant={
-                  filters.locations.includes(location.id) ? "default" : "outline"
-                }
-                size="sm"
-                onClick={() => toggleLocation(location.id)}
-                className={`rounded-full ${filters.locations.includes(location.id) ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
+            {availableTags.map((tag) => (
+              <Badge
+                key={tag}
+                variant={filters.tags.includes(tag) ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => toggleTag(tag)}
               >
-                {location.label}
-              </Button>
+                {tag}
+              </Badge>
             ))}
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <Button
-              variant={filters.remoteOnly ? "default" : "outline"}
-              size="sm"
-              onClick={toggleRemoteOnly}
-              className={`rounded-full ${filters.remoteOnly ? "bg-blue-500 text-white hover:bg-blue-600" : "hover:bg-gray-100"}`}
-            >
-              Remote Only
-            </Button>
-          </div>
         </div>
-
-        {/* Tags Filter */}
-        {availableTags.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Tag className="h-5 w-5 text-gray-600" />
-              <Label className="text-base font-medium text-gray-800">
-                Tags
-              </Label>
-            </div>
-            <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md">
-              {availableTags.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant={filters.tags.includes(tag) ? "default" : "outline"}
-                  className={`cursor-pointer ${
-                    filters.tags.includes(tag)
-                      ? "bg-blue-500 hover:bg-blue-600"
-                      : "hover:bg-gray-100"
-                  }`}
-                  onClick={() => toggleTag(tag)}
-                >
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-            {filters.tags.length > 0 && (
-              <div className="text-sm text-blue-600">
-                {filters.tags.length} tag{filters.tags.length > 1 ? 's' : ''} selected
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Keywords Filter */}
         <div className="space-y-3">
