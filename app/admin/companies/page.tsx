@@ -341,33 +341,6 @@ export default function CompaniesPage() {
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
                         <p className="whitespace-pre-line">{selectedCompany.description || 'No description provided'}</p>
                       </div>
-                      
-                      <div>
-                        <h3 className="text-md font-semibold mb-3">Related Information</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-gray-50 p-4 rounded-md">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Building2Icon className="h-5 w-5 text-blue-600" />
-                              <h4 className="font-medium">Jobs</h4>
-                            </div>
-                            <p className="text-muted-foreground text-sm">
-                              Job listings will be added here in the future
-                            </p>
-                          </div>
-                          
-                          {selectedCompany.is_partner && (
-                            <div className="bg-gray-50 p-4 rounded-md">
-                              <div className="flex items-center gap-2 mb-2">
-                                <StarIcon className="h-5 w-5 text-blue-600" />
-                                <h4 className="font-medium">Partnership</h4>
-                              </div>
-                              <p className="text-muted-foreground text-sm">
-                                Partnership details will be shown here
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </CardContent>
                 </>
