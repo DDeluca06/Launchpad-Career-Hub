@@ -272,7 +272,7 @@ export function UserAccessManager({
         </div>
         
         <Button 
-          className="bg-green-600 hover:bg-green-700 text-white"
+          className="bg-[#8eb651] hover:bg-[#658639] text-white transition-colors"
           onClick={() => setCreateUserDialogOpen(true)}
         >
           <UserPlus className="h-4 w-4 mr-2" />
