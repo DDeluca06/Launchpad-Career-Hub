@@ -5,8 +5,8 @@ import { prisma } from '@/lib/prisma';
  * API route to fetch internship opportunities statistics
  * 
  * This route queries the database for:
- * - Number of available jobs (active job listings)
- * - Total number of applications received
+ * - Number of available internship jobs (active job listings)
+ * - Total number of applications received for internship jobs
  * 
  * @returns A JSON response with internship statistics or error message
  */
@@ -17,7 +17,7 @@ export async function GET() {
       availableJobs,
       totalApplications
     ] = await Promise.all([
-      // Count active job listings
+      // Count active internship job listings
       prisma.jobs.count({
         where: {
           job_type: 'INTERNSHIP',
@@ -25,9 +25,13 @@ export async function GET() {
         }
       }),
       
-      // Count total applications
+      // Count total applications for internship jobs
       prisma.applications.count({
         where: {
+          jobs: {
+            job_type: 'INTERNSHIP',
+            archived: false
+          },
           users: {
             is_admin: false
           }
