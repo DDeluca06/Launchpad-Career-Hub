@@ -10,6 +10,8 @@ import { extendedPalette } from "@/lib/colors";
 import { SettingsHeader } from "@/components/Admin/Settings/SettingsHeader";
 import { SettingsTabs } from "@/components/Admin/Settings/SettingsTabs";
 import { User } from "@/components/Admin/Settings/types";
+import { Button } from "@/components/ui/basic/button";
+import { UserPlus } from "lucide-react";
 
 /**
  * Renders the user management page for administrators.
@@ -85,10 +87,19 @@ export default function SettingsPage() {
   return (
     <DashboardLayout isAdmin={true}>
       <div className="container py-6 px-4 mx-auto pb-24">
-        <SettingsHeader 
-          title="User Management"
-          description="Create and manage user accounts and permissions"
-        />
+        <div className="flex justify-between items-center mb-6">
+          <SettingsHeader 
+            title="User Management"
+            description="Create and manage user accounts and permissions"
+          />
+          <Button 
+            variant="default"
+            className="flex items-center gap-2 bg-launchpadGreen hover:bg-launchpadDarkGreen"
+          >
+            <UserPlus size={16} />
+            Create New User
+          </Button>
+        </div>
 
         <Card 
           className="border shadow-lg overflow-hidden"
