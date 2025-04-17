@@ -21,6 +21,7 @@ interface ApplicationsOverTimeProps {
     applications: number;
   }>;
   isLoading: boolean;
+  colors?: string[];
 }
 
 export function ApplicationsOverTimeChart({ data, isLoading }: ApplicationsOverTimeProps) {

@@ -9,7 +9,7 @@ import { ApplicationStatus } from '@/lib/prisma-enums';
  * - Total number of jobs
  * - Total number of applications from non-admin users
  * - Number of active interviews (applications with interview-related statuses) from non-admin users
- * - Number of offers sent (applications with offer-related statuses) from non-admin users
+ * - Number of partner companies
  * 
  * @returns A JSON response with statistics data or error message
  */
@@ -20,7 +20,7 @@ export async function GET() {
       totalJobs,
       totalApplications,
       activeInterviews,
-      offersSent
+      partnerCompanies
     ] = await Promise.all([
       // Count total jobs
       prisma.jobs.count(),
@@ -48,22 +48,11 @@ export async function GET() {
         }
       }),
       
-      // Count applications with offer-related statuses from non-admin users
-      prisma.applications.count({
-        where: {
-          OR: [
-            { status: ApplicationStatus.OFFER_EXTENDED },
-            { status: ApplicationStatus.NEGOTIATION },
-            { status: ApplicationStatus.OFFER_ACCEPTED }
-          ],
-          users: {
-            is_admin: false
-          }
-        }
-      })
+      // Count total partner companies
+      prisma.companies.count()
     ]);
 
-    console.error('Dashboard stats counts:', { totalJobs, totalApplications, activeInterviews, offersSent });
+    console.log('Dashboard stats counts:', { totalJobs, totalApplications, activeInterviews, partnerCompanies });
 
     // Return statistics in the expected format
     return NextResponse.json({
@@ -73,7 +62,7 @@ export async function GET() {
           totalJobs,
           totalApplications,
           activeInterviews,
-          offersSent
+          partnerCompanies
         }
       }
     });
@@ -88,7 +77,7 @@ export async function GET() {
           totalJobs: 3,
           totalApplications: 3,
           activeInterviews: 2,
-          offersSent: 0
+          partnerCompanies: 2
         }
       }
     });

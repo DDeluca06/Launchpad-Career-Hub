@@ -15,7 +15,8 @@ jobs:
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+          cache: 'npm'
 
       - name: 📥 Install & Build
         run: |
@@ -38,8 +39,10 @@ jobs:
             echo "No Next.js config file found"
             exit 1
           fi
-          # Copy any other necessary files
-          [ -d node_modules ] && cp -r node_modules deploy/ || echo "No node_modules folder found"
+          # Copy any environment files (if they exist)
+          [ -f .env.production ] && cp .env.production deploy/.env || echo "No .env.production file"
+          # Don't copy node_modules to reduce transfer size
+          # [ -d node_modules ] && cp -r node_modules deploy/ || echo "No node_modules folder found"
 
       - name: 🔑 Setup SSH Key
         run: |
@@ -56,7 +59,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "deploy/*"
-          target: "/home/jobportal/jobportal"
+          target: "/home/jobportal/"
           strip_components: 1
 
       - name: 🔁 Restart App with PM2
@@ -67,8 +70,18 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            cd /home/jobportal/jobportal
-            npm install --omit=dev
+            cd /home/jobportal
+            # Add swap space for low-memory droplet
+            if [ ! -f /swapfile ]; then
+              echo "Setting up swap space..."
+              sudo fallocate -l 2G /swapfile
+              sudo chmod 600 /swapfile
+              sudo mkswap /swapfile
+              sudo swapon /swapfile
+              echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+            fi
+            # Install with memory optimizations
+            npm install --omit=dev --no-fund --no-audit --progress=false --prefer-offline --production
             if pm2 list | grep -q "jobportal"; then
               echo "Restarting existing PM2 process..."
               pm2 restart jobportal --update-env
@@ -77,4 +90,6 @@ jobs:
               pm2 start ecosystem.config.js
             fi
             pm2 save
+            # Ensure PM2 starts on system reboot
+            pm2 startup | tail -n 1 | bash
             echo "Deployment completed successfully!"

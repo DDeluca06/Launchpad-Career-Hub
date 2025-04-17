@@ -2,8 +2,6 @@
 
 import { useEffect, useContext, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/basic/button";
 import { LoginForm } from "@/components/ui/basic/login-form";
 import { AuthContext } from "./providers";
 
@@ -57,24 +55,7 @@ function HomeContent() {
         <div className="w-full max-w-md">
           <LoginForm />
 
-          {/* Development navigation - to be removed in production */}
-          <div className="mt-6 p-4 border rounded-md bg-white/80 backdrop-blur-sm w-full shadow-sm">
-            <div className="text-xs text-center mb-2 font-medium text-slate-500">
-              Development Navigation (will be removed)
-            </div>
-            <div className="flex justify-center gap-4">
-              <Link href="/admin/dashboard">
-                <Button variant="outline" size="sm">
-                  Admin Dashboard
-                </Button>
-              </Link>
-              <Link href="/applicant/dashboard">
-                <Button variant="outline" size="sm">
-                  Student Dashboard
-                </Button>
-              </Link>
-            </div>
-          </div>
+
         </div>
       </main>
 
@@ -82,6 +63,9 @@ function HomeContent() {
       <footer className="py-3 px-4 relative z-10 mt-auto border-t border-gray-100 bg-white/80 backdrop-blur-sm">
         <div className="text-center text-xs text-gray-500">
           <p>&#169; 2025 Launchpad. All rights reserved.</p>
+          <div className="mt-2">
+            <a href="/support" className="text-blue-500 hover:text-blue-700 transition-colors">Our Team</a>
+          </div>
         </div>
       </footer>
 

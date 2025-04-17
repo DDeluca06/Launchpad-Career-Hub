@@ -1,4 +1,4 @@
-import { ExtendedJob, NewJob } from "./types";
+import { NewJob } from "./types";
 
 /**
  * Fetches job listings from the API
@@ -22,85 +22,69 @@ export async function fetchJobs() {
  */
 export async function fetchJobsByArchiveStatus(archived: boolean = false) {
   try {
-    const response = await fetch(`/api/jobs?archived=${archived}&includeApplications=true`);
+    console.log(`Fetching jobs with archived=${archived} and includeApplications=true`);
+    
+    // Add a timeout for the fetch operation
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await fetch(`/api/jobs?archived=${archived}&includeApplications=true`, {
+      signal: controller.signal
+    });
+    
+    // Clear the timeout once we have a response
+    clearTimeout(timeoutId);
+    
     if (!response.ok) {
+      console.error(`API returned status: ${response.status}`);
+      const errorText = await response.text().catch(() => 'No error text available');
+      console.error(`Error details: ${errorText}`);
       throw new Error(`API error: ${response.status}`);
     }
-    const data = await response.json();
-    return data.jobs;
-  } catch (error) {
-    console.error('Error fetching jobs by status:', error);
     
-    // Return fallback data if API fails
-    return generateFallbackJobs(archived);
+    const data = await response.json();
+    
+    // Check if data.jobs exists and is an array
+    if (!data.jobs || !Array.isArray(data.jobs)) {
+      console.error('API returned invalid jobs data:', data);
+      return [];
+    }
+    
+    console.log(`Successfully fetched ${data.jobs.length} jobs`);
+    return data.jobs;
+  } catch (error: Error | unknown) {
+    // Handle timeout error specifically
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('Fetch timeout: The request took too long to complete');
+    } else {
+      console.error('Error fetching jobs by status:', error);
+    }
+    // Return empty array instead of logging error
+    return [];
   }
 }
 
-/**
- * Generates fallback job data when API is unavailable
- */
-function generateFallbackJobs(archived: boolean = false): ExtendedJob[] {
-  // Create some mock jobs for development/fallback
-  const mockJobs: ExtendedJob[] = [
-    {
-      job_id: 1,
-      title: "Frontend Developer",
-      company: "TechCo",
-      description: "Building modern web applications using React and Next.js",
-      location: "Philadelphia, PA (Remote)",
-      website: "https://example.com/jobs/1",
-      job_type: "FULL_TIME",
-      archived: false,
-      created_at: new Date(),
-      tags: ["FRONT_END", "FULLY_REMOTE"],
-      _count: { applications: 5 },
-      partner_id: null
-    },
-    {
-      job_id: 2,
-      title: "Data Science Intern",
-      company: "Analytics Inc",
-      description: "Assist with data analysis and machine learning projects",
-      location: "New York, NY (Hybrid)",
-      website: "https://example.com/jobs/2",
-      job_type: "INTERNSHIP",
-      archived: false,
-      created_at: new Date(),
-      tags: ["DATA_SCIENCE", "HYBRID"],
-      _count: { applications: 3 },
-      partner_id: null
-    },
-    {
-      job_id: 3,
-      title: "UX Designer",
-      company: "Design Studio",
-      description: "Design user interfaces and experiences for web and mobile applications",
-      location: "Boston, MA (On-site)",
-      website: "https://example.com/jobs/3",
-      job_type: "FULL_TIME",
-      archived: true,
-      created_at: new Date(),
-      tags: ["UX_UI_DESIGN", "IN_PERSON"],
-      _count: { applications: 0 },
-      partner_id: null
-    }
-  ];
-  
-  // Filter by archived status
-  return mockJobs.filter(job => job.archived === archived);
-}
-
-/**
- * Creates a new job listing
- */
 export async function createJob(jobData: NewJob) {
   try {
+    // Prepare the data for the API
+    // If we have a company name, use it, otherwise use a fallback based on company_id
+    const transformedData = {
+      title: jobData.title,
+      company: jobData.company || `Company ID: ${jobData.company_id}`, // Fallback if company name not provided
+      job_type: jobData.job_type,
+      description: jobData.description,
+      location: jobData.location,
+      website: jobData.website,
+      partner_id: jobData.partner_id,
+      tags: jobData.tags
+    };
+    
     const response = await fetch('/api/jobs', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(jobData),
+      body: JSON.stringify(transformedData),
     });
     
     if (!response.ok) {
@@ -119,12 +103,24 @@ export async function createJob(jobData: NewJob) {
  */
 export async function updateJob(jobId: number, jobData: Partial<NewJob>) {
   try {
-    const response = await fetch(`/api/jobs/${jobId}`, {
+    // Transform the data to match what the API expects
+    const transformedData = {
+      title: jobData.title,
+      company: jobData.company, // The company name is needed for the API
+      job_type: jobData.job_type,
+      description: jobData.description,
+      location: jobData.location,
+      website: jobData.website,
+      partner_id: jobData.partner_id,
+      tags: jobData.tags
+    };
+    
+    const response = await fetch(`/api/jobs?id=${jobId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(jobData),
+      body: JSON.stringify(transformedData),
     });
     
     if (!response.ok) {

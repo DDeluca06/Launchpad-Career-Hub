@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/basic/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
 import { Skeleton } from "@/components/ui/feedback/skeleton";
-import { Mail, FileText, Archive, RefreshCw, Download } from "lucide-react";
+import { Mail, FileText, Archive, RefreshCw, Download, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/basic/button";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { ApplicantWithDetails, JobApplication } from "./types";
@@ -37,6 +37,7 @@ export function ApplicantProfileModal({
 }: ApplicantProfileModalProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isRetrievingResume, setIsRetrievingResume] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   
   if (!applicant) return null;
   
@@ -138,6 +139,45 @@ export function ApplicantProfileModal({
       });
     } finally {
       setIsRetrievingResume(false);
+    }
+  };
+
+  // Function to reset applicant password
+  const resetPassword = async () => {
+    if (!applicant) return;
+    
+    try {
+      setIsResettingPassword(true);
+      const response = await fetch('/api/applicants/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: applicant.id
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to reset password');
+      }
+      
+      // Show success message
+      toast({
+        title: "Success",
+        description: `Password for ${applicant.firstName} ${applicant.lastName} has been reset to 'Changeme'`,
+      });
+      
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reset password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -258,6 +298,21 @@ export function ApplicantProfileModal({
                   <Download className="h-4 w-4" />
                 )}
                 Retrieve Resume
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1 border-purple-200 text-purple-600 hover:bg-purple-50"
+                onClick={resetPassword}
+                disabled={isResettingPassword}
+              >
+                {isResettingPassword ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <KeyRound className="h-4 w-4" />
+                )}
+                Reset Password
               </Button>
             </div>
           </div>

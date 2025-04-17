@@ -2,26 +2,35 @@
 
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { Building, Briefcase } from "lucide-react";
-import { StatsOverview, QuickActions, DashboardSection, UpcomingInterviews } from "@/components/Admin/Dashboard";
+import { Building, Briefcase, Plus } from "lucide-react";
+import { StatsOverview, QuickActions, DashboardSection } from "@/components/Admin/Dashboard";
 import { extendedPalette } from "@/lib/colors";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/feedback/skeleton";
+import { Button } from "@/components/ui/basic/button";
+import Link from "next/link";
 
 /**
- * Renders the admin dashboard page with data from the database.
+ * Renders the admin dashboard page with real-time data from the database.
  * 
- * This component provides an interface for administrators to monitor key metrics and activities
- * from the database. It uses modular components from the Admin/Dashboard directory that
- * connect to the API endpoints to fetch real data.
+ * This component provides a comprehensive interface for administrators to monitor key metrics and activities
+ * with accurate data from the database. It uses components that connect to API endpoints to fetch real data.
  */
 export default function AdminDashboard() {
   return (
     <DashboardLayout isAdmin={true}>
       <div className="flex flex-col p-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-500">Monitor job activities and applicant statistics</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p className="text-gray-500">Monitor job activities and applicant statistics</p>
+          </div>
+          <Link href="/admin/jobs/">
+          <Button className="flex items-center gap-2 bg-launchpadGreen hover:bg-launchpadGreen/90">
+              <Plus size={16} />
+              Create New Job
+            </Button>
+          </Link>
         </div>
         
         {/* Stats Overview with error fallback */}
@@ -47,13 +56,14 @@ export default function AdminDashboard() {
                   style={{ color: extendedPalette.brown }}
                 />
               }
-              href="/admin/partners"
+              href="/admin/companies"
               stats={[
-                { label: "Total Partners", value: "2" },
-                { label: "Total Jobs", value: "3" }
+                { label: "Total Partners", value: "0" },
+                { label: "Active Partners", value: "0" }
               ]}
               color={extendedPalette.brown}
               apiEndpoint="/api/dashboard/partners"
+              description="Manage your partner companies and their job postings"
             />
           </ErrorBoundaryWrapper>
 
@@ -68,34 +78,21 @@ export default function AdminDashboard() {
               }
               href="/admin/jobs"
               stats={[
-                { label: "Unplaced Applicants", value: "2" },
-                { label: "Placed Applicants", value: "0" }
+                { label: "Available Jobs", value: "0" },
+                { label: "Applications", value: "0" }
               ]}
               color={extendedPalette.primaryGreen}
               apiEndpoint="/api/dashboard/internships"
+              description="Manage job listings and track application progress"
             />
           </ErrorBoundaryWrapper>
         </div>
         
         {/* Bottom Content Row - Balanced layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Quick Actions - Takes 2/4 of the space */}
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 gap-6">
+          {/* Quick Actions - Takes full width now that upcoming interviews is removed */}
+          <div className="w-full">
             <QuickActions />
-          </div>
-          
-          {/* Upcoming Interviews - Takes 2/4 of the space */}
-          <div className="lg:col-span-2">
-            <Suspense fallback={<div className="bg-white rounded-lg p-5 shadow-sm space-y-4">
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>}>
-              <ErrorBoundaryWrapper>
-                <UpcomingInterviews />
-              </ErrorBoundaryWrapper>
-            </Suspense>
           </div>
         </div>
       </div>

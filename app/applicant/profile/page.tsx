@@ -7,18 +7,30 @@ import { Button } from "@/components/ui/basic/button"
 import { Input } from "@/components/ui/form/input"
 import { Label } from "@/components/ui/basic/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/basic/avatar"
-import { Check, Save, Camera } from "lucide-react"
+import { AlertCircle, Check, Eye, EyeOff, Save } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AuthContext } from "@/app/providers"
+import { toast } from "sonner"
+import { Alert, AlertDescription } from "@/components/ui/feedback/alert"
 
 type ProgramType = "FOUNDATIONS" | "ONE_ZERO_ONE" | "LIFTOFF" | "ALUMNI";
+
+// We'll reference this interface for our type assertion later
+type UserWithProgram = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isAdmin: boolean;
+  program?: ProgramType;
+}
 
 declare module "next-auth" {
   interface User {
     id: string;
     email: string;
-    first_name: string;
-    last_name: string;
+    firstName: string;
+    lastName: string;
     isAdmin: boolean;
     program?: ProgramType;
   }
@@ -35,15 +47,25 @@ export default function ApplicantSettingsPage() {
   const router = useRouter()
   
   const { session, loading } = useContext(AuthContext);
+  
+  // Password specific states
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
 
   // User settings state
   const [userSettings, setUserSettings] = useState({
     email: "",
     status: "active", // enum: active, inactive
     program: "foundations", // enum based on available programs
-    password: "", // For password change
+    currentPassword: "", // For current password verification
+    password: "", // For new password
     confirmPassword: "",
-    last_name: "" // Changed from lastName to last_name to match schema
+    firstName: "", // Updated to match the User interface
+    lastName: "" // Updated to match the User interface
   })
 
   useEffect(() => {
@@ -57,9 +79,10 @@ export default function ApplicantSettingsPage() {
     // Pre-fill form with user data
     setUserSettings(prev => ({
       ...prev,
-      email: session.user!.email || "",
-      program: session.user!.isAdmin ? "ALUMNI" : "FOUNDATIONS", // Fallback for missing program
-      last_name: session.user!.lastName || ""
+      email: session.user?.email || "",
+      program: ((session.user as UserWithProgram)?.program || "FOUNDATIONS").toLowerCase(), // Proper typing for user with program
+      firstName: session.user?.firstName || "",
+      lastName: session.user?.lastName || ""
     }));
   }, [session, loading, router]);
 
@@ -69,6 +92,11 @@ export default function ApplicantSettingsPage() {
       ...prev,
       [key]: value
     }));
+    
+    // Clear any password errors when user starts typing again
+    if (['currentPassword', 'password', 'confirmPassword'].includes(key)) {
+      setPasswordError(null);
+    }
   }
 
   const handleSave = async () => {
@@ -81,10 +109,8 @@ export default function ApplicantSettingsPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: userSettings.email,
-          firstName: session.user!.firstName,
-          lastName: userSettings.last_name,
-          program: userSettings.program,
+          // Only sending editable fields, not email, names, or program
+          // Other fields that are editable would go here
         }),
       });
 
@@ -97,6 +123,79 @@ export default function ApplicantSettingsPage() {
       setTimeout(() => setSavedIndicator(false), 2000);
     } catch (error) {
       console.error('Error updating profile:', error);
+    }
+  }
+
+  // Handle password change
+  const handlePasswordChange = async () => {
+    // Reset states
+    setPasswordError(null);
+    setPasswordSuccess(false);
+    
+    // Validate inputs
+    if (!userSettings.currentPassword) {
+      setPasswordError("Current password is required");
+      return;
+    }
+    
+    if (!userSettings.password) {
+      setPasswordError("New password is required");
+      return;
+    }
+    
+    if (userSettings.password !== userSettings.confirmPassword) {
+      setPasswordError("New passwords don't match");
+      return;
+    }
+    
+    if (userSettings.password.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
+      return;
+    }
+    
+    try {
+      setIsChangingPassword(true);
+      
+      const response = await fetch('/api/users/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: userSettings.currentPassword,
+          newPassword: userSettings.password
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setPasswordError(data.error || "Failed to change password");
+        return;
+      }
+      
+      // Reset password fields
+      setUserSettings(prev => ({
+        ...prev,
+        currentPassword: "",
+        password: "",
+        confirmPassword: ""
+      }));
+      
+      // Show success message
+      setPasswordSuccess(true);
+      toast.success("Password changed successfully");
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setPasswordSuccess(false);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error changing password:', error);
+      setPasswordError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsChangingPassword(false);
     }
   }
 
@@ -181,7 +280,7 @@ export default function ApplicantSettingsPage() {
             <div className="flex flex-col md:flex-row gap-8">
               {/* Profile Image */}
               <div className="flex flex-col items-center gap-3">
-                <Avatar className="h-32 w-32 cursor-pointer" onClick={handleProfileImageClick}>
+                <Avatar className="h-32 w-32">
                   {profileImage ? (
                     <AvatarImage src={profileImage} alt="Profile" />
                   ) : (
@@ -190,22 +289,23 @@ export default function ApplicantSettingsPage() {
                     </AvatarFallback>
                   )}
                 </Avatar>
-                <Button
-                  variant="outline"
+                <input 
+                  ref={fileInputRef} 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleProfileImageChange} 
+                />
+                <Button 
+                  variant="outline" 
                   size="sm"
                   onClick={handleProfileImageClick}
-                  className="flex items-center gap-1"
+                  type="button"
+                  className="hidden" // Hidden since the feature is disabled
                 >
-                  <Camera className="h-4 w-4" />
                   Change Photo
                 </Button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleProfileImageChange}
-                  className="hidden"
-                  accept="image/*"
-                />
+                <p className="text-xs text-gray-500 mt-1">Profile photo cannot be changed</p>
               </div>
 
               {/* Form Fields */}
@@ -216,32 +316,42 @@ export default function ApplicantSettingsPage() {
                     <Input
                       id="email"
                       value={userSettings.email}
-                      onChange={(e) => handleSettingChange('email', e.target.value)}
+                      disabled
+                      className="bg-gray-50 cursor-not-allowed"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="firstName">First Name</Label>
                     <Input
-                      id="lastName"
-                      value={userSettings.last_name}
-                      onChange={(e) => handleSettingChange('last_name', e.target.value)}
+                      id="firstName"
+                      value={userSettings.firstName}
+                      disabled
+                      className="bg-gray-50 cursor-not-allowed"
                     />
+                    <p className="text-xs text-gray-500 mt-1">First name cannot be changed</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={userSettings.lastName}
+                      disabled
+                      className="bg-gray-50 cursor-not-allowed"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Last name cannot be changed</p>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="program">Program</Label>
-                    <select
+                    <Input
                       id="program"
-                      className="w-full p-2 border rounded-md"
                       value={userSettings.program}
-                      onChange={(e) => handleSettingChange('program', e.target.value)}
-                    >
-                      <option value="FOUNDATIONS">Foundations</option>
-                      <option value="ONE_ZERO_ONE">101</option>
-                      <option value="LIFTOFF">Liftoff</option>
-                      <option value="ALUMNI">Alumni</option>
-                    </select>
+                      disabled
+                      className="bg-gray-50 cursor-not-allowed"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Program cannot be changed</p>
                   </div>
                 </div>
               </div>
@@ -256,28 +366,95 @@ export default function ApplicantSettingsPage() {
             <CardDescription>Update your password</CardDescription>
           </CardHeader>
           <div className="p-6 border-t">
+            {passwordError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{passwordError}</AlertDescription>
+              </Alert>
+            )}
+            
+            {passwordSuccess && (
+              <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+                <Check className="h-4 w-4" />
+                <AlertDescription>Password updated successfully</AlertDescription>
+              </Alert>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-4">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Current Password</Label>
+                <div className="relative">
+                  <Input
+                    id="currentPassword"
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={userSettings.currentPassword}
+                    onChange={(e) => handleSettingChange('currentPassword', e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                    aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                  >
+                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={userSettings.password}
-                  onChange={(e) => handleSettingChange('password', e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showNewPassword ? "text" : "password"}
+                    value={userSettings.password}
+                    onChange={(e) => handleSettingChange('password', e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                    aria-label={showNewPassword ? "Hide password" : "Show password"}
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Password must be at least 8 characters</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={userSettings.confirmPassword}
-                  onChange={(e) => handleSettingChange('confirmPassword', e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={userSettings.confirmPassword}
+                    onChange={(e) => handleSettingChange('confirmPassword', e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="mt-4">
-              <Button size="sm" variant="outline">Change Password</Button>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={handlePasswordChange}
+                disabled={isChangingPassword}
+              >
+                {isChangingPassword ? "Changing Password..." : "Change Password"}
+              </Button>
             </div>
           </div>
         </Card>

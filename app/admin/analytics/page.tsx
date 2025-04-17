@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/basic/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
-import { BarChart2, Download, FileText, Users } from "lucide-react";
+import { Download, FileText, Users, Briefcase, Award, Percent } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 
 // Import modular components
@@ -20,6 +20,8 @@ interface OverviewMetrics {
   totalApplicants: number;
   totalJobs: number;
   totalApplications: number;
+  averageApplicationsPerUser: string;
+  acceptanceRate: string;
 }
 
 interface ApplicationOverTime {
@@ -37,6 +39,16 @@ interface JobCategory {
   count: number;
 }
 
+interface JobType {
+  type: string;
+  count: number;
+}
+
+interface ProgramDistribution {
+  program: string;
+  count: number;
+}
+
 interface ProgramPlacement {
   partner: string;
   placements: number;
@@ -48,6 +60,8 @@ interface AnalyticsData {
   statusDistribution: StatusDistribution[];
   topJobCategories: JobCategory[];
   placementsByPartner: ProgramPlacement[];
+  jobTypeDistribution: JobType[];
+  programDistribution: ProgramDistribution[];
 }
 
 // Colors for charts - using our design system colors
@@ -77,11 +91,15 @@ export default function AdminAnalytics() {
       totalApplicants: 0,
       totalJobs: 0,
       totalApplications: 0,
+      averageApplicationsPerUser: "0",
+      acceptanceRate: "0%",
     },
     applicationsOverTime: [],
     statusDistribution: [],
     topJobCategories: [],
     placementsByPartner: [],
+    jobTypeDistribution: [],
+    programDistribution: [],
   });
 
   useEffect(() => {
@@ -115,6 +133,8 @@ export default function AdminAnalytics() {
             totalApplicants: 150,
             totalJobs: 45,
             totalApplications: 278,
+            averageApplicationsPerUser: "0",
+            acceptanceRate: "0%",
           },
           applicationsOverTime: [
             { month: "Jan", applications: 12 },
@@ -151,6 +171,20 @@ export default function AdminAnalytics() {
             { partner: "Rath - Rau", placements: 1 },
             { partner: "O'Connell and Wuckert", placements: 1 },
             { partner: "Frami - Dare", placements: 1 }
+          ],
+          jobTypeDistribution: [
+            { type: "Full-Time", count: 30 },
+            { type: "Part-Time", count: 20 },
+            { type: "Contract", count: 15 },
+            { type: "Internship", count: 10 },
+            { type: "Freelance", count: 5 },
+          ],
+          programDistribution: [
+            { program: "Software Development", count: 20 },
+            { program: "Data Science", count: 15 },
+            { program: "UX/UI Design", count: 10 },
+            { program: "Project Management", count: 5 },
+            { program: "QA Testing", count: 5 },
           ],
         });
       } finally {
@@ -270,102 +304,138 @@ export default function AdminAnalytics() {
           </div>
         </div>
 
-        {/* Overview Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        {/* Overview Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
           <OverviewCard
             title="Total Applicants"
             value={data.overview.totalApplicants}
-            icon={
-              <Users
-                className="h-5 w-5"
-                style={{ color: extendedPalette.primaryBlue }}
-              />
-            }
-            trend={{ value: "+12%", isPositive: true }}
+            icon={<Users className="text-white h-8 w-8" />}
             isLoading={isLoading}
+            color={extendedPalette.primaryBlue}
           />
           <OverviewCard
-            title="Jobs Available"
+            title="Total Jobs"
             value={data.overview.totalJobs}
-            icon={
-              <BarChart2
-                className="h-5 w-5"
-                style={{ color: extendedPalette.primaryGreen }}
-              />
-            }
-            trend={{ value: "+8%", isPositive: true }}
+            icon={<Briefcase className="text-white h-8 w-8" />}
             isLoading={isLoading}
+            color={extendedPalette.primaryGreen}
           />
           <OverviewCard
-            title="Applications"
+            title="Total Applications"
             value={data.overview.totalApplications}
-            icon={
-              <FileText
-                className="h-5 w-5"
-                style={{ color: extendedPalette.teal }}
-              />
-            }
-            trend={{ value: "+15%", isPositive: true }}
+            icon={<FileText className="text-white h-8 w-8" />}
             isLoading={isLoading}
+            color={extendedPalette.teal}
+          />
+          <OverviewCard
+            title="Avg Applications / User"
+            value={data.overview.averageApplicationsPerUser}
+            icon={<Award className="text-white h-8 w-8" />}
+            isLoading={isLoading}
+            color={extendedPalette.primaryOrange}
+          />
+          <OverviewCard
+            title="Acceptance Rate"
+            value={data.overview.acceptanceRate}
+            icon={<Percent className="text-white h-8 w-8" />}
+            isLoading={isLoading}
+            color={extendedPalette.brown}
           />
         </div>
 
-        {/* Analytics Tabs */}
-        <Tabs defaultValue="overview" className="mb-6">
-          <TabsList className="mb-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+        {/* Chart Tabs */}
+        <Tabs defaultValue="applications" className="w-full">
+          <TabsList className="mb-4 max-w-full overflow-x-auto py-2 px-1 flex space-x-2">
             <TabsTrigger value="applications">Applications</TabsTrigger>
-            <TabsTrigger value="placements">Placements</TabsTrigger>
+            <TabsTrigger value="jobs">Jobs</TabsTrigger>
+            <TabsTrigger value="programs">Programs</TabsTrigger>
+            <TabsTrigger value="partners">Partners</TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Applications Over Time */}
-              <ApplicationsOverTimeChart 
-                data={data.applicationsOverTime}
-                isLoading={isLoading}
-              />
-
-              {/* Application Status Distribution */}
-              <StatusDistributionChart 
-                data={data.statusDistribution}
-                colors={CHART_COLORS}
-                isLoading={isLoading}
-              />
+          {/* Applications Tab Content */}
+          <TabsContent value="applications" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+                <h3 className="text-lg font-medium mb-2">Applications Over Time</h3>
+                <ApplicationsOverTimeChart 
+                  data={data.applicationsOverTime} 
+                  isLoading={isLoading} 
+                  colors={CHART_COLORS} 
+                />
+              </div>
+              <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+                <h3 className="text-lg font-medium mb-2">Application Status Distribution</h3>
+                <StatusDistributionChart 
+                  data={data.statusDistribution} 
+                  isLoading={isLoading} 
+                  colors={CHART_COLORS} 
+                />
+              </div>
+              <div className="bg-card rounded-lg shadow-sm p-4 border border-border lg:col-span-2">
+                <h3 className="text-lg font-medium mb-2">Application Funnel</h3>
+                <ApplicationFunnelChart 
+                  data={data.statusDistribution} 
+                  isLoading={isLoading} 
+                  colors={CHART_COLORS} 
+                />
+              </div>
             </div>
-
-            {/* Top Job Categories */}
-            <JobCategoriesChart 
-              data={data.topJobCategories}
-              colors={CHART_COLORS}
-              isLoading={isLoading}
-            />
-
-            {/* Add Placements by Program to Overview tab for more prominence */}
-            <PlacementsByProgramChart 
-              data={data.placementsByPartner}
-              barColor={extendedPalette.primaryBlue}
-              isLoading={isLoading}
-            />
           </TabsContent>
 
-          {/* Applications Tab */}
-          <TabsContent value="applications" className="space-y-6">
-            <ApplicationFunnelChart 
-              data={data.statusDistribution}
-              colors={CHART_COLORS}
-              isLoading={isLoading}
-            />
+          {/* Jobs Tab Content */}
+          <TabsContent value="jobs" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+                <h3 className="text-lg font-medium mb-2">Top Job Categories</h3>
+                <JobCategoriesChart 
+                  data={data.topJobCategories} 
+                  isLoading={isLoading} 
+                  colors={CHART_COLORS} 
+                />
+              </div>
+              <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+                <h3 className="text-lg font-medium mb-2">Job Types</h3>
+                <JobCategoriesChart 
+                  data={data.jobTypeDistribution.map(item => ({ 
+                    category: item.type, 
+                    count: item.count 
+                  }))} 
+                  isLoading={isLoading} 
+                  colors={CHART_COLORS} 
+                />
+              </div>
+            </div>
           </TabsContent>
 
-          {/* Placements Tab */}
-          <TabsContent value="placements" className="space-y-6">
-            <PlacementsByProgramChart 
-              data={data.placementsByPartner}
-              barColor={extendedPalette.primaryBlue}
-              isLoading={isLoading}
-            />
+          {/* Programs Tab Content */}
+          <TabsContent value="programs" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+                <h3 className="text-lg font-medium mb-2">Program Distribution</h3>
+                <JobCategoriesChart 
+                  data={data.programDistribution.map(item => ({ 
+                    category: item.program, 
+                    count: item.count 
+                  }))} 
+                  isLoading={isLoading} 
+                  colors={CHART_COLORS} 
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Partners Tab Content */}
+          <TabsContent value="partners" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+                <h3 className="text-lg font-medium mb-2">Top Placements by Partners</h3>
+                <PlacementsByProgramChart 
+                  data={data.placementsByPartner} 
+                  isLoading={isLoading} 
+                  colors={CHART_COLORS} 
+                />
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

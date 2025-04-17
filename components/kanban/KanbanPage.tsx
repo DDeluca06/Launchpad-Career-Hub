@@ -57,7 +57,12 @@ const jobFormSchema = z.object({
 
 type JobFormValues = z.infer<typeof jobFormSchema>;
 
-export function KanbanPage() {
+type KanbanPageProps = {
+  applications?: JobApplication[];
+  isLoading?: boolean;
+};
+
+export function KanbanPage({ applications, isLoading: externalLoading }: KanbanPageProps = {}) {
   // Get user session
   const { session } = useContext(AuthContext);
   
@@ -71,8 +76,35 @@ export function KanbanPage() {
     setIsClient(true);
   }, []);
   
-  // Load data from API on component mount
+  // Use provided applications if available, otherwise fetch from API
   useEffect(() => {
+    if (applications && applications.length > 0) {
+      // Transform provided applications to match UI format
+      const transformedApplications: JobApplication[] = applications.map((app) => {
+        return {
+          id: app.id?.toString() || "",
+          title: app.title || "Unknown Position",
+          company: app.company || "Unknown Company",
+          description: app.description || "",
+          status: app.status || "interested",
+          subStage: app.subStage || null,
+          stage: app.stage || "interested",
+          date: app.date || new Date().toISOString(),
+          tags: app.tags || [],
+          archived: app.archived || false,
+          logo: app.logo || "https://placehold.co/150",
+          location: app.location || "",
+          salary: app.salary || "",
+          url: app.url || "",
+          notes: app.notes || "",
+        };
+      });
+      
+      setJobs(transformedApplications);
+      setIsLoading(externalLoading || false);
+      return;
+    }
+    
     const fetchApplications = async () => {
       if (!session?.user?.id) {
         setIsLoading(false);
@@ -120,7 +152,7 @@ export function KanbanPage() {
     };
     
     fetchApplications();
-  }, [session?.user?.id]);
+  }, [session?.user?.id, applications, externalLoading]);
 
   // Helper function to map database status to UI status
   const mapStatusFromDB = (dbStatus: string, app: { sub_stage?: string }): 'interested' | 'applied' | 'interview' | 'offer' | 'referrals' => {
@@ -144,17 +176,48 @@ export function KanbanPage() {
     return statusMap[dbStatus] || 'interested';
   };
 
-  // Helper function to map UI status to database status
-  const mapStatusToDB = (uiStatus: string): string => {
-    const statusMap: Record<string, string> = {
-      'interested': 'INTERESTED',
-      'applied': 'APPLIED',
-      'interview': 'INTERVIEW_STAGE',
-      'offer': 'OFFER_EXTENDED',
-      'referrals': 'INTERESTED',
-    };
+  // Helper function to handle errors
+  const handleError = async (error: unknown) => {
+    console.error('Error updating job:', error);
+    toast.error('Failed to update application status');
     
-    return statusMap[uiStatus] || 'INTERESTED';
+    // Refresh the data after error
+    if (applications && applications.length > 0) {
+      // If we're using external applications, no need to reload
+      return;
+    }
+    
+    // Otherwise reload from API
+    if (session?.user?.id) {
+      const response = await fetch(`/api/applications?userId=${session.user.id}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        const transformedApplications = data.applications.map((app: Record<string, unknown>) => ({
+          id: String(app.application_id || ""),
+          title: String(app.position || (app.jobs as Record<string, unknown>)?.title || "Unknown Position"),
+          company: String((app.jobs as Record<string, unknown>)?.company || "Unknown Company"),
+          description: String((app.jobs as Record<string, unknown>)?.description || ""),
+          status: mapStatusFromDB(String(app.status || "INTERESTED"), {
+            sub_stage: app.sub_stage ? String(app.sub_stage) : undefined
+          }),
+          subStage: app.sub_stage ? String(app.sub_stage) : null,
+          stage: mapStatusFromDB(String(app.status || "INTERESTED"), {
+            sub_stage: app.sub_stage ? String(app.sub_stage) : undefined
+          }),
+          date: app.applied_at ? new Date(String(app.applied_at)).toISOString() : new Date().toISOString(),
+          tags: app.tags ? JSON.parse(String(app.tags)) : [],
+          archived: Boolean(app.archived || false),
+          logo: String((app.jobs as Record<string, unknown>)?.company_logo_url || "https://placehold.co/150"),
+          location: String((app.jobs as Record<string, unknown>)?.location || ""),
+          salary: String((app.jobs as Record<string, unknown>)?.salary || ""),
+          url: String((app.jobs as Record<string, unknown>)?.url || ""),
+          notes: String(app.notes || ""),
+        }));
+        
+        setJobs(transformedApplications);
+      }
+    }
   };
 
   // Create functions to replace useAppStore functions
@@ -167,15 +230,15 @@ export function KanbanPage() {
         )
       );
       
-      // Then update in the database
-      const response = await fetch(`/api/applications/${jobId}`, {
+      // Then update in the database - using our new API endpoint
+      const response = await fetch('/api/applicant/update-application', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          status: updates.status ? mapStatusToDB(updates.status) : undefined,
-          archived: updates.archived,
+          applicationId: jobId,
+          status: updates.status
         }),
       });
       
@@ -185,39 +248,9 @@ export function KanbanPage() {
         throw new Error(data.error || 'Failed to update application');
       }
       
-      toast.success('Job updated successfully');
+      toast.success('Application status updated');
     } catch (error) {
-      console.error('Error updating job:', error);
-      toast.error('Failed to update job');
-      
-      // Revert the local state change if the API call failed
-      // This would require re-fetching the data
-      if (session?.user?.id) {
-        const response = await fetch(`/api/applications?userId=${session.user.id}`);
-        const data = await response.json();
-        
-        if (data.success) {
-          const transformedApplications = data.applications.map((app: { application_id: string; position: string; jobs: { title: string; company: string; description: string; company_logo_url: string; location: string; salary: string; url: string; }; applied_at: string; status: string; sub_stage: string; tags: string; archived: boolean; notes: string; }) => ({
-            id: app.application_id.toString(),
-            title: app.position || app.jobs?.title || "Unknown Position",
-            company: app.jobs?.company || "Unknown Company",
-            description: app.jobs?.description || "",
-            status: mapStatusFromDB(app.status, app),
-            subStage: app.sub_stage || null,
-            stage: mapStatusFromDB(app.status, app),
-            date: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
-            tags: app.tags ? JSON.parse(app.tags) : [],
-            archived: app.archived || false,
-            logo: app.jobs?.company_logo_url || "https://placehold.co/150",
-            location: app.jobs?.location || "",
-            salary: app.jobs?.salary || "",
-            url: app.jobs?.url || "",
-            notes: app.notes || "",
-          }));
-          
-          setJobs(transformedApplications);
-        }
-      }
+      await handleError(error);
     }
   };
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ApplicationStatus, ProgramType } from '@/lib/prisma-enums';
+import bcrypt from 'bcrypt';
 
 interface Application {
   status: string;
@@ -395,10 +396,25 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Log the incoming request
+    console.log('Received applicant creation request');
+    
+    // Safely parse the request body
+    let body;
+    try {
+      body = await request.json();
+      console.log('Request body parsed successfully:', body);
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid request body', details: 'Could not parse JSON data' },
+        { status: 400 }
+      );
+    }
     
     // Validate required fields
-    if (!body.email || !body.firstName || !body.lastName || !body.password) {
+    if (!body.email || !body.firstName || !body.lastName) {
+      console.error('Missing required fields in request:', body);
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -413,6 +429,7 @@ export async function POST(request: NextRequest) {
     });
     
     if (existingUser) {
+      console.log('Email already exists:', body.email);
       return NextResponse.json(
         { error: 'Email already exists' },
         { status: 400 }
@@ -425,13 +442,20 @@ export async function POST(request: NextRequest) {
       program = 'ONE_ZERO_ONE';
     }
     
+    // Use default password if none provided
+    const password = body.password || 'Changeme';
+    
+    // Hash the password with bcrypt
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+    
     // Create the user
     const newUser = await prisma.users.create({
       data: {
         email: body.email,
         first_name: body.firstName,
         last_name: body.lastName,
-        password_hash: body.password,
+        password_hash: passwordHash,
         is_admin: body.isAdmin || false,
         program: program || 'ALUMNI',
         is_active: true,
@@ -439,7 +463,9 @@ export async function POST(request: NextRequest) {
       }
     });
     
-    return NextResponse.json({
+    console.log('New user created successfully:', newUser.user_id);
+    
+    const responseData = {
       applicant: {
         id: newUser.user_id,
         firstName: newUser.first_name,
@@ -451,7 +477,9 @@ export async function POST(request: NextRequest) {
         program: newUser.program === 'ONE_ZERO_ONE' ? '101' : newUser.program?.toString() || 'ALUMNI',
         isArchived: newUser.is_archived
       }
-    });
+    };
+    
+    return NextResponse.json(responseData);
   } catch (error: unknown) {
     console.error('Error creating applicant:', error);
     
@@ -576,6 +604,138 @@ export async function PUT(request: NextRequest) {
         
     return NextResponse.json(
       { error: 'Failed to update applicant', details: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE request handler for removing dummy users or specific users
+ * Can be called with ?all=true to remove all non-admin users
+ * Or with ?id=123 to remove a specific user
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const removeAllDummy = searchParams.get('all') === 'true';
+    const userId = searchParams.get('id');
+
+    if (removeAllDummy) {
+      // Remove all non-admin users and their related data
+      
+      // First, delete all applications from non-admin users
+      await prisma.applications.deleteMany({
+        where: {
+          users: {
+            is_admin: false
+          }
+        }
+      });
+      
+      // Then delete all resumes from non-admin users
+      await prisma.resumes.deleteMany({
+        where: {
+          users: {
+            is_admin: false
+          }
+        }
+      });
+      
+      // Delete all interviews for non-admin users
+      await prisma.interviews.deleteMany({
+        where: {
+          users: {
+            is_admin: false
+          }
+        }
+      });
+      
+      // Finally delete all non-admin users
+      const { count } = await prisma.users.deleteMany({
+        where: {
+          is_admin: false
+        }
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: `Successfully removed ${count} dummy users and their related data`,
+        count
+      });
+    } else if (userId) {
+      // Delete a specific user and their related data
+      const id = parseInt(userId);
+      
+      if (isNaN(id)) {
+        return NextResponse.json(
+          { error: 'Invalid user ID' },
+          { status: 400 }
+        );
+      }
+      
+      // Check if this is an admin user
+      const user = await prisma.users.findUnique({
+        where: { user_id: id }
+      });
+      
+      if (!user) {
+        return NextResponse.json(
+          { error: 'User not found' },
+          { status: 404 }
+        );
+      }
+      
+      if (user.is_admin) {
+        return NextResponse.json(
+          { error: 'Cannot delete admin users' },
+          { status: 400 }
+        );
+      }
+      
+      // Delete all applications from this user
+      await prisma.applications.deleteMany({
+        where: { user_id: id }
+      });
+      
+      // Delete all resumes from this user
+      await prisma.resumes.deleteMany({
+        where: { user_id: id }
+      });
+      
+      // Delete all interviews for this user
+      await prisma.interviews.deleteMany({
+        where: { user_id: id }
+      });
+      
+      // Finally delete the user
+      await prisma.users.delete({
+        where: { user_id: id }
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: `Successfully removed user ${id}`
+      });
+    } else {
+      return NextResponse.json(
+        { error: 'Missing required parameters: either "all=true" or "id={userId}"' },
+        { status: 400 }
+      );
+    }
+  } catch (error: unknown) {
+    console.error('Error deleting users:', error);
+    
+    // Safe extraction of error message
+    const errorMessage = 
+      error !== null && 
+      typeof error === 'object' && 
+      'message' in error && 
+      typeof error.message === 'string'
+        ? error.message
+        : 'Unknown error';
+        
+    return NextResponse.json(
+      { error: 'Failed to delete users', details: errorMessage },
       { status: 500 }
     );
   }

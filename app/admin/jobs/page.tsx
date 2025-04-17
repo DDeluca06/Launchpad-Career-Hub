@@ -56,13 +56,12 @@ export default function AdminJobListings() {
   const [editingJob, setEditingJob] = useState<ExtendedJob | null>(null);
   const [newJob, setNewJob] = useState<NewJob>({
     title: "",
-    company: "",
+    company_id: 0,
     location: "",
     job_type: "FULL_TIME",
     description: "",
     website: "",
     tags: [],
-    partner_id: null
   });
 
   // Filter state
@@ -72,6 +71,7 @@ export default function AdminJobListings() {
     remoteOnly: false,
     keywords: "",
     tags: [],
+    partnerOnly: false,
   });
 
   // Add ref for job filters
@@ -199,9 +199,9 @@ export default function AdminJobListings() {
         const keywordsLower = activeFilters.keywords.toLowerCase();
         const matchesKeyword = 
           job.title.toLowerCase().includes(keywordsLower) ||
-          job.company.toLowerCase().includes(keywordsLower) ||
-          (job.description || "").toLowerCase().includes(keywordsLower) ||
-          (job.location || "").toLowerCase().includes(keywordsLower) ||
+          job.companies?.name?.toLowerCase().includes(keywordsLower) ||
+          job.description?.toLowerCase().includes(keywordsLower) ||
+          job.location?.toLowerCase().includes(keywordsLower) ||
           job.tags?.some(tag => tag.toLowerCase().includes(keywordsLower));
         
         if (!matchesKeyword) {
@@ -255,6 +255,7 @@ export default function AdminJobListings() {
       remoteOnly: false,
       keywords: "",
       tags: [],
+      partnerOnly: false,
     };
     setActiveFilters(defaultFilters);
     
@@ -306,12 +307,32 @@ export default function AdminJobListings() {
 
   const handleAddJob = async () => {
     // Validate required fields
-    if (!newJob.title || !newJob.company || !newJob.location) {
+    if (!newJob.title || !newJob.location) {
       alert("Please fill in all required fields");
       return;
     }
     
+    // Check for company ID
+    if (!newJob.company_id) {
+      alert("Please select a company");
+      return;
+    }
+    
     try {
+      // Try to get company name, but don't block job creation if it fails
+      try {
+        const companyResponse = await fetch(`/api/companies?id=${newJob.company_id}`);
+        if (companyResponse.ok) {
+          const companyData = await companyResponse.json();
+          if (companyData.company?.name) {
+            newJob.company = companyData.company.name;
+          }
+        }
+      } catch (companyError) {
+        console.error("Error fetching company name:", companyError);
+        // Continue without company name, the service will handle it
+      }
+      
       // Create job via API
       const result = await createJob(newJob);
       const createdJob = result.job;
@@ -335,13 +356,12 @@ export default function AdminJobListings() {
       // Reset form
       setNewJob({
         title: "",
-        company: "",
+        company_id: 0,
         location: "",
         job_type: "FULL_TIME",
         description: "",
         website: "",
         tags: [],
-        partner_id: null
       });
       
       // Select the newly created job
@@ -359,15 +379,37 @@ export default function AdminJobListings() {
     }
     
     try {
+      let companyName = "";
+      
+      // Try to fetch the company details to get the company name
+      try {
+        const companyResponse = await fetch(`/api/companies?id=${editingJob.company_id}`);
+        if (companyResponse.ok) {
+          const companyData = await companyResponse.json();
+          companyName = companyData.company?.name || "";
+        }
+      } catch (companyError) {
+        console.error("Error fetching company details:", companyError);
+        // Continue with fallback
+      }
+      
+      // If company name is empty, use fallback
+      if (!companyName) {
+        console.warn("Company name not found, using fallback");
+        // Try to use existing company name from the job or use a placeholder
+        companyName = editingJob.companies?.name || `Company ID: ${editingJob.company_id}`;
+      }
+      
       // Update job via API
       const result = await updateJob(editingJob.job_id, {
         title: editingJob.title,
-        company: editingJob.company,
         location: editingJob.location || undefined,
         job_type: editingJob.job_type,
         description: editingJob.description || undefined,
         website: editingJob.website || undefined,
         tags: editingJob.tags,
+        company: companyName,
+        company_id: editingJob.company_id
       });
       
       const updatedJob = result.job;
@@ -442,7 +484,7 @@ export default function AdminJobListings() {
             if (value) {
               switch(header.toLowerCase()) {
                 case 'title': job.title = value; break;
-                case 'company': job.company = value; break;
+                case 'company': job.company = value; break; // Set the company name directly
                 case 'location': job.location = value; break;
                 case 'type': job.job_type = value as JobType; break;
                 case 'description': job.description = value; break;
@@ -570,17 +612,24 @@ export default function AdminJobListings() {
         // Create a demo job from "scraping"
         const jobData = {
           title: "Web Developer (Scraped)",
-          company: new URL(scrapingUrl).hostname.replace('www.', ''),
+          company_id: newJob.company_id,
           location: "Philadelphia, PA",
           job_type: "FULL_TIME" as JobType,
           description: "This is a simulated job scraped from " + scrapingUrl,
           website: scrapingUrl,
           tags: ["FRONT_END", "FULLY_REMOTE"] as JobTag[],
-          partner_id: newJob.partner_id // Use the partner ID from the form
         };
         
         // Create the job via API
-        const result = await createJob(jobData);
+        const result = await createJob({
+          title: jobData.title,
+          company_id: jobData.company_id,
+          location: jobData.location,
+          job_type: jobData.job_type,
+          description: jobData.description,
+          website: jobData.website,
+          tags: jobData.tags
+        });
         const createdJob = result.job;
         
         // Update UI

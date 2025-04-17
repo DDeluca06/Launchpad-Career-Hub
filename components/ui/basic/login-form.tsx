@@ -128,7 +128,7 @@ export function LoginForm() {
                 className="text-xs hover:underline"
                 style={{ color: extendedPalette.primaryBlue }}
               >
-                Forgot?
+               {/* unfortunately, we don't have a password reset feature yet */}
               </a>
             </div>
             <div className="relative">

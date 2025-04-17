@@ -14,6 +14,7 @@ interface OverviewCardProps {
     isPositive: boolean 
   };
   isLoading: boolean;
+  color?: string;
 }
 
 export function OverviewCard({
@@ -22,6 +23,7 @@ export function OverviewCard({
   icon,
   trend,
   isLoading,
+  color,
 }: OverviewCardProps) {
   return (
     <Card className="overflow-hidden">
@@ -35,7 +37,9 @@ export function OverviewCard({
               <p className="text-2xl font-bold mt-1">{value}</p>
             )}
           </div>
-          <div className="rounded-full p-3 bg-gray-50">{icon}</div>
+          <div className="rounded-full p-3 bg-gray-50" style={{ backgroundColor: color ? `${color}15` : undefined }}>
+            {icon}
+          </div>
         </div>
 
         {!isLoading && trend && (

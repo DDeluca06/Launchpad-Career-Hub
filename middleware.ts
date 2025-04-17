@@ -10,6 +10,7 @@ const publicPaths = [
   "/api/auth/logout",
   "/api/auth/signup",
   "/api/auth/session",
+  "/support",
 ];
 
 // Paths that should be admin-only
@@ -32,9 +33,9 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get("session-id")?.value;
 
   if (!sessionCookie) {
-    // No session cookie, redirect to login
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
+    // No session cookie, redirect to root
+    const rootUrl = new URL("/", request.url);
+    return NextResponse.redirect(rootUrl);
   }
 
   try {

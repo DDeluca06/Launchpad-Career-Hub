@@ -4,7 +4,7 @@ interface StatsData {
   totalJobs: number
   totalApplications: number
   activeInterviews: number
-  offersSent: number
+  partnerCompanies: number
 }
 
 /**
@@ -15,7 +15,7 @@ interface StatsData {
  * and returns these values for use in components.
  *
  * @returns An object containing:
- *   - stats: An object with job statistics including total jobs, total applications, active interviews, and offers sent.
+ *   - stats: An object with job statistics including total jobs, total applications, active interviews, and partner companies.
  *   - loading: A boolean that is true while data is loading and false once the data has been set.
  *   - error: An Error object if an error occurred during data fetching; otherwise, null.
  *   - refetch: A function to manually trigger a data refresh.
@@ -25,7 +25,7 @@ export function useStats() {
     totalJobs: 0,
     totalApplications: 0,
     activeInterviews: 0,
-    offersSent: 0
+    partnerCompanies: 0
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -61,7 +61,7 @@ export function useStats() {
         totalJobs: 24,
         totalApplications: 156,
         activeInterviews: 18,
-        offersSent: 7
+        partnerCompanies: 12
       });
     }
   }, []);

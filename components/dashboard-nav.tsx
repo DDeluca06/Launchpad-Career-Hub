@@ -12,12 +12,12 @@ import {
   Briefcase,
   BarChart2,
   Users,
-  MessageSquare,
   LogOut,
   Settings,
   HelpCircle,
   FileText,
   Calendar,
+  Building2,
 } from "lucide-react";
 
 interface NavItem {
@@ -154,30 +154,35 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
       title: "Jobs",
       href: `${baseUrl}/jobs`,
       icon: <Briefcase />,
-      badge: isAdmin ? 12 : 5,
+      badge: isAdmin ? undefined : 5,
       color: extendedPalette.primaryGreen,
     },
   ];
 
   const adminSectionItems: NavItem[] = isAdmin ? [
     {
-      title: "Analytics",
-      href: `${baseUrl}/analytics`,
-      icon: <BarChart2 />,
-      color: extendedPalette.teal
+      title: "Jobs",
+      href: `${baseUrl}/jobs`,
+      icon: <Briefcase />,
+      color: extendedPalette.primaryBlue
+    },
+    {
+      title: "Companies",
+      href: `${baseUrl}/companies`,
+      icon: <Building2 />,
+      color: extendedPalette.lightBlue
     },
     {
       title: "Applicants",
       href: `${baseUrl}/applicants`,
       icon: <Users />,
-      badge: 8,
       color: extendedPalette.primaryOrange
     },
     {
-      title: "Partners",
-      href: `${baseUrl}/partners`,
-      icon: <MessageSquare />,
-      color: extendedPalette.brown
+      title: "Analytics",
+      href: `${baseUrl}/analytics`,
+      icon: <BarChart2 />,
+      color: extendedPalette.teal
     },
   ] : [];
 
@@ -189,8 +194,8 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
       color: extendedPalette.teal,
     },
     {
-      title: "Settings",
-      href: `${baseUrl}/settings`,
+      title: "User Management",
+      href: `${baseUrl}/user-management`,
       icon: <Settings />,
       color: extendedPalette.darkGray,
     },
@@ -281,6 +286,13 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
               <p className="text-[11px] text-launchpadDarkGray/70 dark:text-gray-400 leading-tight">
                 Contact our support team for assistance.
               </p>
+              <Link 
+                href="/support" 
+                className="text-[11px] text-launchpadBlue hover:text-launchpadDarkBlue dark:text-launchpadLightBlue inline-flex items-center gap-1 mt-1.5 transition-colors"
+              >
+                <span>Meet our team</span>
+                <span className="text-[8px]">→</span>
+              </Link>
             </div>
           </div>
         </div>

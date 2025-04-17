@@ -9,9 +9,11 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "seed": "node prisma/seed-users.js",
-    "prisma:seed": "node prisma/seed-users.js"
+    "prisma:seed": "node prisma/seed-users.js",
+    "validate-db": "tsx scripts/validate-db.ts"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^3.9.1",
     "@nivo/bar": "^0.88.0",
     "@nivo/core": "^0.88.0",

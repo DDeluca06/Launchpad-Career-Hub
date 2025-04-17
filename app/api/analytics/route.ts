@@ -10,6 +10,13 @@ interface PlacementData {
 
 interface DbPartner {
   name: string;
+  description: string | null;
+  location: string | null;
+  partner_id: number;
+  jobs_available: number | null;
+  applicants: number | null;
+  applicants_hired: number | null;
+  industry: string | null;
   jobs: {
     applications: {
       status: string;
@@ -20,18 +27,64 @@ interface DbPartner {
 interface DbApplication {
   status: string;
   applied_at: Date;
+  user_id: number;
 }
 
 interface DbJob {
   tags: string[];
+  job_type: string;
 }
 
-export async function GET() {
+interface DbUser {
+  user_id: number;
+  program: string | null;
+}
+
+/**
+ * API endpoint for analytics data that powers the admin dashboard.
+ * Fetches real data from the database based on requested date range.
+ */
+export async function GET(request: Request) {
   try {
+    // Parse URL and get the date range parameter
+    const { searchParams } = new URL(request.url);
+    const dateRange = searchParams.get('dateRange') || 'last12Months';
+    
+    // Calculate date ranges based on requested parameter
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (dateRange) {
+      case 'last30Days':
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 30);
+        break;
+      case 'last90Days':
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 90);
+        break;
+      case 'last6Months':
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 6);
+        break;
+      case 'yearToDate':
+        startDate = new Date(now.getFullYear(), 0, 1); // January 1st of current year
+        break;
+      case 'last12Months':
+      default:
+        startDate = new Date(now);
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
+    }
+    
+    console.warn(`[Analytics] Fetching data from ${startDate.toISOString()} to ${now.toISOString()}`);
+
     // Get all partners with their jobs and applications
     const partners = await prisma.partners.findMany({
       where: {
-        is_archived: false
+        NOT: {
+          is_archived: true
+        }
       },
       include: {
         jobs: {
@@ -40,8 +93,15 @@ export async function GET() {
           },
           include: {
             applications: {
+              where: {
+                applied_at: {
+                  gte: startDate
+                }
+              },
               select: {
-                status: true
+                status: true,
+                applied_at: true,
+                user_id: true
               }
             }
           }
@@ -73,42 +133,66 @@ export async function GET() {
       placementsByPartner.push(...remainingPartners);
     }
 
-    // Get other analytics data...
+    // Get other analytics data with date filtering
     const [users, jobs, applications] = await Promise.all([
       prisma.users.findMany({
         where: {
-          is_archived: false
-        }
-      }),
-      prisma.jobs.findMany({
-        where: {
-          archived: false
+          is_archived: false,
+          created_at: {
+            gte: startDate
+          }
         },
         select: {
-          tags: true
+          user_id: true,
+          program: true
+        }
+      }) as Promise<DbUser[]>,
+      prisma.jobs.findMany({
+        where: {
+          archived: false,
+          created_at: {
+            gte: startDate
+          }
+        },
+        select: {
+          tags: true,
+          job_type: true
         }
       }) as Promise<DbJob[]>,
       prisma.applications.findMany({
         where: {
           applied_at: {
-            gte: new Date(new Date().setFullYear(new Date().getFullYear() - 1))
-          }
+            gte: startDate
+          },
+          isArchived: false
         },
         select: {
           status: true,
-          applied_at: true
+          applied_at: true,
+          user_id: true
         }
       }) as Promise<DbApplication[]>
     ]);
 
     // Calculate applications over time
     const monthlyApplications = new Map<string, number>();
-    const now = new Date();
-    const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    
+    // Initialize all months in the selected range with 0
+    const startMonth = new Date(startDate);
+    const totalMonths = (now.getFullYear() - startMonth.getFullYear()) * 12 + (now.getMonth() - startMonth.getMonth()) + 1;
+    
+    // Use Array.from to create a range of months and iterate over them
+    Array.from({ length: totalMonths }).forEach((_, i) => {
+      const currentMonth = new Date(startMonth);
+      currentMonth.setMonth(startMonth.getMonth() + i);
+      const monthKey = currentMonth.toLocaleString('default', { month: 'short' });
+      monthlyApplications.set(monthKey, 0);
+    });
 
+    // Count applications per month
     applications.forEach((app: DbApplication) => {
       const appDate = new Date(app.applied_at);
-      if (appDate >= twelveMonthsAgo) {
+      if (appDate >= startDate) {
         const monthKey = appDate.toLocaleString('default', { month: 'short' });
         monthlyApplications.set(monthKey, (monthlyApplications.get(monthKey) || 0) + 1);
       }
@@ -160,7 +244,7 @@ export async function GET() {
       }))
       // Sort in the specific order we want
       .sort((a, b) => {
-        const order = ['Interested', 'Applied', 'Interview Stage', 'Negotiation', 'Accepted', 'Rejected'];
+        const order = ['Interested', 'Applied', 'Interview Stage', 'Negotiation', 'Accepted', 'Rejected', 'Other'];
         return order.indexOf(a.status) - order.indexOf(b.status);
       });
 
@@ -187,11 +271,50 @@ export async function GET() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    // Build overview metrics
+    // Calculate job types distribution (full-time, part-time, etc.)
+    const jobTypeMap = new Map<string, number>();
+    jobs.forEach((job: DbJob) => {
+      const formattedType = job.job_type.replace(/_/g, ' ')
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      jobTypeMap.set(formattedType, (jobTypeMap.get(formattedType) || 0) + 1);
+    });
+
+    const jobTypeDistribution = Array.from(jobTypeMap.entries())
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // Calculate program distribution
+    const programMap = new Map<string, number>();
+    users.forEach((user: DbUser) => {
+      const program = user.program ? user.program.replace(/_/g, ' ') : 'Other';
+      const formattedProgram = program.charAt(0) + program.slice(1).toLowerCase();
+      
+      programMap.set(formattedProgram, (programMap.get(formattedProgram) || 0) + 1);
+    });
+
+    const programDistribution = Array.from(programMap.entries())
+      .map(([program, count]) => ({ program, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // Calculate applicant average
+    const uniqueApplicants = new Set(applications.map(app => app.user_id)).size;
+    const averageApplicationsPerUser = applications.length > 0 ? 
+      (applications.length / uniqueApplicants).toFixed(1) : 
+      "0";
+
+    // Build enhanced overview metrics
     const overview = {
-      totalApplicants: users.length,
+      totalApplicants: uniqueApplicants,
       totalJobs: jobs.length,
       totalApplications: applications.length,
+      averageApplicationsPerUser: averageApplicationsPerUser,
+      acceptanceRate: applications.length > 0 ? 
+        ((statusCounts.get('Accepted') || 0) / applications.length * 100).toFixed(1) + '%' : 
+        "0%"
     };
 
     return NextResponse.json({
@@ -200,12 +323,16 @@ export async function GET() {
         overview: {
           totalApplicants: overview.totalApplicants,
           totalJobs: overview.totalJobs,
-          totalApplications: overview.totalApplications
+          totalApplications: overview.totalApplications,
+          averageApplicationsPerUser: overview.averageApplicationsPerUser,
+          acceptanceRate: overview.acceptanceRate
         },
         applicationsOverTime: applicationsOverTime,
         statusDistribution: statusDistribution,
         topJobCategories: topJobCategories,
-        placementsByPartner: placementsByPartner
+        placementsByPartner: placementsByPartner,
+        jobTypeDistribution: jobTypeDistribution,
+        programDistribution: programDistribution
       }
     });
   } catch (error) {

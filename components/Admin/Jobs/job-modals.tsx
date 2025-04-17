@@ -10,6 +10,11 @@ import { Badge } from "@/components/ui/basic/badge";
 import { useState, useEffect } from "react";
 import { JobTag, JobType, JOB_TAGS, NewJob } from "./types";
 import { ExtendedJob } from "./types";
+import CompanySelect from "../Companies/company-select";
+import { Plus } from "lucide-react";
+import { NewCompany } from "@/lib/company-service";
+import { toast } from "sonner";
+import { INDUSTRIES } from "../Partners/types";
 
 // Partner interface
 interface Partner {
@@ -100,6 +105,29 @@ export function JobModals({
 }: JobModalsProps) {
   // State for partners
   const [partners, setPartners] = useState<Partner[]>([]);
+  // State for company dialog
+  const [isCompanyDialogOpen, setIsCompanyDialogOpen] = useState(false);
+  const [newCompanyData, setNewCompanyData] = useState<NewCompany>({
+    name: '',
+    description: '',
+    website: '',
+    industry: '',
+    location: '',
+    is_partner: false
+  });
+  const [isCreatingCompany, setIsCreatingCompany] = useState(false);
+
+  // Reset new company form
+  const resetNewCompanyForm = () => {
+    setNewCompanyData({
+      name: '',
+      description: '',
+      website: '',
+      industry: '',
+      location: '',
+      is_partner: false
+    });
+  };
 
   // Fetch partners when modals are opened
   useEffect(() => {
@@ -154,12 +182,26 @@ export function JobModals({
                 
                 <div className="space-y-2">
                   <Label htmlFor="edit-company">Company</Label>
-                  <Input
-                    id="edit-company"
-                    value={editingJob.company}
-                    onChange={(e) => setEditingJob({...editingJob, company: e.target.value})}
-                    placeholder="e.g. Acme Inc."
-                  />
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <CompanySelect 
+                        value={editingJob.company_id}
+                        onChange={(value) => setEditingJob({...editingJob, company_id: value as number})}
+                      />
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon"
+                      className="h-10 w-10 flex items-center justify-center shrink-0"
+                      title="Create New Company"
+                      onClick={() => {
+                        setIsCompanyDialogOpen(true);
+                      }}
+                    >
+                      <Plus size={16} />
+                    </Button>
+                  </div>
                 </div>
               </div>
               
@@ -294,13 +336,26 @@ export function JobModals({
               
               <div className="space-y-2">
                 <Label htmlFor="company">Company *</Label>
-                <Input
-                  id="company"
-                  value={newJob.company}
-                  onChange={(e) => setNewJob({...newJob, company: e.target.value})}
-                  placeholder="e.g. Acme Inc."
-                  required
-                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <CompanySelect 
+                      value={newJob.company_id}
+                      onChange={(value) => setNewJob({...newJob, company_id: value as number})}
+                    />
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    className="h-10 w-10 flex items-center justify-center shrink-0"
+                    title="Create New Company"
+                    onClick={() => {
+                      setIsCompanyDialogOpen(true);
+                    }}
+                  >
+                    <Plus size={16} />
+                  </Button>
+                </div>
               </div>
             </div>
             
@@ -563,6 +618,150 @@ export function JobModals({
               disabled={!scrapingUrl || isScrapingInProgress}
             >
               {isScrapingInProgress ? 'Scraping...' : 'Extract Job'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Company Dialog */}
+      <Dialog open={isCompanyDialogOpen} onOpenChange={(open) => {
+        setIsCompanyDialogOpen(open);
+        if (!open) resetNewCompanyForm();
+      }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Company</DialogTitle>
+            <DialogDescription>
+              Create a new company record for job listings
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-company-name" className="required">Company Name</Label>
+              <Input
+                id="new-company-name"
+                placeholder="Enter company name"
+                value={newCompanyData.name}
+                onChange={(e) => setNewCompanyData({...newCompanyData, name: e.target.value})}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-company-industry">Industry</Label>
+                <Select
+                  value={newCompanyData.industry || ''}
+                  onValueChange={(value) => setNewCompanyData({...newCompanyData, industry: value})}
+                >
+                  <SelectTrigger id="new-company-industry">
+                    <SelectValue placeholder="Select industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INDUSTRIES.map((industry) => (
+                      <SelectItem key={industry} value={industry}>{industry}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="new-company-location">Location</Label>
+                <Input
+                  id="new-company-location"
+                  placeholder="City, State or Remote"
+                  value={newCompanyData.location || ''}
+                  onChange={(e) => setNewCompanyData({...newCompanyData, location: e.target.value})}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="new-company-website">Website</Label>
+              <Input
+                id="new-company-website"
+                placeholder="https://example.com"
+                value={newCompanyData.website || ''}
+                onChange={(e) => setNewCompanyData({...newCompanyData, website: e.target.value})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="new-company-description">Description</Label>
+              <Textarea
+                id="new-company-description"
+                placeholder="Brief description of the company"
+                value={newCompanyData.description || ''}
+                onChange={(e) => setNewCompanyData({...newCompanyData, description: e.target.value})}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsCompanyDialogOpen(false);
+              resetNewCompanyForm();
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (!newCompanyData.name) {
+                  toast.error("Company name is required");
+                  return;
+                }
+                
+                setIsCreatingCompany(true);
+                try {
+                  // Use the API endpoint instead of direct Prisma call
+                  const response = await fetch('/api/companies', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(newCompanyData),
+                  });
+                  
+                  const result = await response.json();
+                  
+                  if (response.ok) {
+                    toast.success("Company created successfully");
+                    // Update the job form with the new company
+                    if (isAddJobModalOpen) {
+                      setNewJob({...newJob, company_id: result.company.company_id});
+                    } else if (isEditModalOpen && editingJob) {
+                      setEditingJob({...editingJob, company_id: result.company.company_id});
+                    }
+                    
+                    // Refresh companies list
+                    await fetchPartners();
+                    
+                    // Close the dialog
+                    setIsCompanyDialogOpen(false);
+                    resetNewCompanyForm();
+                  } else {
+                    // Handle error cases
+                    toast.error(result.error || "Failed to create company");
+                    
+                    // If company already exists, use it (specific error case)
+                    if (response.status === 409 && result.company) {
+                      if (isAddJobModalOpen) {
+                        setNewJob({...newJob, company_id: result.company.company_id});
+                      } else if (isEditModalOpen && editingJob) {
+                        setEditingJob({...editingJob, company_id: result.company.company_id});
+                      }
+                      setIsCompanyDialogOpen(false);
+                    }
+                  }
+                } catch (error) {
+                  toast.error("Failed to create company");
+                  console.error(error);
+                } finally {
+                  setIsCreatingCompany(false);
+                }
+              }}
+              disabled={isCreatingCompany}
+            >
+              {isCreatingCompany ? "Creating..." : "Create Company"}
             </Button>
           </DialogFooter>
         </DialogContent>

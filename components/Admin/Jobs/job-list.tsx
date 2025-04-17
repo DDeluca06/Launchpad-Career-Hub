@@ -77,7 +77,7 @@ export function JobList({
                     {highlightText(job.title)}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    {highlightText(job.company)}
+                    {highlightText(job.companies?.name || "Unknown Company")}
                   </p>
                 </div>
                 {job.archived && (
