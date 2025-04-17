@@ -8,8 +8,8 @@ import { ApplicationStatus } from '@/lib/prisma-enums';
 const COLUMN_TO_DB_STATUS: Record<string, ApplicationStatus> = {
   'interested': ApplicationStatus.INTERESTED,
   'applied': ApplicationStatus.APPLIED,
-  'interview': ApplicationStatus.INTERVIEW_STAGE, // Default if no sub-stage
-  'offer': ApplicationStatus.OFFER_EXTENDED, // Default if no sub-stage
+  'interview': ApplicationStatus.INTERVIEW_STAGE, // Default if no substage
+  'offer': ApplicationStatus.OFFER_EXTENDED, // Default if no substage
   'accepted': ApplicationStatus.OFFER_ACCEPTED,
   'rejected': ApplicationStatus.REJECTED,
   'referrals': ApplicationStatus.INTERESTED
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     // Determine the database status based on the column and sub-stage
     let dbStatus: ApplicationStatus;
     
-    // If we have a sub-stage that can override the column status, use it
+    // If we have a substage that can override the column status, use it
     if (subStage && SUB_STAGE_TO_DB_STATUS[subStage]) {
       dbStatus = SUB_STAGE_TO_DB_STATUS[subStage];
       console.log(`Using sub-stage mapping: ${subStage} -> ${dbStatus}`);
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
       }
     });
     
-    // Create status history record
+    // Create a status history record
     await prisma.app_status_history.create({
       data: {
         application_id: parseInt(applicationId),

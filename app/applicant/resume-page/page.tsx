@@ -19,44 +19,60 @@ interface Resume {
   created_at?: string | Date;
 }
 
+// Define user interface to match schema
+interface User {
+  user_id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+}
+
 export default function ResumePage() {
   const { session, loading: isAuthLoading } = useContext(AuthContext);
   const [resumes, setResumes] = useState<Resume[]>([])
+  const [userData, setUserData] = useState<User | null>(null)
   const [newResumeFile, setNewResumeFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const resumeInputRef = useRef<HTMLInputElement>(null)
 
+  // Fetch user data and resumes
   useEffect(() => {
     if (isAuthLoading || !session?.user?.id) return;
 
-    const loadUserResumes = async () => {
+    const loadUserData = async () => {
       try {
         setIsLoading(true);
-        
-        if (!session?.user?.id) {
-          console.error("No user session found");
-          setIsLoading(false);
-          return;
-        }
-        
-        const response = await fetch(`/api/resumes?userId=${session?.user?.id}`);
-        const data = await response.json();
-        
-        if (data.success) {
-          setResumes(data.resumes);
+
+        // First fetch user data
+        const userResponse = await fetch(`/api/user?userId=${session.user?.id}`);
+        const userData = await userResponse.json();
+
+        if (userData.success && userData.user) {
+          setUserData(userData.user);
         } else {
-          console.error("Error loading resumes:", data.error);
+          console.error("Error loading user data:", userData.error);
+          toast.error("Failed to load user profile");
+        }
+
+        // Then fetch resumes
+        const resumesResponse = await fetch(`/api/resumes?userId=${session.user?.id}`);
+        const resumesData = await resumesResponse.json();
+
+        if (resumesData.success) {
+          setResumes(resumesData.resumes);
+        } else {
+          console.error("Error loading resumes:", resumesData.error);
           toast.error("Failed to load resumes");
         }
       } catch (error) {
-        console.error("Error loading resumes:", error);
-        toast.error("Failed to load resumes");
+        console.error("Error loading data:", error);
+        toast.error("Failed to load profile data");
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadUserResumes();
+    loadUserData();
   }, [session?.user?.id, isAuthLoading]);
 
   // Handle resume file upload
@@ -83,27 +99,21 @@ export default function ResumePage() {
 
     try {
       setIsLoading(true);
-      
-      // In a real application, you would upload the file to a storage service
-      // and get back a URL. For now, we'll simulate this with a local path.
-      const filePath = `/uploads/resumes/${newResumeFile.name}`;
-      
-      // Create a new resume in the database
-      const response = await fetch('/api/resumes', {
+
+      // Create form data to handle file upload
+      const formData = new FormData();
+      formData.append('file', newResumeFile);
+      formData.append('userId', session.user?.id || '');
+      formData.append('isDefault', resumes.length === 0 ? 'true' : 'false');
+
+      // Upload the file and create resume record
+      const response = await fetch('/api/resumes/upload', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: parseInt(session?.user?.id),
-          file_path: filePath,
-          file_name: newResumeFile.name,
-          is_default: resumes.length === 0 // Make default if it's the first resume
-        }),
+        body: formData,
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         // Update the UI
         setResumes(prev => [...prev, data.resume]);
@@ -129,9 +139,9 @@ export default function ResumePage() {
   const setDefaultResume = async (resumeId: number) => {
     try {
       setIsLoading(true);
-      
+
       // Update resume in the database
-      const response = await fetch('/api/resumes', {
+      const response = await fetch('/api/resumes/default', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -139,12 +149,11 @@ export default function ResumePage() {
         body: JSON.stringify({
           resume_id: resumeId,
           user_id: session?.user?.id ? parseInt(session.user.id) : null,
-          is_default: true
         }),
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         // Update UI
         setResumes(prev => prev.map(resume => ({
@@ -167,17 +176,26 @@ export default function ResumePage() {
   const deleteResume = async (resumeId: number) => {
     try {
       setIsLoading(true);
-      
+
       // Delete from database
-      const response = await fetch(`/api/resumes?id=${resumeId}`, {
+      const response = await fetch(`/api/resumes/${resumeId}`, {
         method: 'DELETE',
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         // Update UI
-        setResumes(prev => prev.filter(resume => resume.resume_id !== resumeId));
+        setResumes(prev => {
+          const updatedResumes = prev.filter(resume => resume.resume_id !== resumeId);
+
+          // If we deleted the default resume and have other resumes, set the first one as default
+          if (updatedResumes.length > 0 && !updatedResumes.some(r => r.is_default)) {
+            updatedResumes[0].is_default = true;
+          }
+
+          return updatedResumes;
+        });
         toast.success("Resume deleted successfully");
       } else {
         toast.error(data.error || "Failed to delete resume");
@@ -294,7 +312,9 @@ export default function ResumePage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Resumes</h1>
-            <p className="text-gray-500 mt-1">Upload and manage your resumes</p>
+            <p className="text-gray-500 mt-1">
+              {userData ? `${userData.first_name} ${userData.last_name} (${userData.email})` : 'Loading user profile...'}
+            </p>
           </div>
         </div>
 
@@ -302,7 +322,7 @@ export default function ResumePage() {
           <Card>
             <CardHeader>
               <CardTitle>My Resumes</CardTitle>
-              <CardDescription>Upload and manage your resumes</CardDescription>
+              <CardDescription>Upload and manage your resumes for job applications</CardDescription>
             </CardHeader>
             <div className="p-6 border-t">
               <div className="space-y-4">
