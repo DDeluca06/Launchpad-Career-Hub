@@ -226,11 +226,11 @@ export function JobModals({
                       <SelectValue placeholder="Select job type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="FULL_TIME">Full Time</SelectItem>
-                      <SelectItem value="PART_TIME">Part Time</SelectItem>
-                      <SelectItem value="CONTRACT">Contract</SelectItem>
-                      <SelectItem value="INTERNSHIP">Internship</SelectItem>
-                      <SelectItem value="APPRENTICESHIP">Apprenticeship</SelectItem>
+                      <SelectItem value="Full Time">Full Time</SelectItem>
+                      <SelectItem value="Part Time">Part Time</SelectItem>
+                      <SelectItem value="Contract">Contract</SelectItem>
+                      <SelectItem value="Internship">Internship</SelectItem>
+                      <SelectItem value="Apprenticeship">Apprenticeship</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -247,6 +247,36 @@ export function JobModals({
                   />
                 </div>
                 
+                <div className="space-y-2">
+                  <Label htmlFor="edit-application-type">Application Type</Label>
+                  <Select 
+                    value={editingJob.application_type}
+                    onValueChange={(value) => setEditingJob({...editingJob, application_type: value as 'INTERNAL' | 'EXTERNAL'})}
+                  >
+                    <SelectTrigger id="edit-application-type">
+                      <SelectValue placeholder="Select application type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="INTERNAL">Internal</SelectItem>
+                      <SelectItem value="EXTERNAL">External</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {editingJob.application_type === 'EXTERNAL' && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-application-url">Application URL</Label>
+                  <Input
+                    id="edit-application-url"
+                    value={editingJob.application_url || ''}
+                    onChange={(e) => setEditingJob({...editingJob, application_url: e.target.value})}
+                    placeholder="e.g. https://www.example.com/apply"
+                  />
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-partner">Partner Organization</Label>
                   <Select 
@@ -284,12 +314,12 @@ export function JobModals({
               
               <div className="space-y-2">
                 <Label>Tags</Label>
-                <div className="flex flex-wrap gap-2 p-2 border rounded-md max-h-[200px] overflow-y-auto">
+                <div className="flex flex-wrap gap-2">
                   {JOB_TAGS.map((tag) => (
-                    <Badge 
-                      key={tag} 
-                      variant={editingJob.tags?.includes(tag) ? "default" : "outline"}
-                      className={`cursor-pointer ${editingJob.tags?.includes(tag) ? "bg-blue-500" : ""}`}
+                    <Badge
+                      key={tag}
+                      variant={editingJob.tags.includes(tag) ? "default" : "outline"}
+                      className="cursor-pointer"
                       onClick={() => handleEditTagChange(tag)}
                     >
                       {tag}
@@ -381,11 +411,11 @@ export function JobModals({
                     <SelectValue placeholder="Select job type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="FULL_TIME">Full Time</SelectItem>
-                    <SelectItem value="PART_TIME">Part Time</SelectItem>
-                    <SelectItem value="CONTRACT">Contract</SelectItem>
-                    <SelectItem value="INTERNSHIP">Internship</SelectItem>
-                    <SelectItem value="APPRENTICESHIP">Apprenticeship</SelectItem>
+                    <SelectItem value="Full Time">Full Time</SelectItem>
+                    <SelectItem value="Part Time">Part Time</SelectItem>
+                    <SelectItem value="Contract">Contract</SelectItem>
+                    <SelectItem value="Internship">Internship</SelectItem>
+                    <SelectItem value="Apprenticeship">Apprenticeship</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -439,12 +469,12 @@ export function JobModals({
             
             <div className="space-y-2">
               <Label>Tags</Label>
-              <div className="flex flex-wrap gap-2 p-2 border rounded-md max-h-[200px] overflow-y-auto">
+              <div className="flex flex-wrap gap-2">
                 {JOB_TAGS.map((tag) => (
-                  <Badge 
-                    key={tag} 
+                  <Badge
+                    key={tag}
                     variant={newJob.tags.includes(tag) ? "default" : "outline"}
-                    className={`cursor-pointer ${newJob.tags.includes(tag) ? "bg-blue-500" : ""}`}
+                    className="cursor-pointer"
                     onClick={() => handleTagChange(tag)}
                   >
                     {tag}

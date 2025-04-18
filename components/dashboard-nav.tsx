@@ -161,12 +161,6 @@ export function DashboardNav({ isAdmin = false }: DashboardNavProps) {
 
   const adminSectionItems: NavItem[] = isAdmin ? [
     {
-      title: "Jobs",
-      href: `${baseUrl}/jobs`,
-      icon: <Briefcase />,
-      color: extendedPalette.primaryBlue
-    },
-    {
       title: "Companies",
       href: `${baseUrl}/companies`,
       icon: <Building2 />,

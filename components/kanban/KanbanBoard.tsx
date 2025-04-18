@@ -13,21 +13,18 @@ interface ApplicationPipelineProps {
 }
 
 export function ApplicationPipeline({
-  jobs = [],
+  jobs,
   onUpdateJob,
   onArchiveJob,
   onEditJob,
 }: Readonly<ApplicationPipelineProps>) {
-  // Ensure jobs is always an array
-  const jobsArray = Array.isArray(jobs) ? jobs : [];
-  
   // Group jobs by status
   const columns = {
-    interested: jobsArray.filter(job => job.status === 'interested'),
-    applied: jobsArray.filter(job => job.status === 'applied'),
-    interview: jobsArray.filter(job => job.status === 'interview'),
-    offer: jobsArray.filter(job => job.status === 'offer'),
-    referrals: jobsArray.filter(job => job.status === 'referrals'),
+    interested: jobs.filter(job => job.status === 'interested'),
+    applied: jobs.filter(job => job.status === 'applied'),
+    interview: jobs.filter(job => job.status === 'interview'),
+    offer: jobs.filter(job => job.status === 'offer'),
+    referrals: jobs.filter(job => job.status === 'referrals'),
   };
 
   // Handle drag and drop
@@ -42,7 +39,7 @@ export function ApplicationPipeline({
     }
 
     // Find the job that was dragged
-    const job = jobsArray.find(j => j.id === draggableId);
+    const job = jobs.find(j => j.id === draggableId);
     if (!job) return;
 
     // Extract the target stage and substage from the destination droppableId

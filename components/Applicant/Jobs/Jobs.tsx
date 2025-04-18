@@ -9,12 +9,13 @@ import { Label } from "@/components/ui/basic/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
 import { Search, FilterX, Bookmark, CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
-import JobsList, { UIJob } from "@/components/Applicant/Jobs/JobsList";
-import JobDetails from "@/components/Applicant/Jobs/JobDetails";
-import ApplicationsTracker, { Application } from "@/components/Applicant/Jobs/ApplicationsTracker";
-import ApplyModal, { UserProfile, Resume } from "@/components/Applicant/Jobs/ApplyModal";
-import { fetchJobs, saveJob, removeJob, submitApplication } from "@/components/Applicant/Jobs/jobService";
+import JobsList, { UIJob } from "./JobsList";
+import JobDetails from "./JobDetails";
+import ApplicationsTracker, { Application } from "./ApplicationsTracker";
+import ApplyModal, { UserProfile, Resume } from "./ApplyModal";
+import { fetchJobs, saveJob, removeJob, submitApplication } from "./jobService";
 
 interface JobFilter {
   type: keyof FilterOptions;
@@ -44,6 +45,8 @@ export default function Jobs({
   initialUserProfile = null,
   initialResumes = []
 }: JobsProps) {
+  const router = useRouter();
+  
   // State
   const [jobs, setJobs] = useState<UIJob[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<UIJob[]>([]);
@@ -68,23 +71,114 @@ export default function Jobs({
   const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(initialUserProfile);
   const [userResumes, setUserResumes] = useState<Resume[]>(initialResumes);
+  const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
   const [isLoadingResumes, setIsLoadingResumes] = useState(false);
 
-  // Apply filters to jobs
-  const applyFilters = useCallback((jobsToFilter: UIJob[], filters: FilterOptions) => {
+  // Fetch jobs and other data
+  const fetchAllData = useCallback(async () => {
+    if (!userId) return;
+    
+    setLoading(true);
+    try {
+      // Fetch jobs
+      const jobsData = await fetchJobs();
+      setJobs(jobsData);
+      setFilteredJobs(jobsData);
+      
+      if (jobsData.length > 0) {
+        setSelectedJob(jobsData[0]);
+      }
+      
+      // Extract saved and applied job IDs from applications
+      if (applications.length > 0) {
+        const savedJobIds = applications
+          .filter(app => app.status === 'submitted')
+          .map(app => app.jobId);
+        
+        const appliedJobIds = applications
+          .filter(app => app.status !== 'submitted')
+          .map(app => app.jobId);
+        
+        setSavedJobs(savedJobIds);
+        setAppliedJobs(appliedJobIds);
+      }
+      
+      // Apply initial filters
+      applyFilters(jobsData, filterOptions);
+      
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast.error("Error loading jobs. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, applications, filterOptions]);
+
+  // Initialize data
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
+
+  // Handle search
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    // Always keep the applications data consistent
+    if (value.trim() === "") {
+      fetchAllData();
+    }
+    
+    // Filter jobs based on search
+    if (!value.trim()) {
+      applyFilters(jobs, filterOptions);
+      return;
+    }
+    
+    const searchResults = jobs.filter(job => 
+      job.title.toLowerCase().includes(value.toLowerCase()) ||
+      job.company.toLowerCase().includes(value.toLowerCase()) ||
+      job.description?.toLowerCase().includes(value.toLowerCase())
+    );
+    
+    applyFilters(searchResults, filterOptions);
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (filter: JobFilter) => {
+    const updatedFilters = { ...filterOptions };
+    
+    if (filter.type === 'isRemote') {
+      updatedFilters.isRemote = filter.value as boolean;
+    } else {
+      const values = updatedFilters[filter.type] as string[];
+      const index = values.indexOf(filter.value as string);
+      
+      if (index === -1) {
+        values.push(filter.value as string);
+      } else {
+        values.splice(index, 1);
+      }
+    }
+    
+    setFilterOptions(updatedFilters);
+    applyFilters(jobs, updatedFilters);
+  };
+
+  // Apply filters
+  const applyFilters = (jobsToFilter: UIJob[], filters: FilterOptions) => {
     let results = [...jobsToFilter];
     
-    // Apply saved jobs filter
+    // Apply saved jobs filter first if enabled
     if (filters.showSavedOnly) {
       results = results.filter(job => savedJobs.includes(job.id));
     }
     
-    // Hide applied jobs if enabled
+    // Hide jobs the user has already applied for if enabled
     if (filters.hideAppliedJobs) {
       results = results.filter(job => !appliedJobs.includes(job.id));
     }
     
-    // Apply search term filter
     if (searchTerm) {
       results = results.filter(job => 
         job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -93,7 +187,6 @@ export default function Jobs({
       );
     }
     
-    // Apply other filters
     if (filters.jobType.length > 0) {
       results = results.filter(job => filters.jobType.includes(job.jobType || ""));
     }
@@ -115,119 +208,30 @@ export default function Jobs({
     }
     
     setFilteredJobs(results);
-  }, [searchTerm, savedJobs, appliedJobs]);
-
-  // Fetch jobs and initialize data
-  const fetchAllData = useCallback(async () => {
-    if (!userId) return;
-    
-    setLoading(true);
-    try {
-      // Fetch jobs
-      const jobsData = await fetchJobs();
-      setJobs(jobsData);
-      
-      // Set initial selected job
-      if (jobsData.length > 0 && !selectedJob) {
-        setSelectedJob(jobsData[0]);
-      }
-      
-      // Extract saved and applied job IDs
-      if (applications.length > 0) {
-        const savedJobIds = applications
-          .filter(app => app.status === 'submitted')
-          .map(app => app.jobId);
-        
-        const appliedJobIds = applications
-          .filter(app => app.status !== 'submitted')
-          .map(app => app.jobId);
-        
-        setSavedJobs(savedJobIds);
-        setAppliedJobs(appliedJobIds);
-      }
-      
-      // Apply filters to jobs
-      applyFilters(jobsData, filterOptions);
-      
-    } catch (error) {
-      console.error("Error loading data:", error);
-      toast.error("Error loading jobs. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, applications, filterOptions, applyFilters, selectedJob]);
-
-  // Initialize data on component mount
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
-
-  // Filter handling functions
-  const handleFilterChange = useCallback((filter: JobFilter) => {
-    setFilterOptions(prevFilters => {
-      const updatedFilters = { ...prevFilters };
-      
-      if (filter.type === 'isRemote') {
-        updatedFilters.isRemote = filter.value as boolean;
-      } else {
-        const values = updatedFilters[filter.type] as string[];
-        const index = values.indexOf(filter.value as string);
-        
-        if (index === -1) {
-          values.push(filter.value as string);
-        } else {
-          values.splice(index, 1);
-        }
-      }
-      
-      return updatedFilters;
-    });
-  }, []);
-
-  // Handle search input changes
-  const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    if (value.trim() === "") {
-      applyFilters(jobs, filterOptions);
-      return;
-    }
-    
-    const searchResults = jobs.filter(job => 
-      job.title.toLowerCase().includes(value.toLowerCase()) ||
-      job.company.toLowerCase().includes(value.toLowerCase()) ||
-      job.description?.toLowerCase().includes(value.toLowerCase())
-    );
-    
-    applyFilters(searchResults, filterOptions);
-  }, [jobs, filterOptions, applyFilters]);
-
-  // Update filters when filterOptions changes
-  useEffect(() => {
-    if (jobs.length > 0) {
-      applyFilters(jobs, filterOptions);
-    }
-  }, [filterOptions, jobs, applyFilters]);
+  };
 
   // Toggle saved jobs filter
-  const toggleSavedJobsFilter = useCallback(() => {
-    setFilterOptions(prev => ({
-      ...prev,
-      showSavedOnly: !prev.showSavedOnly
-    }));
-  }, []);
+  const toggleSavedJobsFilter = () => {
+    const updatedFilters = { 
+      ...filterOptions,
+      showSavedOnly: !filterOptions.showSavedOnly 
+    };
+    setFilterOptions(updatedFilters);
+    applyFilters(jobs, updatedFilters);
+  };
 
   // Toggle hide applied jobs filter
-  const toggleHideAppliedJobsFilter = useCallback(() => {
-    setFilterOptions(prev => ({
-      ...prev,
-      hideAppliedJobs: !prev.hideAppliedJobs
-    }));
-  }, []);
+  const toggleHideAppliedJobsFilter = () => {
+    const updatedFilters = { 
+      ...filterOptions,
+      hideAppliedJobs: !filterOptions.hideAppliedJobs 
+    };
+    setFilterOptions(updatedFilters);
+    applyFilters(jobs, updatedFilters);
+  };
 
-  // Reset all filters
-  const resetFilters = useCallback(() => {
+  // Reset filters
+  const resetFilters = () => {
     setFilterOptions({
       jobType: [],
       experienceLevel: [],
@@ -238,55 +242,103 @@ export default function Jobs({
       hideAppliedJobs: true,
     });
     setSearchTerm("");
-  }, []);
+    setFilteredJobs(jobs.filter(job => !appliedJobs.includes(job.id)));
+  };
 
-  // Job saving/unsaving function
-  const toggleSaveJob = useCallback(async (jobId: string) => {
+  // Toggle save job
+  const toggleSaveJob = async (jobId: string) => {
     if (!currentUser) {
       toast.error("Please log in to save jobs");
       return;
     }
     
     const numericJobId = parseInt(jobId);
-    const isCurrentlySaved = savedJobs.includes(jobId);
     
-    try {
+    // Update local state
+    setSavedJobs(prevSavedJobs => {
+      const isCurrentlySaved = prevSavedJobs.includes(jobId);
+      
       if (isCurrentlySaved) {
         // Remove from saved jobs
-        await removeJob(currentUser.user_id, numericJobId);
-        toast.success("Job removed from saved jobs");
-        setSavedJobs(prev => prev.filter(id => id !== jobId));
+        removeJob(currentUser.user_id, numericJobId)
+          .then(() => {
+            toast.success("Job removed from saved jobs");
+            fetchAllData(); // Refresh data
+            
+            // If showing saved only, reapply filters to remove this job
+            if (filterOptions.showSavedOnly) {
+              applyFilters(jobs, filterOptions);
+            }
+          })
+          .catch(error => {
+            console.error("Error removing saved job:", error);
+            toast.error("Error removing job from saved jobs");
+          });
+        
+        return prevSavedJobs.filter(id => id !== jobId);
       } else {
         // Add to saved jobs
         const selectedJob = jobs.find(job => job.id === jobId);
         
         if (!selectedJob) {
           toast.error("Job not found");
-          return;
+          return prevSavedJobs;
         }
         
-        await saveJob(currentUser.user_id, numericJobId, selectedJob.title);
-        toast.success("Job saved to your dashboard");
-        setSavedJobs(prev => [...prev, jobId]);
+        // Add job to saved jobs
+        saveJob(currentUser.user_id, numericJobId, selectedJob.title)
+          .then(() => {
+            toast.success("Job saved to your dashboard");
+            fetchAllData(); // Refresh data
+          })
+          .catch(error => {
+            console.error("Error saving job:", error);
+            if (error.message && error.message.includes("already applied")) {
+              toast.info("This job is already in your dashboard");
+            } else {
+              toast.error("Error saving job");
+            }
+          });
+        
+        return [...prevSavedJobs, jobId];
       }
-      
-      // Refresh filters if needed
-      if (filterOptions.showSavedOnly) {
-        applyFilters(jobs, filterOptions);
-      }
-    } catch (error: any) {
-      console.error("Error managing saved job:", error);
-      
-      if (error.message && error.message.includes("already applied")) {
-        toast.info("This job is already in your dashboard");
-      } else {
-        toast.error(isCurrentlySaved ? "Error removing job" : "Error saving job");
-      }
+    });
+  };
+
+  // Check if job is saved
+  const isJobSaved = (jobId: string) => {
+    return savedJobs.includes(jobId);
+  };
+
+  // Check if job has been applied to
+  const hasApplied = (jobId: string) => {
+    return appliedJobs.includes(jobId);
+  };
+
+  // Open apply modal
+  const openApplyModal = (job: UIJob) => {
+    setSelectedJob(job);
+    setApplyModalOpen(true);
+  };
+
+  // View application
+  const handleViewApplication = () => {
+    setActiveTab("applications");
+  };
+
+  // Handle view job details from applications tab
+  const handleViewJobDetails = (jobId: string) => {
+    const job = jobs.find(job => job.id === jobId);
+    if (job) {
+      setSelectedJob(job);
+      setActiveTab("jobs");
+    } else {
+      toast.error("Job details not found");
     }
-  }, [currentUser, savedJobs, jobs, filterOptions, applyFilters]);
+  };
 
   // Submit job application
-  const handleSubmitApplication = useCallback(async (resumeId: number, coverLetter: string, idealCandidate: string) => {
+  const handleSubmitApplication = async (resumeId: number, coverLetter: string, idealCandidate: string) => {
     if (!selectedJob || !currentUser || !resumeId) {
       toast.error("Missing required information. Please try again.");
       return;
@@ -319,40 +371,36 @@ export default function Jobs({
         notes: idealCandidate
       };
       
-      // Update state
+      // Update local state
       setApplications(prev => [...prev, newUIApplication]);
       setAppliedJobs(prev => [...prev, selectedJob.id]);
+      
+      // If showing filtered jobs, update filtered list
+      if (filterOptions.hideAppliedJobs) {
+        setFilteredJobs(prev => prev.filter(job => job.id !== selectedJob.id));
+      }
+      
+      // Close modal
       setApplyModalOpen(false);
-      setSavedJobs(prev => prev.filter(id => id !== selectedJob.id));
+      
+      // Update saved jobs status if the job was saved before applying
+      if (savedJobs.includes(selectedJob.id)) {
+        setSavedJobs(prev => prev.filter(id => id !== selectedJob.id));
+      }
+      
+      // Refresh data
+      fetchAllData();
+      
+      // Switch to applications tab and select the new application
       setActiveTab("applications");
       setSelectedApplication(newUIApplication);
-      
-      // Apply filters if hiding applied jobs
-      if (filterOptions.hideAppliedJobs) {
-        applyFilters(jobs, filterOptions);
-      }
       
       toast.success("Application submitted successfully!");
     } catch (error) {
       console.error("Error submitting application:", error);
       toast.error("Error submitting application. Please try again.");
     }
-  }, [selectedJob, currentUser, jobs, filterOptions, applyFilters]);
-
-  // Utility functions
-  const isJobSaved = useCallback((jobId: string) => savedJobs.includes(jobId), [savedJobs]);
-  const hasApplied = useCallback((jobId: string) => appliedJobs.includes(jobId), [appliedJobs]);
-  
-  // Handle view job details from applications tab
-  const handleViewJobDetails = useCallback((jobId: string) => {
-    const job = jobs.find(job => job.id === jobId);
-    if (job) {
-      setSelectedJob(job);
-      setActiveTab("jobs");
-    } else {
-      toast.error("Job details not found");
-    }
-  }, [jobs]);
+  };
 
   return (
     <div className="container py-6 px-4 mx-auto">
@@ -525,11 +573,8 @@ export default function Jobs({
                   isJobSaved={isJobSaved}
                   hasApplied={hasApplied}
                   onToggleSaveJob={toggleSaveJob}
-                  onOpenApplyModal={(job) => {
-                    setSelectedJob(job);
-                    setApplyModalOpen(true);
-                  }}
-                  onViewApplication={() => setActiveTab("applications")}
+                  onOpenApplyModal={openApplyModal}
+                  onViewApplication={handleViewApplication}
                 />
               </Card>
             </div>
@@ -557,4 +602,4 @@ export default function Jobs({
       />
     </div>
   );
-}
+} 
