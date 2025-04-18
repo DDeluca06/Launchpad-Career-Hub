@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/form/input';
 import { Button } from '@/components/ui/basic/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/basic/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/navigation/tabs';
-import { BuildingIcon, PlusIcon, SearchIcon, StarIcon, Building2Icon } from 'lucide-react';
+import { BuildingIcon, PlusIcon, SearchIcon, StarIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/overlay/dialog';
 import { Label } from '@/components/ui/basic/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/form/select';
@@ -64,7 +64,7 @@ export default function CompaniesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCompany, toast]);
+  }, [selectedCompany]);
   
   // Fetch companies on load
   useEffect(() => {
