@@ -290,15 +290,30 @@ export async function GET(request: Request) {
     // Calculate program distribution
     const programMap = new Map<string, number>();
     users.forEach((user: DbUser) => {
-      const program = user.program ? user.program.replace(/_/g, ' ') : 'Other';
-      const formattedProgram = program.charAt(0) + program.slice(1).toLowerCase();
-      
+      let formattedProgram = 'Other';
+      if (user.program) {
+        if (user.program === 'ONE_ZERO_ONE') {
+          formattedProgram = '101';
+        } else {
+          formattedProgram = user.program.replace(/_/g, ' ')
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        }
+      }
       programMap.set(formattedProgram, (programMap.get(formattedProgram) || 0) + 1);
     });
 
     const programDistribution = Array.from(programMap.entries())
       .map(([program, count]) => ({ program, count }))
-      .sort((a, b) => b.count - a.count);
+      .sort((a, b) => {
+        // Custom sorting to ensure order: Foundations, 101, LiftOff, Alumni, Other
+        const order = ['Foundations', '101', 'Liftoff', 'Alumni', 'Other'];
+        const aIndex = order.indexOf(a.program);
+        const bIndex = order.indexOf(b.program);
+        return aIndex - bIndex;
+      });
 
     // Calculate applicant average
     const uniqueApplicants = new Set(applications.map(app => app.user_id)).size;
