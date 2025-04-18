@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import KanbanBoard from "@/components/kanban-board";
+import { KanbanPage } from "@/components/kanban/KanbanPage";
 import { Button } from "@/components/ui/basic/button";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/basic/card";
 import { Plus, RefreshCw, Info, Briefcase, Calendar, CheckCircle2 } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/feedback/alert";
 import { toast } from "@/components/ui/feedback/use-toast";
+import { Stage } from "@/types/application-stages";
 
 // Define types for our dashboard data
 interface Application {
@@ -22,6 +23,7 @@ interface Application {
     company: string;
     location?: string;
     type?: string;
+    description?: string;
   };
   subStage?: string | null;
   isRecommendation?: boolean;
@@ -149,17 +151,17 @@ export default function ApplicantDashboard() {
       if (app.subStage === 'referrals') {
         return {
           id: app.id,
-          status: 'referrals', // Use dedicated column for referrals
-          subStage: 'referrals',
-          job: {
-            title: app.job?.title || 'Unknown Position',
-            company: app.job?.company || 'Unknown Company',
-            id: app.job?.id
-          },
-          // Fallbacks in case job is undefined
           title: app.job?.title || 'Unknown Position',
           company: app.job?.company || 'Unknown Company',
-          updatedAt: app.updatedAt,
+          description: app.job?.description || '',
+          status: 'referrals' as const, 
+          stage: 'referrals' as Stage,
+          subStage: null,
+          date: app.updatedAt,
+          tags: [],
+          archived: false,
+          logo: '',
+          location: app.job?.location || '',
           jobId: app.job?.id,
           isRecommendation: true
         };
@@ -173,17 +175,17 @@ export default function ApplicantDashboard() {
       
       return {
         id: app.id,
-        status: status,
-        subStage: subStage,
-        job: {
-          title: app.job?.title || 'Unknown Position',
-          company: app.job?.company || 'Unknown Company',
-          id: app.job?.id
-        },
-        // Fallbacks in case job is undefined
         title: app.job?.title || 'Unknown Position',
         company: app.job?.company || 'Unknown Company',
-        updatedAt: app.updatedAt,
+        description: app.job?.description || '',
+        status: status as 'interested' | 'applied' | 'interview' | 'offer' | 'referrals',
+        stage: status as Stage,
+        subStage: subStage as null | 'phone_screening' | 'interview_stage' | 'final_interview_stage' | 'negotiation' | 'offer_extended' | 'accepted' | 'rejected',
+        date: app.updatedAt,
+        tags: [],
+        archived: false,
+        logo: '',
+        location: app.job?.location || '',
         jobId: app.job?.id
       };
     });
@@ -479,7 +481,7 @@ export default function ApplicantDashboard() {
           
           {/* Kanban board with loading state */}
           <div className="mt-4">
-            <KanbanBoard 
+            <KanbanPage 
               applications={kanbanApplications}
               isLoading={loading}
               onStatusChange={handleStatusChange}

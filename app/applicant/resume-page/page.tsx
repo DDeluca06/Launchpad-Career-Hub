@@ -22,7 +22,6 @@ interface Resume {
 export default function ResumePage() {
   const { session, loading: isAuthLoading } = useContext(AuthContext);
   const [resumes, setResumes] = useState<Resume[]>([])
-  const [userData, setUserData] = useState<User | null>(null)
   const [newResumeFile, setNewResumeFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const resumeInputRef = useRef<HTMLInputElement>(null)
@@ -297,7 +296,7 @@ export default function ResumePage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Resumes</h1>
             <p className="text-gray-500 mt-1">
-              {userData ? `${userData.first_name} ${userData.last_name} (${userData.email})` : 'Loading user profile...'}
+              {session?.user ? `${session.user.firstName} ${session.user.lastName} (${session.user.email})` : 'Loading user profile...'}
             </p>
           </div>
         </div>

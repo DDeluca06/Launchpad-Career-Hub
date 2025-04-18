@@ -60,9 +60,14 @@ type JobFormValues = z.infer<typeof jobFormSchema>;
 type KanbanPageProps = {
   applications?: JobApplication[];
   isLoading?: boolean;
+  onStatusChange?: (applicationId: string, newStatus: string, subStage?: string) => Promise<void>;
+  onViewJobDetails?: (applicationId: string, jobId?: string | number) => void;
 };
 
-export function KanbanPage({ applications, isLoading: externalLoading }: KanbanPageProps = {}) {
+export function KanbanPage({ 
+  applications, 
+  isLoading: externalLoading
+}: KanbanPageProps = {}) {
   // Get user session
   const { session } = useContext(AuthContext);
   

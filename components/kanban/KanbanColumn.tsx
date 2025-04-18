@@ -43,7 +43,6 @@ export function KanbanColumn({
   title,
   jobs,
   status,
-  onUpdateJob,
   onArchiveJob,
   onEditJob,
 }: KanbanColumnProps) {
@@ -184,9 +183,6 @@ export function KanbanColumn({
                                   key={job.id}
                                   job={job}
                                   index={index}
-                                  onUpdateJob={onUpdateJob}
-                                  onArchiveJob={onArchiveJob}
-                                  onEditJob={onEditJob}
                                 />
                               ))
                             )}
@@ -209,7 +205,6 @@ export function KanbanColumn({
                         key={job.id}
                         job={job}
                         index={index}
-                        onUpdateJob={onUpdateJob}
                         onArchiveJob={onArchiveJob}
                         onEditJob={onEditJob}
                       />

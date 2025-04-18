@@ -9,12 +9,11 @@ import { Label } from "@/components/ui/basic/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
 import { Search, FilterX, Bookmark, CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 import JobsList, { UIJob } from "./JobsList";
 import JobDetails from "./JobDetails";
 import ApplicationsTracker, { Application } from "./ApplicationsTracker";
-import ApplyModal, { UserProfile, Resume } from "./ApplyModal";
+import ApplyModal, { UserProfile } from "./ApplyModal";
 import { fetchJobs, saveJob, removeJob, submitApplication } from "./jobService";
 
 interface JobFilter {
@@ -36,24 +35,19 @@ interface JobsProps {
   userId?: number;
   initialApplications?: Application[];
   initialUserProfile?: UserProfile | null;
-  initialResumes?: Resume[];
 }
 
 export default function Jobs({ 
   userId, 
   initialApplications = [], 
-  initialUserProfile = null,
-  initialResumes = []
+  initialUserProfile = null
 }: JobsProps) {
-  const router = useRouter();
-  
   // State
   const [jobs, setJobs] = useState<UIJob[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<UIJob[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedJob, setSelectedJob] = useState<UIJob | null>(null);
   const [applications, setApplications] = useState<Application[]>(initialApplications);
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"jobs" | "applications">("jobs");
@@ -69,10 +63,52 @@ export default function Jobs({
   });
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(initialUserProfile);
-  const [userResumes, setUserResumes] = useState<Resume[]>(initialResumes);
-  const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
-  const [isLoadingResumes, setIsLoadingResumes] = useState(false);
+  const [currentUser] = useState<UserProfile | null>(initialUserProfile);
+
+  // Apply filters
+  const applyFilters = useCallback((jobsToFilter: UIJob[], filters: FilterOptions) => {
+    let results = [...jobsToFilter];
+    
+    // Apply saved jobs filter first if enabled
+    if (filters.showSavedOnly) {
+      results = results.filter(job => savedJobs.includes(job.id));
+    }
+    
+    // Hide jobs the user has already applied for if enabled
+    if (filters.hideAppliedJobs) {
+      results = results.filter(job => !appliedJobs.includes(job.id));
+    }
+    
+    if (searchTerm) {
+      results = results.filter(job => 
+        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (filters.jobType.length > 0) {
+      results = results.filter(job => filters.jobType.includes(job.jobType || ""));
+    }
+    
+    if (filters.experienceLevel.length > 0) {
+      results = results.filter(job => filters.experienceLevel.includes(job.experienceLevel));
+    }
+    
+    if (filters.location.length > 0) {
+      results = results.filter(job => filters.location.includes(job.location || ""));
+    }
+    
+    if (filters.industry.length > 0) {
+      results = results.filter(job => filters.industry.includes(job.industry));
+    }
+    
+    if (filters.isRemote !== null) {
+      results = results.filter(job => job.isRemote === filters.isRemote);
+    }
+    
+    setFilteredJobs(results);
+  }, [savedJobs, appliedJobs, searchTerm]);
 
   // Fetch jobs and other data
   const fetchAllData = useCallback(async () => {
@@ -112,7 +148,7 @@ export default function Jobs({
     } finally {
       setLoading(false);
     }
-  }, [userId, applications, filterOptions]);
+  }, [userId, applications, filterOptions, applyFilters]);
 
   // Initialize data
   useEffect(() => {
@@ -163,51 +199,6 @@ export default function Jobs({
     
     setFilterOptions(updatedFilters);
     applyFilters(jobs, updatedFilters);
-  };
-
-  // Apply filters
-  const applyFilters = (jobsToFilter: UIJob[], filters: FilterOptions) => {
-    let results = [...jobsToFilter];
-    
-    // Apply saved jobs filter first if enabled
-    if (filters.showSavedOnly) {
-      results = results.filter(job => savedJobs.includes(job.id));
-    }
-    
-    // Hide jobs the user has already applied for if enabled
-    if (filters.hideAppliedJobs) {
-      results = results.filter(job => !appliedJobs.includes(job.id));
-    }
-    
-    if (searchTerm) {
-      results = results.filter(job => 
-        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    if (filters.jobType.length > 0) {
-      results = results.filter(job => filters.jobType.includes(job.jobType || ""));
-    }
-    
-    if (filters.experienceLevel.length > 0) {
-      results = results.filter(job => filters.experienceLevel.includes(job.experienceLevel));
-    }
-    
-    if (filters.location.length > 0) {
-      results = results.filter(job => filters.location.includes(job.location || ""));
-    }
-    
-    if (filters.industry.length > 0) {
-      results = results.filter(job => filters.industry.includes(job.industry));
-    }
-    
-    if (filters.isRemote !== null) {
-      results = results.filter(job => job.isRemote === filters.isRemote);
-    }
-    
-    setFilteredJobs(results);
   };
 
   // Toggle saved jobs filter
@@ -393,7 +384,6 @@ export default function Jobs({
       
       // Switch to applications tab and select the new application
       setActiveTab("applications");
-      setSelectedApplication(newUIApplication);
       
       toast.success("Application submitted successfully!");
     } catch (error) {
@@ -596,8 +586,6 @@ export default function Jobs({
         onClose={() => setApplyModalOpen(false)}
         job={selectedJob}
         currentUser={currentUser}
-        userResumes={userResumes}
-        isLoadingResumes={isLoadingResumes}
         onSubmit={handleSubmitApplication}
       />
     </div>
