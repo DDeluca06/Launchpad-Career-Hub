@@ -372,11 +372,19 @@ export function KanbanPage({
   // Handle edit job button click
   const handleEditJob = (job: JobApplication) => {
     setSelectedJob(job);
+    
+    // Convert any legacy 'accepted' or 'rejected' subStage values to null
+    // since they're now top-level statuses
+    let subStageValue = job.subStage;
+    if (subStageValue === 'accepted' || subStageValue === 'rejected') {
+      subStageValue = null;
+    }
+    
     editForm.reset({
       title: job.title,
       description: job.description,
       status: job.status,
-      subStage: job.subStage,
+      subStage: subStageValue,
       tags: job.tags,
       archived: job.archived || false,
     });

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/basic/button";
 import { Badge } from "@/components/ui/basic/badge";
 import { UIJob } from "./JobsList";
-import Image from "next/image";
 import { BookmarkPlus, Bookmark, CheckCircle2, Info, Briefcase, FileText, RefreshCw, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/data-display/skeleton";
