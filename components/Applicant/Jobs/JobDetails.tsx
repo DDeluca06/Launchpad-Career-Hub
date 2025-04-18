@@ -35,41 +35,9 @@ export function JobDetailsSkeleton() {
         </Button>
       </div>
       
-      <div className="flex items-center gap-4 mb-6">
-        <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
-          <Skeleton className="h-16 w-16 rounded-md" />
-        </div>
-        <div>
-          <h3 className="font-medium text-lg">
-            <Skeleton className="h-4 w-3/4" />
-          </h3>
-          <span className="text-gray-500 block">
-            <Skeleton className="h-3 w-1/2" />
-          </span>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 gap-4 mb-6">
         <div className="bg-gray-50 p-3 rounded">
           <p className="text-xs text-gray-500">Job Type</p>
-          <span className="font-medium block">
-            <Skeleton className="h-4 w-3/4" />
-          </span>
-        </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Experience</p>
-          <span className="font-medium block">
-            <Skeleton className="h-4 w-3/4" />
-          </span>
-        </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Salary Range</p>
-          <span className="font-medium block">
-            <Skeleton className="h-4 w-3/4" />
-          </span>
-        </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Deadline</p>
           <span className="font-medium block">
             <Skeleton className="h-4 w-3/4" />
           </span>
@@ -83,39 +51,6 @@ export function JobDetailsSkeleton() {
           <Skeleton className="h-4 w-full mt-2" />
           <Skeleton className="h-4 w-full mt-2" />
         </div>
-      </div>
-      
-      <div className="mb-6">
-        <h3 className="font-medium mb-2">Responsibilities</h3>
-        <ul className="list-disc pl-4 space-y-1">
-          {[...Array(5)].map((_, i) => (
-            <li key={i} className="text-gray-700">
-              <Skeleton className="h-4 w-full" />
-            </li>
-          ))}
-        </ul>
-      </div>
-      
-      <div className="mb-6">
-        <h3 className="font-medium mb-2">Qualifications</h3>
-        <ul className="list-disc pl-4 space-y-1">
-          {[...Array(5)].map((_, i) => (
-            <li key={i} className="text-gray-700">
-              <Skeleton className="h-4 w-full" />
-            </li>
-          ))}
-        </ul>
-      </div>
-      
-      <div className="mb-6">
-        <h3 className="font-medium mb-2">Benefits</h3>
-        <ul className="list-disc pl-4 space-y-1">
-          {[...Array(5)].map((_, i) => (
-            <li key={i} className="text-gray-700">
-              <Skeleton className="h-4 w-full" />
-            </li>
-          ))}
-        </ul>
       </div>
     </div>
   );
@@ -242,20 +177,9 @@ export default function JobDetails({
         </div>
       )}
       
-      <div className="flex items-center gap-4 mb-6">
-        <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
-          <Image 
-            src={job.companyLogoUrl} 
-            alt={`${job.company} logo`} 
-            className="w-full h-full object-contain"
-            width={64}
-            height={64}
-          />
-        </div>
-        <div>
-          <h3 className="font-medium text-lg">{job.company}</h3>
-          <span className="text-gray-500 block">{job.location}</span>
-        </div>
+      <div className="mb-6">
+        <h3 className="font-medium text-lg">{job.company}</h3>
+        <span className="text-gray-500 block">{job.location}</span>
       </div>
       
       {/* Important notice to users */}
@@ -271,22 +195,10 @@ export default function JobDetails({
         </div>
       </div>
       
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 gap-4 mb-6">
         <div className="bg-gray-50 p-3 rounded">
           <p className="text-xs text-gray-500">Job Type</p>
           <p className="font-medium">{job.jobType}</p>
-        </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Experience</p>
-          <p className="font-medium">{job.experienceLevel}</p>
-        </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Salary Range</p>
-          <p className="font-medium">{job.salary}</p>
-        </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-xs text-gray-500">Deadline</p>
-          <p className="font-medium">{new Date(job.applicationDeadline).toLocaleDateString()}</p>
         </div>
       </div>
       
@@ -295,33 +207,6 @@ export default function JobDetails({
         <div className="text-gray-700">
           {job.description}
         </div>
-      </div>
-      
-      <div className="mb-6">
-        <h3 className="font-medium mb-2">Responsibilities</h3>
-        <ul className="list-disc pl-4 space-y-1">
-          {job.responsibilities.map((responsibility, index) => (
-            <li key={`resp-${index}`} className="text-gray-700">{responsibility}</li>
-          ))}
-        </ul>
-      </div>
-      
-      <div className="mb-6">
-        <h3 className="font-medium mb-2">Qualifications</h3>
-        <ul className="list-disc pl-4 space-y-1">
-          {job.qualifications.map((qualification, index) => (
-            <li key={`qual-${index}`} className="text-gray-700">{qualification}</li>
-          ))}
-        </ul>
-      </div>
-      
-      <div className="mb-6">
-        <h3 className="font-medium mb-2">Benefits</h3>
-        <ul className="list-disc pl-4 space-y-1">
-          {job.benefits.map((benefit, index) => (
-            <li key={`ben-${index}`} className="text-gray-700">{benefit}</li>
-          ))}
-        </ul>
       </div>
       
       <div className="mt-8">

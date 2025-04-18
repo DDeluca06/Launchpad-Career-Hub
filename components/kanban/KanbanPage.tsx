@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { JobApplication } from '@/types/application-stages';
 import { ApplicationPipeline } from './KanbanBoard';
+import { KanbanColumn } from './KanbanColumn';
 import { Button } from '@/components/ui/basic/button';
 import { Input } from '@/components/ui/form/input';
 import { 
@@ -49,8 +50,8 @@ import { AuthContext } from '@/app/providers';
 const jobFormSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  status: z.enum(['interested', 'applied', 'interview', 'offer', 'referrals']),
-  subStage: z.enum(['phone_screening', 'interview_stage', 'final_interview_stage', 'negotiation', 'offer_extended', 'accepted', 'rejected']).nullable(),
+  status: z.enum(['interested', 'applied', 'interview', 'offer', 'referrals', 'accepted', 'rejected']),
+  subStage: z.enum(['phone_screening', 'interview_stage', 'final_interview_stage', 'negotiation', 'offer_extended']).nullable(),
   tags: z.array(z.string()).optional(),
   archived: z.boolean().optional(),
 });
@@ -416,6 +417,21 @@ export function KanbanPage({
       return matchesSearch && matchesStatus;
     });
 
+  // Filter specifically for accepted and rejected jobs
+  const acceptedJobs = jobs.filter((job: JobApplication) => 
+    job.status === 'accepted' && (
+      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.description.toLowerCase().includes(searchQuery.toLowerCase())
+    ) && (statusFilter === 'all' || job.status === statusFilter)
+  );
+
+  const rejectedJobs = jobs.filter((job: JobApplication) => 
+    job.status === 'rejected' && (
+      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.description.toLowerCase().includes(searchQuery.toLowerCase())
+    ) && (statusFilter === 'all' || job.status === statusFilter)
+  );
+
   // Get the jobs to display based on active tab
   const displayedJobs = activeTab === 'active' ? activeJobs : archivedJobs;
 
@@ -459,6 +475,8 @@ export function KanbanPage({
               <SelectItem value="interview">Interview</SelectItem>
               <SelectItem value="offer">Offer</SelectItem>
               <SelectItem value="referrals">Referrals</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -480,7 +498,7 @@ export function KanbanPage({
         </TabsContent>
         
         <TabsContent value="archived" className="mt-4">
-          {displayedJobs.length === 0 ? (
+          {displayedJobs.length === 0 && acceptedJobs.length === 0 && rejectedJobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <Archive className="h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium">No Archived Jobs</h3>
@@ -489,49 +507,75 @@ export function KanbanPage({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {displayedJobs.map((job) => (
-                <div key={job.id} className="bg-white dark:bg-gray-700 shadow-sm rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-medium">{job.title}</h3>
-                      {job.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {job.description.length > 100
-                            ? `${job.description.substring(0, 100)}...`
-                            : job.description}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
-                          ${job.status === 'interested' ? 'bg-gray-100 text-gray-800' : 
-                            job.status === 'applied' ? 'bg-blue-100 text-blue-800' : 
-                            job.status === 'interview' ? 'bg-purple-100 text-purple-800' : 
-                            job.status === 'offer' ? 'bg-green-100 text-green-800' : 
-                            'bg-red-100 text-red-800'}`}
-                        >
-                          {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                        </span>
-                        {job.tags && job.tags.length > 0 && job.tags.map((tag: string, index: number) => (
-                          <span key={index} className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 px-2 py-0.5 text-xs font-medium">
-                            {tag}
+            <>
+              {/* Accepted and Rejected Kanban Columns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <KanbanColumn 
+                  title="Accepted" 
+                  jobs={acceptedJobs} 
+                  status="accepted"
+                  onUpdateJob={updateJob}
+                  onArchiveJob={handleArchiveJob}
+                  onEditJob={handleEditJob}
+                />
+                <KanbanColumn 
+                  title="Rejected" 
+                  jobs={rejectedJobs} 
+                  status="rejected"
+                  onUpdateJob={updateJob}
+                  onArchiveJob={handleArchiveJob}
+                  onEditJob={handleEditJob}
+                />
+              </div>
+              
+              {/* Other archived jobs */}
+              <h3 className="font-medium text-lg mb-4">Other Archived Jobs</h3>
+              <div className="grid grid-cols-1 gap-4">
+                {displayedJobs.map((job) => (
+                  <div key={job.id} className="bg-white dark:bg-gray-700 shadow-sm rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-medium">{job.title}</h3>
+                        {job.description && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {job.description.length > 100
+                              ? `${job.description.substring(0, 100)}...`
+                              : job.description}
+                          </p>
+                        )}
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                            ${job.status === 'interested' ? 'bg-gray-100 text-gray-800' : 
+                              job.status === 'applied' ? 'bg-blue-100 text-blue-800' : 
+                              job.status === 'interview' ? 'bg-purple-100 text-purple-800' : 
+                              job.status === 'offer' ? 'bg-green-100 text-green-800' : 
+                              job.status === 'referrals' ? 'bg-red-100 text-red-800' : 
+                              job.status === 'accepted' ? 'bg-green-100 text-green-800' : 
+                              'bg-red-100 text-red-800'}`}
+                          >
+                            {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                           </span>
-                        ))}
+                          {job.tags && job.tags.length > 0 && job.tags.map((tag: string, index: number) => (
+                            <span key={index} className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 px-2 py-0.5 text-xs font-medium">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRestoreJob(job.id)}
+                        >
+                          Restore
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRestoreJob(job.id)}
-                      >
-                        Restore
-                      </Button>
-                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
           )}
         </TabsContent>
       </Tabs>
@@ -568,6 +612,8 @@ export function KanbanPage({
                         <SelectItem value="interview">Interview</SelectItem>
                         <SelectItem value="offer">Offer</SelectItem>
                         <SelectItem value="referrals">Referrals</SelectItem>
+                        <SelectItem value="accepted">Accepted</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -609,8 +655,6 @@ export function KanbanPage({
                           <>
                             <SelectItem value="negotiation">Negotiation</SelectItem>
                             <SelectItem value="offer_extended">Offer Extended</SelectItem>
-                            <SelectItem value="accepted">Accepted</SelectItem>
-                            <SelectItem value="rejected">Rejected</SelectItem>
                           </>
                         )}
                       </SelectContent>

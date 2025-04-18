@@ -31,12 +31,12 @@ const columnSubStages: Record<Stage, SubStageConfig[]> = {
   'offer': [
     { value: 'negotiation', label: 'Negotiation' },
     { value: 'offer_extended', label: 'Offer Extended' },
-    { value: 'accepted', label: 'Accepted' },
-    { value: 'rejected', label: 'Rejected' },
   ],
   'interested': [],
   'applied': [],
   'referrals': [],
+  'accepted': [],
+  'rejected': [],
 };
 
 export function KanbanColumn({
@@ -61,6 +61,10 @@ export function KanbanColumn({
         return 'bg-green-50 dark:bg-green-900/20';
       case 'referrals':
         return 'bg-yellow-50 dark:bg-yellow-900/20';
+      case 'accepted':
+        return 'bg-green-50 dark:bg-green-900/20';
+      case 'rejected':
+        return 'bg-red-50 dark:bg-red-900/20';
       default:
         return 'bg-gray-50 dark:bg-gray-800';
     }
@@ -79,6 +83,10 @@ export function KanbanColumn({
         return 'border-t-green-500';
       case 'referrals':
         return 'border-t-yellow-500';
+      case 'accepted':
+        return 'border-t-green-500';
+      case 'rejected':
+        return 'border-t-red-500';
       default:
         return 'border-t-gray-500';
     }

@@ -13,7 +13,9 @@ export type Stage =
   | 'applied'
   | 'interview'
   | 'offer'
-  | 'referrals';
+  | 'referrals'
+  | 'accepted'
+  | 'rejected';
 
 // Task type definition for the Kanban board
 export interface JobApplication {
@@ -23,7 +25,7 @@ export interface JobApplication {
   description: string;
   stage: Stage;
   subStage: SubStage;
-  status: 'interested' | 'applied' | 'interview' | 'offer' | 'referrals';
+  status: Stage;
   date?: string;
   tags?: string[];
   archived?: boolean;
