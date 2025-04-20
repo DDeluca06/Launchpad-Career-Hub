@@ -22,7 +22,7 @@ export async function fetchJobs() {
  */
 export async function fetchJobsByArchiveStatus(archived: boolean = false) {
   try {
-    console.log(`Fetching jobs with archived=${archived} and includeApplications=true`);
+    console.error(`Fetching jobs with archived=${archived} and includeApplications=true`);
     
     // Add a timeout for the fetch operation
     const controller = new AbortController();
@@ -50,7 +50,7 @@ export async function fetchJobsByArchiveStatus(archived: boolean = false) {
       return [];
     }
     
-    console.log(`Successfully fetched ${data.jobs.length} jobs`);
+    console.error(`Successfully fetched ${data.jobs.length} jobs`);
     return data.jobs;
   } catch (error: Error | unknown) {
     // Handle timeout error specifically
