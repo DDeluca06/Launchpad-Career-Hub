@@ -17,6 +17,18 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/app/providers";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/overlay/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/overlay/popover";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -38,6 +50,8 @@ export function DashboardLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userName, setUserName] = useState("User");
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const router = useRouter();
   
   const { session, loading } = useContext(AuthContext);
@@ -161,18 +175,53 @@ export function DashboardLayout({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {/* Notification bell with animation */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative rounded-full hover:bg-gray-100 text-gray-600 dark:text-gray-300"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="sr-only">Notifications</span>
-              <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white">
-                <span className="absolute inset-0 rounded-full animate-ping bg-orange-500/75 opacity-75"></span>
-              </span>
-            </Button>
+            {/* Notification bell with popup */}
+            {!isAdmin ? (
+              <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative rounded-full hover:bg-gray-100 text-gray-600 dark:text-gray-300"
+                  >
+                    <Bell className="h-5 w-5" />
+                    <span className="sr-only">Notifications</span>
+                    {hasUnreadNotifications && (
+                      <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white">
+                        <span className="absolute inset-0 rounded-full animate-ping bg-orange-500/75 opacity-75"></span>
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0">
+                  <div className="border-b border-gray-200 px-4 py-3">
+                    <h3 className="font-medium">Notifications</h3>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <Bell className="h-12 w-12 text-gray-400" />
+                      <p className="mt-4 text-sm text-gray-500 text-center">
+                        You don't have any notifications at the moment.
+                      </p>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative rounded-full hover:bg-gray-100 text-gray-600 dark:text-gray-300"
+              >
+                <Bell className="h-5 w-5" />
+                <span className="sr-only">Notifications</span>
+                {hasUnreadNotifications && (
+                  <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white">
+                    <span className="absolute inset-0 rounded-full animate-ping bg-orange-500/75 opacity-75"></span>
+                  </span>
+                )}
+              </Button>
+            )}
 
             {/* User profile section */}
             <div className="flex items-center gap-3">
