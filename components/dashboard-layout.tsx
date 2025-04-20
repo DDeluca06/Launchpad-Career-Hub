@@ -18,13 +18,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/app/providers";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/overlay/dialog";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -77,6 +70,25 @@ export function DashboardLayout({
 
     setUserName(`${session.user.firstName || ''} ${session.user.lastName || ''}`);
   }, [session, loading, isAdmin, router]);
+
+  // Check for unread notifications - this is a placeholder for future implementation
+  useEffect(() => {
+    // This is just a placeholder to use setHasUnreadNotifications
+    // In the future, you can implement actual notification checking logic here
+    const checkForNotifications = async () => {
+      // Example: In the future, you might fetch notifications from an API
+      // const response = await fetch('/api/notifications');
+      // const data = await response.json();
+      // setHasUnreadNotifications(data.hasUnread);
+      
+      // For now, we'll just set it to false
+      setHasUnreadNotifications(false);
+    };
+    
+    if (!isAdmin && session?.user) {
+      checkForNotifications();
+    }
+  }, [isAdmin, session]);
 
   // Track scroll position to add shadow to navbar when scrolled
   useEffect(() => {
@@ -201,7 +213,7 @@ export function DashboardLayout({
                     <div className="flex flex-col items-center justify-center py-6">
                       <Bell className="h-12 w-12 text-gray-400" />
                       <p className="mt-4 text-sm text-gray-500 text-center">
-                        You don't have any notifications at the moment.
+                        You don&apos;t have any notifications at the moment.
                       </p>
                     </div>
                   </div>

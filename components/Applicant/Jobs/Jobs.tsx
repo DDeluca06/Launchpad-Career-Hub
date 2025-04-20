@@ -345,8 +345,7 @@ export default function Jobs({
         {
           firstName: currentUser.first_name,
           lastName: currentUser.last_name,
-          email: currentUser.email,
-          phone: currentUser.phone || ""
+          email: currentUser.email
         }
       );
       

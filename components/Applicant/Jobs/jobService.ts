@@ -120,7 +120,7 @@ export async function submitApplication(
   jobId: number, 
   resumeId: number, 
   position: string,
-  userData: { firstName: string, lastName: string, email: string, phone: string }
+  userData: { firstName: string, lastName: string, email: string }
 ): Promise<boolean> {
   try {
     // Create application
@@ -154,8 +154,7 @@ export async function submitApplication(
         userId: userId,
         firstName: userData.firstName,
         lastName: userData.lastName,
-        email: userData.email,
-        phone: userData.phone
+        email: userData.email
       }),
     });
     
