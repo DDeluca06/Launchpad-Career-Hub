@@ -17,7 +17,6 @@ export interface UserProfile {
   first_name: string;
   last_name: string;
   email: string;
-  phone?: string;
 }
 
 export interface Resume {
@@ -54,7 +53,6 @@ export default function ApplyModal({
     firstName: "",
     lastName: "",
     email: "",
-    phone: "",
     coverLetter: "",
     idealCandidate: ""
   });
@@ -66,7 +64,6 @@ export default function ApplyModal({
         firstName: currentUser.first_name || "",
         lastName: currentUser.last_name || "",
         email: currentUser.email || "",
-        phone: currentUser.phone || "",
         coverLetter: "",
         idealCandidate: ""
       });
@@ -211,16 +208,8 @@ export default function ApplyModal({
               placeholder="john.doe@example.com"
               value={applicationData.email}
               onChange={(e) => setApplicationData({...applicationData, email: e.target.value})}
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input 
-              id="phone" 
-              placeholder="(123) 456-7890"
-              value={applicationData.phone}
-              onChange={(e) => setApplicationData({...applicationData, phone: e.target.value})}
+              readOnly
+              className="bg-gray-50"
             />
           </div>
           

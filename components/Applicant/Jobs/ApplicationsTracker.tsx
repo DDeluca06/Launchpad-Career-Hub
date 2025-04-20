@@ -171,7 +171,6 @@ export default function ApplicationsTracker({ applications, onViewJobDetails, cu
             />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Application ID: {application.id}</p>
             <p className="text-sm text-gray-500">Applied on {formatDate(application.appliedDate)}</p>
           </div>
         </div>
