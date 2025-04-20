@@ -4,7 +4,7 @@ import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Label } from "@/components/ui/basic/label";
 import { Input } from "@/components/ui/form/input";
 import { Button } from "@/components/ui/basic/button";
-import { Search, Briefcase, MapPin, Tag } from "lucide-react";
+import { Search, Briefcase, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/basic/badge";
 import { JobFilterInterface } from "./types";
 
