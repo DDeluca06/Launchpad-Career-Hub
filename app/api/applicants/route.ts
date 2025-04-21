@@ -117,8 +117,10 @@ export async function GET(request: NextRequest) {
       // Create the response object
       const applicant = {
         id: user.user_id,
+        userId: user.user_id.toString(),
         firstName: user.first_name,
         lastName: user.last_name,
+        email: user.email,
         role: user.is_admin ? 'admin' : 'applicant',
         applications: user.applications.length,
         program: displayProgram,
@@ -318,8 +320,10 @@ export async function GET(request: NextRequest) {
         
         return {
           id: user.user_id,
+          userId: user.user_id.toString(),
           firstName: user.first_name,
           lastName: user.last_name,
+          email: user.email,
           role: user.is_admin ? 'admin' : 'applicant',
           applications: user.applications.length,
           program: displayProgram,

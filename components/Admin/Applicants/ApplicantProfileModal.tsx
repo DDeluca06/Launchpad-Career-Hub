@@ -12,6 +12,16 @@ import { Mail, FileText, Archive, RefreshCw, Download, KeyRound } from "lucide-r
 import { Button } from "@/components/ui/basic/button";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { ApplicantWithDetails, JobApplication } from "./types";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/overlay/dialog";
+import { Input } from "@/components/ui/form/input";
+import { Label } from "@/components/ui/basic/label";
 
 interface ApplicantProfileModalProps {
   open: boolean;
@@ -38,6 +48,8 @@ export function ApplicantProfileModal({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isRetrievingResume, setIsRetrievingResume] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   
   if (!applicant) return null;
   
@@ -154,7 +166,8 @@ export function ApplicantProfileModal({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: applicant.id
+          userId: applicant.id,
+          newPassword: newPassword
         }),
       });
       
@@ -166,8 +179,12 @@ export function ApplicantProfileModal({
       // Show success message
       toast({
         title: "Success",
-        description: `Password for ${applicant.firstName} ${applicant.lastName} has been reset to 'Changeme'`,
+        description: `Password for ${applicant.firstName} ${applicant.lastName} has been reset successfully`,
       });
+      
+      // Close the dialog and reset the password field
+      setShowPasswordDialog(false);
+      setNewPassword("");
       
     } catch (error) {
       console.error("Error resetting password:", error);
@@ -213,241 +230,287 @@ export function ApplicantProfileModal({
   }
 
   return (
-    <MultiPurposeModal
-      open={open}
-      onOpenChange={onOpenChange}
-      title={`${applicant.firstName} ${applicant.lastName}`}
-      size="lg"
-      showFooter={true}
-      primaryActionText="Close"
-      onPrimaryAction={() => onOpenChange(false)}
-      secondaryActionText=""
-      onSecondaryAction={() => {}}
-    >
-      <div className="py-4 space-y-6">
-        {/* Applicant Overview */}
-        <div className="flex items-start gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage
-              src={`https://api.dicebear.com/7.x/initials/svg?seed=${applicant.firstName} ${applicant.lastName}`}
-              alt={`${applicant.firstName} ${applicant.lastName}`}
-            />
-            <AvatarFallback>
-              {applicant.firstName.charAt(0)}{applicant.lastName.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-xl font-bold">{applicant.firstName} {applicant.lastName}</h2>
-              {getProgramBadge(applicant.program)}
-              {applicant.isArchived && (
-                <Badge className="bg-red-100 text-red-800">
-                  Archived
-                </Badge>
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">{applicant.userId}</div>
-            <div className="flex items-center gap-2 mt-1">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{applicant.email}</span>
-            </div>
+    <>
+      <MultiPurposeModal
+        open={open}
+        onOpenChange={onOpenChange}
+        title={`${applicant.firstName} ${applicant.lastName}`}
+        size="lg"
+        showFooter={true}
+        primaryActionText="Close"
+        onPrimaryAction={() => onOpenChange(false)}
+        secondaryActionText=""
+        onSecondaryAction={() => {}}
+      >
+        <div className="py-4 space-y-6">
+          {/* Applicant Overview */}
+          <div className="flex items-start gap-4">
+            <Avatar className="h-16 w-16">
+              <AvatarImage
+                src={`https://api.dicebear.com/7.x/initials/svg?seed=${applicant.firstName} ${applicant.lastName}`}
+                alt={`${applicant.firstName} ${applicant.lastName}`}
+              />
+              <AvatarFallback>
+                {applicant.firstName.charAt(0)}{applicant.lastName.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
             
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 mt-3">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1"
-                onClick={() => onEdit?.(applicant)}
-              >
-                <FileText className="h-4 w-4" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className={`gap-1 ${
-                  applicant.isArchived
-                    ? "bg-green-50 text-green-600 border-green-200 hover:bg-green-100 hover:text-green-700"
-                    : "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 hover:text-amber-700"
-                }`}
-                onClick={toggleArchiveStatus}
-                disabled={isUpdating}
-              >
-                {isUpdating ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : applicant.isArchived ? (
-                  <Archive className="h-4 w-4" />
-                ) : (
-                  <Archive className="h-4 w-4" />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-xl font-bold">{applicant.firstName} {applicant.lastName}</h2>
+                {getProgramBadge(applicant.program)}
+                {applicant.isArchived && (
+                  <Badge className="bg-red-100 text-red-800">
+                    Archived
+                  </Badge>
                 )}
-                {applicant.isArchived ? "Restore" : "Archive"}
-              </Button>
+              </div>
+              <div className="text-sm text-muted-foreground">{applicant.userId}</div>
+              <div className="flex items-center gap-2 mt-1">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{applicant.email}</span>
+              </div>
               
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 border-[#0faec9] text-[#0faec9] hover:bg-[#c3ebf1]"
-                onClick={handleRetrieveResume}
-                disabled={isRetrievingResume}
-              >
-                {isRetrievingResume ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                Retrieve Resume
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 border-purple-200 text-purple-600 hover:bg-purple-50"
-                onClick={resetPassword}
-                disabled={isResettingPassword}
-              >
-                {isResettingPassword ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <KeyRound className="h-4 w-4" />
-                )}
-                Reset Password
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => onEdit?.(applicant)}
+                >
+                  <FileText className="h-4 w-4" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`gap-1 ${
+                    applicant.isArchived
+                      ? "bg-green-50 text-green-600 border-green-200 hover:bg-green-100 hover:text-green-700"
+                      : "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 hover:text-amber-700"
+                  }`}
+                  onClick={toggleArchiveStatus}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : applicant.isArchived ? (
+                    <Archive className="h-4 w-4" />
+                  ) : (
+                    <Archive className="h-4 w-4" />
+                  )}
+                  {applicant.isArchived ? "Restore" : "Archive"}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1 border-[#0faec9] text-[#0faec9] hover:bg-[#c3ebf1]"
+                  onClick={handleRetrieveResume}
+                  disabled={isRetrievingResume}
+                >
+                  {isRetrievingResume ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Retrieve Resume
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1 border-purple-200 text-purple-600 hover:bg-purple-50"
+                  onClick={() => setShowPasswordDialog(true)}
+                  disabled={isResettingPassword}
+                >
+                  {isResettingPassword ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <KeyRound className="h-4 w-4" />
+                  )}
+                  Reset Password
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Application Status Summary */}
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm font-medium">Application Status Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                {applicant.applicationStatusCount.interested > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Interested:</span>
-                    <Badge className="bg-[#c3ebf1] text-[#0a8196]">
-                      {applicant.applicationStatusCount.interested}
-                    </Badge>
-                  </div>
-                )}
-                {applicant.applicationStatusCount.applied > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Applied:</span>
-                    <Badge className="bg-[#e3edd3] text-[#658639]">
-                      {applicant.applicationStatusCount.applied}
-                    </Badge>
-                  </div>
-                )}
-                {applicant.applicationStatusCount.phoneScreening > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Phone Screening:</span>
-                    <Badge className="bg-[#0faec9] text-white">
-                      {applicant.applicationStatusCount.phoneScreening}
-                    </Badge>
-                  </div>
-                )}
-                {applicant.applicationStatusCount.interviewStage > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Interview Stage:</span>
-                    <Badge className="bg-[#0faec9] text-white">
-                      {applicant.applicationStatusCount.interviewStage}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-2">
-                {applicant.applicationStatusCount.finalInterview > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Final Interview:</span>
-                    <Badge className="bg-[#0faec9] text-white">
-                      {applicant.applicationStatusCount.finalInterview}
-                    </Badge>
-                  </div>
-                )}
-                {applicant.applicationStatusCount.offerExtended > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Offer Extended:</span>
-                    <Badge className="bg-[#f27e34] text-white">
-                      {applicant.applicationStatusCount.offerExtended}
-                    </Badge>
-                  </div>
-                )}
-                {applicant.applicationStatusCount.negotiation > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Negotiation:</span>
-                    <Badge className="bg-[#f27e34] text-white">
-                      {applicant.applicationStatusCount.negotiation}
-                    </Badge>
-                  </div>
-                )}
-                {applicant.applicationStatusCount.offerAccepted > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Offer Accepted:</span>
-                    <Badge className="bg-[#8eb651] text-white">
-                      {applicant.applicationStatusCount.offerAccepted}
-                    </Badge>
-                  </div>
-                )}
-                {applicant.applicationStatusCount.rejected > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Rejected:</span>
-                    <Badge className="bg-[#67686a] text-white">
-                      {applicant.applicationStatusCount.rejected}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Applications Section */}
-        <div>
-          <h3 className="text-lg font-medium mb-3">Job Applications</h3>
-          {loadingApplications ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : jobApplications.length > 0 ? (
-            <div className="space-y-3">
-              {jobApplications.map((job) => (
-                <Card key={job.id} className="overflow-hidden">
-                  <CardContent className="p-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div>
-                        <h4 className="font-medium">{job.jobTitle}</h4>
-                        <p className="text-sm text-muted-foreground">{job.company}</p>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                        {getApplicationStatusBadge(job.status)}
-                        <span className="text-xs text-muted-foreground">
-                          Applied {new Date(job.appliedDate).toLocaleDateString()}
-                        </span>
-                      </div>
+          
+          {/* Application Status Summary */}
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm font-medium">Application Status Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  {applicant.applicationStatusCount.interested > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Interested:</span>
+                      <Badge className="bg-[#c3ebf1] text-[#0a8196]">
+                        {applicant.applicationStatusCount.interested}
+                      </Badge>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <h4 className="font-medium mb-1">No Applications</h4>
-                <p className="text-sm text-muted-foreground">
-                  This applicant hasn&apos;t applied to any jobs yet.
-                </p>
-              </CardContent>
-            </Card>
-          )}
+                  )}
+                  {applicant.applicationStatusCount.applied > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Applied:</span>
+                      <Badge className="bg-[#e3edd3] text-[#658639]">
+                        {applicant.applicationStatusCount.applied}
+                      </Badge>
+                    </div>
+                  )}
+                  {applicant.applicationStatusCount.phoneScreening > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Phone Screening:</span>
+                      <Badge className="bg-[#0faec9] text-white">
+                        {applicant.applicationStatusCount.phoneScreening}
+                      </Badge>
+                    </div>
+                  )}
+                  {applicant.applicationStatusCount.interviewStage > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Interview Stage:</span>
+                      <Badge className="bg-[#0faec9] text-white">
+                        {applicant.applicationStatusCount.interviewStage}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {applicant.applicationStatusCount.finalInterview > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Final Interview:</span>
+                      <Badge className="bg-[#0faec9] text-white">
+                        {applicant.applicationStatusCount.finalInterview}
+                      </Badge>
+                    </div>
+                  )}
+                  {applicant.applicationStatusCount.offerExtended > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Offer Extended:</span>
+                      <Badge className="bg-[#f27e34] text-white">
+                        {applicant.applicationStatusCount.offerExtended}
+                      </Badge>
+                    </div>
+                  )}
+                  {applicant.applicationStatusCount.negotiation > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Negotiation:</span>
+                      <Badge className="bg-[#f27e34] text-white">
+                        {applicant.applicationStatusCount.negotiation}
+                      </Badge>
+                    </div>
+                  )}
+                  {applicant.applicationStatusCount.offerAccepted > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Offer Accepted:</span>
+                      <Badge className="bg-[#8eb651] text-white">
+                        {applicant.applicationStatusCount.offerAccepted}
+                      </Badge>
+                    </div>
+                  )}
+                  {applicant.applicationStatusCount.rejected > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Rejected:</span>
+                      <Badge className="bg-[#67686a] text-white">
+                        {applicant.applicationStatusCount.rejected}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Applications Section */}
+          <div>
+            <h3 className="text-lg font-medium mb-3">Job Applications</h3>
+            {loadingApplications ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : jobApplications.length > 0 ? (
+              <div className="space-y-3">
+                {jobApplications.map((job) => (
+                  <Card key={job.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <h4 className="font-medium">{job.jobTitle}</h4>
+                          <p className="text-sm text-muted-foreground">{job.company}</p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                          {getApplicationStatusBadge(job.status)}
+                          <span className="text-xs text-muted-foreground">
+                            Applied {new Date(job.appliedDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <h4 className="font-medium mb-1">No Applications</h4>
+                  <p className="text-sm text-muted-foreground">
+                    This applicant hasn&apos;t applied to any jobs yet.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
-      </div>
-    </MultiPurposeModal>
+      </MultiPurposeModal>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Enter the new password for {applicant?.firstName} {applicant?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPasswordDialog(false);
+                setNewPassword("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={resetPassword}
+              disabled={!newPassword || isResettingPassword}
+            >
+              {isResettingPassword ? (
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Reset Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 } 

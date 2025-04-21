@@ -42,7 +42,7 @@ export function InterviewCard({ interview, onEdit, onStatusUpdate }: InterviewCa
     <Card className="mb-4 border-0 shadow-sm hover:shadow transition-shadow">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg">{interview.title || `${interview.candidate_name} - ${interview.position}`}</CardTitle>
+          <CardTitle className="text-lg">{interview.title}</CardTitle>
           <Badge className={cn(getStatusColor(interview.status))}>
             {interview.status || 'SCHEDULED'}
           </Badge>
@@ -51,6 +51,14 @@ export function InterviewCard({ interview, onEdit, onStatusUpdate }: InterviewCa
       </CardHeader>
       <CardContent className="pb-2">
         <div className="flex flex-col space-y-2 text-sm">
+          <div className="flex items-center">
+            <span className="font-medium">Candidate:</span>
+            <span className="ml-2">{interview.candidate_name}</span>
+          </div>
+          <div className="flex items-center">
+            <span className="font-medium">Position:</span>
+            <span className="ml-2">{interview.position}</span>
+          </div>
           <div className="flex items-center">
             <Clock className="h-4 w-4 mr-2 text-gray-500" />
             <span>
