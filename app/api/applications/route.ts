@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { ApplicationStatus } from '@/lib/prisma-enums';
 
 /**
- * GET request handler to fetch all applications
- * Can be filtered by user_id or job_id via query params
+ * GET request handler to fetch all applications or a single application
+ * Can be filtered by user_id, job_id, status, or application_id via query params
  */
 export async function GET(request: NextRequest) {
   try {
@@ -12,11 +12,11 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const jobId = searchParams.get('jobId');
     const status = searchParams.get('status');
-    const id = searchParams.get('id'); // For single application
+    const applicationId = searchParams.get('applicationId');
 
-    // If ID is provided, fetch a single application
-    if (id) {
-      const appId = parseInt(id);
+    // If applicationId is provided, fetch a single application
+    if (applicationId) {
+      const appId = parseInt(applicationId);
       
       if (isNaN(appId)) {
         return NextResponse.json(
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, application });
     }
 
-    // Define a type for the where clause to replace any
+    // Define a type for the where clause
     const whereClause: {
       user_id?: number;
       job_id?: number;
@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { user_id, job_id, status, resume_id, position } = body;
+    const { user_id, job_id, status, resume_id, position, cover_letter, ideal_candidate } = body;
     
     if (!user_id || !job_id || !status) {
       return NextResponse.json(
@@ -173,7 +173,10 @@ export async function POST(request: NextRequest) {
         job_id: job_id,
         status: status as ApplicationStatus,
         resume_id: resume_id,
-        position: position || undefined
+        position: position || undefined,
+        cover_letter: cover_letter || undefined,
+        ideal_candidate: ideal_candidate || undefined,
+        applied_at: new Date()
       }
     });
     
@@ -196,16 +199,16 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
+    const applicationId = searchParams.get('applicationId');
     
-    if (!id) {
+    if (!applicationId) {
       return NextResponse.json(
         { success: false, error: 'Application ID is required' },
         { status: 400 }
       );
     }
     
-    const appId = parseInt(id);
+    const appId = parseInt(applicationId);
     
     if (isNaN(appId)) {
       return NextResponse.json(
@@ -240,7 +243,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Don't update if status hasn't changed
-    if (existingApplication.status === newStatus && !body.resume_id && !body.position && !body.sub_stage) {
+    if (existingApplication.status === newStatus && !body.resume_id && !body.position && !body.sub_stage && body.archived === undefined) {
       return NextResponse.json({ 
         success: true, 
         message: 'No changes to apply',
@@ -256,7 +259,8 @@ export async function PUT(request: NextRequest) {
         status_updated: newStatus ? new Date() : undefined,
         resume_id: body.resume_id || undefined,
         position: body.position || undefined,
-        isArchived: body.archived || undefined
+        isArchived: body.archived !== undefined ? body.archived : undefined,
+        sub_stage: body.sub_stage || undefined
       }
     });
 
@@ -286,16 +290,16 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
+    const applicationId = searchParams.get('applicationId');
     
-    if (!id) {
+    if (!applicationId) {
       return NextResponse.json(
         { success: false, error: 'Application ID is required' },
         { status: 400 }
       );
     }
     
-    const appId = parseInt(id);
+    const appId = parseInt(applicationId);
     
     if (isNaN(appId)) {
       return NextResponse.json(

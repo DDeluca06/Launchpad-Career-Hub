@@ -183,8 +183,6 @@ export default function ApplyModal({
                 placeholder="John"
                 value={applicationData.firstName}
                 onChange={(e) => setApplicationData({...applicationData, firstName: e.target.value})}
-                readOnly
-                className="bg-gray-50"
               />
             </div>
             <div>
@@ -194,8 +192,6 @@ export default function ApplyModal({
                 placeholder="Doe"
                 value={applicationData.lastName}
                 onChange={(e) => setApplicationData({...applicationData, lastName: e.target.value})}
-                readOnly
-                className="bg-gray-50"
               />
             </div>
           </div>
@@ -204,110 +200,105 @@ export default function ApplyModal({
             <Label htmlFor="email">Email</Label>
             <Input 
               id="email" 
-              type="email" 
-              placeholder="john.doe@example.com"
+              type="email"
+              placeholder="you@example.com"
               value={applicationData.email}
               onChange={(e) => setApplicationData({...applicationData, email: e.target.value})}
-              readOnly
-              className="bg-gray-50"
             />
           </div>
           
           <div>
-            <Label htmlFor="resume" className="flex justify-between">
-              <span>Resume</span>
-              <Link 
-                href="/applicant/resume-page" 
-                className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
-                target="_blank"
-              >
-                <span>Manage Resumes</span>
-                <ExternalLink className="h-3 w-3 ml-1" />
-              </Link>
-            </Label>
+            <Label>Resume</Label>
             {isLoadingResumes ? (
-              <div className="flex items-center space-x-2 h-10">
-                <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-                <span className="text-sm text-gray-500">Loading your resumes...</span>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading resumes...
               </div>
             ) : userResumes.length > 0 ? (
               <div className="space-y-2">
-                <select
-                  id="resume"
-                  value={selectedResumeId || ""}
-                  onChange={(e) => setSelectedResumeId(e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2"
-                  required
-                >
-                  <option value="">Select a resume</option>
-                  {userResumes.map((resume) => (
-                    <option key={resume.resume_id} value={resume.resume_id}>
-                      {resume.file_name} {resume.is_default ? "(Default)" : ""}
-                    </option>
-                  ))}
-                </select>
-                <div className="flex items-center text-sm text-gray-500">
-                  <FileText className="h-4 w-4 mr-1 text-gray-400" />
-                  <span>
-                    {selectedResumeId 
-                      ? userResumes.find(r => r.resume_id === selectedResumeId)?.file_name 
-                      : "No resume selected"}
-                  </span>
-                </div>
+                {userResumes.map((resume) => (
+                  <div key={resume.resume_id} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id={`resume-${resume.resume_id}`}
+                      name="resume"
+                      value={resume.resume_id}
+                      checked={selectedResumeId === resume.resume_id}
+                      onChange={() => setSelectedResumeId(resume.resume_id)}
+                      className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <Label htmlFor={`resume-${resume.resume_id}`} className="flex items-center gap-2 cursor-pointer">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      {resume.file_name}
+                      {resume.is_default && <span className="text-xs text-blue-600">(Default)</span>}
+                    </Label>
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="border border-yellow-200 bg-yellow-50 p-3 rounded-md">
-                <p className="text-sm text-yellow-700 mb-2">
-                  No resumes found. Please upload a resume to apply for jobs.
-                </p>
-                <Link href="/applicant/resume-page">
-                  <Button size="sm" variant="outline" className="text-xs">
-                    Upload Resume
-                  </Button>
-                </Link>
+              <div className="text-sm text-gray-500">
+                No resumes found. Please{" "}
+                <Link href="/applicant/profile" className="text-blue-600 hover:underline">
+                  upload a resume
+                </Link>{" "}
+                first.
               </div>
             )}
           </div>
           
           <div>
-            <Label htmlFor="cover-letter">Cover Letter (Optional)</Label>
-            <Input 
-              id="cover-letter" 
-              type="file"
-              accept=".pdf,.doc,.docx"
+            <Label htmlFor="cover-letter">Cover Letter</Label>
+            <Textarea 
+              id="cover-letter"
+              placeholder="Write a brief cover letter explaining why you're a great fit for this role..."
+              value={applicationData.coverLetter}
+              onChange={(e) => setApplicationData({...applicationData, coverLetter: e.target.value})}
+              className="h-32"
             />
-            <p className="text-xs text-gray-500 mt-1">Upload your cover letter (PDF, DOC, or DOCX)</p>
           </div>
           
           <div>
-            <Label htmlFor="ideal-candidate">Why are you the ideal candidate for this role?</Label>
+            <Label htmlFor="ideal-candidate">Why are you an ideal candidate?</Label>
             <Textarea 
-              id="ideal-candidate" 
-              placeholder="Describe why you are the perfect fit for this position..."
+              id="ideal-candidate"
+              placeholder="Describe how your skills and experience match the job requirements..."
               value={applicationData.idealCandidate}
               onChange={(e) => setApplicationData({...applicationData, idealCandidate: e.target.value})}
+              className="h-32"
             />
           </div>
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            onClick={handleSubmit} 
-            disabled={isSubmitting || !selectedResumeId || userResumes.length === 0}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              "Submit Application"
-            )}
-          </Button>
+          {job.application_url ? (
+            <Button 
+              variant="outline" 
+              onClick={() => window.open(job.application_url, '_blank')}
+              className="w-full sm:w-auto flex items-center gap-2"
+            >
+              Apply Externally <ExternalLink className="h-4 w-4" />
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={isSubmitting || !selectedResumeId}
+                className="flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>Submit Application</>
+                )}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

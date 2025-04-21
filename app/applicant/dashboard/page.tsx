@@ -15,7 +15,7 @@ import { Stage } from "@/types/application-stages";
 interface Application {
   id: string;
   status: string;
-  appliedAt?: string;
+  appliedAt: string;
   updatedAt: string;
   job: {
     id: string;
@@ -24,19 +24,38 @@ interface Application {
     location?: string;
     type?: string;
     description?: string;
+    tags?: string[];
+    website?: string;
+    companyDetails?: {
+      name: string;
+      isPartner: boolean;
+      location?: string;
+      website?: string;
+    };
+    partnerDetails?: {
+      name: string;
+    };
   };
   subStage?: string | null;
   isRecommendation?: boolean;
 }
 
 interface DashboardData {
+  success: boolean;
+  error?: string;
   applications: Application[];
-  savedJobs: unknown[];
+  stats: {
+    totalApplications: number;
+    activeApplications: number;
+    interviews: number;
+    offers: number;
+  };
   profile: {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
+    program?: string;
   };
 }
 
@@ -102,42 +121,35 @@ export default function ApplicantDashboard() {
         setLoading(true);
         const response = await fetch('/api/applicant/dashboard');
         
-        const responseData = await response.json();
-        
         if (!response.ok) {
-          // Handle specific error types
-          if (response.status === 503) {
-            throw new Error('Database connection failed. Please try again later.');
-          } else if (response.status === 401) {
-            throw new Error('Authentication error. Please sign in again.');
-          } else {
-            throw new Error(responseData.message || responseData.error || 'Failed to load dashboard data');
-          }
+          throw new Error('Failed to fetch dashboard data');
         }
 
-        console.log('Dashboard data:', responseData); // Debug log
-        setData(responseData);
-        setError(null); // Clear any previous errors
+        const responseData: DashboardData = await response.json();
         
-        // Check if there are any recommendations
-        const hasRecs = responseData.applications.some((app: Application) => 
-          app.subStage === 'referrals'
-        );
-        setHasRecommendations(hasRecs);
+        if (responseData.success) {
+          setData(responseData);
+          setError(null);
+          
+          // Check if there are any recommendations
+          const hasRecs = responseData.applications.some(app => app.isRecommendation);
+          setHasRecommendations(hasRecs);
+        } else {
+          throw new Error(responseData.error || 'Failed to load dashboard data');
+        }
       } catch (error) {
         console.error("Error loading dashboard data:", error);
         setError({
           error: 'Data loading error',
-          message: error instanceof Error ? error.message : 'Failed to load dashboard data. Please try again later.'
+          message: error instanceof Error ? error.message : 'Failed to load dashboard data'
         });
       } finally {
-        // Add a slight delay to loading state to prevent UI flashing
         setTimeout(() => setLoading(false), 300);
       }
     };
 
     loadDashboardData();
-  }, [retryCount]); // Re-run the effect when retryCount changes
+  }, [retryCount]);
 
   // Handler for manual retry
   const handleRetry = () => {
@@ -148,22 +160,24 @@ export default function ApplicantDashboard() {
   const transformForKanban = (applications: Application[] = []) => {
     return applications.map(app => {
       // Special handling for referrals/recommendations
-      if (app.subStage === 'referrals') {
+      if (app.isRecommendation) {
         return {
           id: app.id,
           title: app.job?.title || 'Unknown Position',
           company: app.job?.company || 'Unknown Company',
           description: app.job?.description || '',
-          status: 'referrals' as const, 
+          status: 'referrals' as const,
           stage: 'referrals' as Stage,
           subStage: null,
           date: app.updatedAt,
-          tags: [],
+          tags: app.job?.tags || [],
           archived: false,
           logo: '',
           location: app.job?.location || '',
           jobId: app.job?.id,
-          isRecommendation: true
+          isRecommendation: true,
+          companyDetails: app.job?.companyDetails,
+          partnerDetails: app.job?.partnerDetails
         };
       }
       
@@ -182,11 +196,13 @@ export default function ApplicantDashboard() {
         stage: status as Stage,
         subStage: subStage as null | 'phone_screening' | 'interview_stage' | 'final_interview_stage' | 'negotiation' | 'offer_extended' | 'accepted' | 'rejected',
         date: app.updatedAt,
-        tags: [],
+        tags: app.job?.tags || [],
         archived: false,
         logo: '',
         location: app.job?.location || '',
-        jobId: app.job?.id
+        jobId: app.job?.id,
+        companyDetails: app.job?.companyDetails,
+        partnerDetails: app.job?.partnerDetails
       };
     });
   };
@@ -206,14 +222,13 @@ export default function ApplicantDashboard() {
       });
       
       // Direct API call with exactly what columns need
-      const response = await fetch(`/api/applicant/update-app-status`, {
-        method: 'POST',
+      const response = await fetch(`/api/applications?applicationId=${applicationId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          applicationId,
-          columnStatus: newStatus,
+          status: newStatus,
           subStage
         })
       });
@@ -283,7 +298,12 @@ export default function ApplicantDashboard() {
   };
 
   // Get the stats
-  const stats = calculateStats();
+  const stats = data?.stats || {
+    totalApplications: 0,
+    activeApplications: 0,
+    interviews: 0,
+    offers: 0
+  };
 
   if (loading) {
     return (
@@ -395,7 +415,7 @@ export default function ApplicantDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Total Applications</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
+                  <p className="text-2xl font-bold">{stats.totalApplications}</p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                   <Briefcase className="h-5 w-5 text-blue-700" />
@@ -406,7 +426,7 @@ export default function ApplicantDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Active Applications</p>
-                  <p className="text-2xl font-bold">{stats.active}</p>
+                  <p className="text-2xl font-bold">{stats.activeApplications}</p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
                   <RefreshCw className="h-5 w-5 text-green-700" />

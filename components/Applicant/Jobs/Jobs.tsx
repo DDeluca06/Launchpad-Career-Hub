@@ -7,8 +7,9 @@ import { Checkbox } from "@/components/ui/form/checkbox";
 import { Card } from "@/components/ui/basic/card";
 import { Label } from "@/components/ui/basic/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
-import { Search, FilterX, Bookmark, CheckCircle2, Info } from "lucide-react";
+import { Search, FilterX, Bookmark} from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/basic/badge";
 
 import JobsList, { UIJob } from "./JobsList";
 import JobDetails from "./JobDetails";
@@ -23,10 +24,8 @@ interface JobFilter {
 
 interface FilterOptions {
   jobType: string[];
-  experienceLevel: string[];
   location: string[];
   isRemote: boolean | null;
-  industry: string[];
   showSavedOnly: boolean;
   hideAppliedJobs: boolean;
 }
@@ -54,10 +53,8 @@ export default function Jobs({
   const [applyModalOpen, setApplyModalOpen] = useState<boolean>(false);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     jobType: [],
-    experienceLevel: [],
     location: [],
     isRemote: null,
-    industry: [],
     showSavedOnly: false,
     hideAppliedJobs: true,
   });
@@ -69,14 +66,12 @@ export default function Jobs({
   const applyFilters = useCallback((jobsToFilter: UIJob[], filters: FilterOptions) => {
     let results = [...jobsToFilter];
     
-    // Apply saved jobs filter first if enabled
     if (filters.showSavedOnly) {
       results = results.filter(job => savedJobs.includes(job.id));
     }
     
-    // Hide jobs the user has already applied for if enabled
     if (filters.hideAppliedJobs) {
-      results = results.filter(job => !appliedJobs.includes(job.id));
+      results = results.filter(job => !hasAppliedToJob(job.id));
     }
     
     if (searchTerm) {
@@ -91,16 +86,8 @@ export default function Jobs({
       results = results.filter(job => filters.jobType.includes(job.jobType || ""));
     }
     
-    if (filters.experienceLevel.length > 0) {
-      results = results.filter(job => filters.experienceLevel.includes(job.experienceLevel));
-    }
-    
     if (filters.location.length > 0) {
       results = results.filter(job => filters.location.includes(job.location || ""));
-    }
-    
-    if (filters.industry.length > 0) {
-      results = results.filter(job => filters.industry.includes(job.industry));
     }
     
     if (filters.isRemote !== null) {
@@ -108,7 +95,7 @@ export default function Jobs({
     }
     
     setFilteredJobs(results);
-  }, [savedJobs, appliedJobs, searchTerm]);
+  }, [savedJobs, applications, searchTerm]);
 
   // Fetch jobs and other data
   const fetchAllData = useCallback(async () => {
@@ -225,10 +212,8 @@ export default function Jobs({
   const resetFilters = () => {
     setFilterOptions({
       jobType: [],
-      experienceLevel: [],
       location: [],
       isRemote: null,
-      industry: [],
       showSavedOnly: false,
       hideAppliedJobs: true,
     });
@@ -302,9 +287,9 @@ export default function Jobs({
   };
 
   // Check if job has been applied to
-  const hasApplied = (jobId: string) => {
+  const hasApplied = useCallback((jobId: string) => {
     return appliedJobs.includes(jobId);
-  };
+  }, [appliedJobs]);
 
   // Open apply modal
   const openApplyModal = (job: UIJob) => {
@@ -330,257 +315,225 @@ export default function Jobs({
 
   // Submit job application
   const handleSubmitApplication = async (resumeId: number, coverLetter: string, idealCandidate: string) => {
-    if (!selectedJob || !currentUser || !resumeId) {
-      toast.error("Missing required information. Please try again.");
+    if (!selectedJob || !userId || !currentUser) {
+      toast.error("Please select a job and ensure you're logged in");
       return;
     }
-    
+
     try {
-      // Submit application
-      await submitApplication(
-        currentUser.user_id,
-        parseInt(selectedJob.id),
+      const response = await submitApplication(
+        Number(userId),
+        Number(selectedJob.id),
         resumeId,
         selectedJob.title,
         {
           firstName: currentUser.first_name,
           lastName: currentUser.last_name,
           email: currentUser.email
-        }
+        },
+        coverLetter,
+        idealCandidate
       );
-      
-      // Create a UI representation of the application
-      const newUIApplication: Application = {
-        id: Date.now().toString(), // Temporary ID until we refresh data
-        jobId: selectedJob.id,
-        jobTitle: selectedJob.title,
-        company: selectedJob.company,
-        companyLogoUrl: selectedJob.companyLogoUrl || "https://placehold.co/150",
-        appliedDate: new Date().toISOString(),
-        status: "submitted",
-        notes: idealCandidate
-      };
-      
-      // Update local state
-      setApplications(prev => [...prev, newUIApplication]);
-      setAppliedJobs(prev => [...prev, selectedJob.id]);
-      
-      // If showing filtered jobs, update filtered list
-      if (filterOptions.hideAppliedJobs) {
-        setFilteredJobs(prev => prev.filter(job => job.id !== selectedJob.id));
+
+      if (response) {
+        // Map database status to UI status
+        const mapDBStatusToUIStatus = (dbStatus: string) => {
+          switch (dbStatus) {
+            case 'INTERESTED':
+            case 'APPLIED':
+              return 'submitted';
+            case 'PHONE_SCREENING':
+            case 'INTERVIEW_STAGE':
+            case 'FINAL_INTERVIEW_STAGE':
+              return 'interviewing';
+            case 'OFFER_EXTENDED':
+            case 'NEGOTIATION':
+              return 'offered';
+            case 'OFFER_ACCEPTED':
+              return 'accepted';
+            case 'REJECTED':
+              return 'rejected';
+            default:
+              return 'submitted';
+          }
+        };
+
+        // Update local state with new application
+        const newApplication: Application = {
+          id: response.application.application_id.toString(),
+          jobId: selectedJob.id.toString(),
+          jobTitle: selectedJob.title,
+          company: selectedJob.company,
+          companyLogoUrl: selectedJob.website || "/placeholder-logo.png",
+          appliedDate: new Date().toISOString(),
+          status: mapDBStatusToUIStatus(response.application.status),
+          notes: idealCandidate,
+          nextSteps: "",
+          interviewDate: undefined,
+        };
+        
+        // Update applications state
+        setApplications(prev => [...prev, newApplication]);
+        
+        // Update applied jobs state
+        setAppliedJobs(prev => [...prev, selectedJob.id]);
+        
+        // Show success message
+        toast.success("Application submitted successfully!");
+        
+        // Close modal and switch to applications tab
+        setApplyModalOpen(false);
+        setActiveTab("applications");
+        
+        // Refresh the applications list
+        try {
+          const appsResponse = await fetch(`/api/applicants?id=${userId}&applications=true`);
+          const appsData = await appsResponse.json();
+          
+          if (appsData.applications) {
+            setApplications(appsData.applications.map((app: any) => ({
+              id: app.id.toString(),
+              jobId: app.jobId.toString(),
+              jobTitle: app.jobTitle,
+              company: app.company,
+              companyLogoUrl: selectedJob.website || "/placeholder-logo.png",
+              appliedDate: app.appliedDate,
+              status: mapDBStatusToUIStatus(app.status),
+              notes: app.notes || "",
+              nextSteps: app.nextSteps || "",
+              interviewDate: app.interviewDate,
+            })));
+          }
+        } catch (error) {
+          console.error("Error refreshing applications:", error);
+        }
       }
-      
-      // Close modal
-      setApplyModalOpen(false);
-      
-      // Update saved jobs status if the job was saved before applying
-      if (savedJobs.includes(selectedJob.id)) {
-        setSavedJobs(prev => prev.filter(id => id !== selectedJob.id));
-      }
-      
-      // Refresh data
-      fetchAllData();
-      
-      // Switch to applications tab and select the new application
-      setActiveTab("applications");
-      
-      toast.success("Application submitted successfully!");
     } catch (error) {
       console.error("Error submitting application:", error);
-      toast.error("Error submitting application. Please try again.");
+      toast.error("Failed to submit application. Please try again.");
     }
   };
 
+  // Add a function to check if a job has been applied to
+  const hasAppliedToJob = (jobId: string) => {
+    return applications.some(app => app.jobId === jobId);
+  };
+
   return (
-    <div className="container py-6 px-4 mx-auto">
-      {/* Tab Navigation */}
-      <Tabs defaultValue="jobs" className="mb-6" onValueChange={(value) => setActiveTab(value as "jobs" | "applications")}>
-        <div className="flex justify-between items-center">
-          <TabsList>
-            <TabsTrigger value="jobs" className="px-6">Available Jobs</TabsTrigger>
-            <TabsTrigger value="applications" className="px-6">My Applications</TabsTrigger>
-          </TabsList>
-          
-          {activeTab === "jobs" && (
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                className="gap-1"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <FilterX className="h-4 w-4" />
-                {showFilters ? "Hide Filters" : "Show Filters"}
-              </Button>
-              
-              <Button
-                variant={filterOptions.showSavedOnly ? "default" : "outline"}
-                className="gap-1"
-                onClick={toggleSavedJobsFilter}
-              >
-                <Bookmark className="h-4 w-4" />
-                {filterOptions.showSavedOnly ? "All Jobs" : "Saved Jobs Only"}
-              </Button>
-              
-              <Button
-                variant={filterOptions.hideAppliedJobs ? "default" : "outline"}
-                className="gap-1"
-                onClick={toggleHideAppliedJobsFilter}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                {filterOptions.hideAppliedJobs ? "Show All" : "Hide Applied Jobs"}
-              </Button>
-            </div>
-          )}
-        </div>
-        
-        <TabsContent value="jobs" className="mt-6">
-          {/* Helper info about applied jobs filter */}
-          {filterOptions.hideAppliedJobs && appliedJobs.length > 0 && (
-            <div className="bg-blue-50 p-3 rounded mb-4 text-sm text-blue-700 flex items-center gap-2">
-              <Info className="h-4 w-4 text-blue-500 flex-shrink-0" />
-              <p>
-                <strong>{appliedJobs.length}</strong> jobs you&apos;ve applied for are currently hidden. 
-                <Button 
-                  variant="link" 
-                  onClick={toggleHideAppliedJobsFilter} 
-                  className="p-0 h-auto text-blue-700 font-medium"
-                >
-                  Show them
-                </Button>
-              </p>
-            </div>
-          )}
-          
-          {/* Search and Filters for Jobs Tab */}
-          <div className="flex flex-wrap gap-3 mb-6">
-            <div className="relative flex-1 min-w-[260px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-              <Input
-                placeholder="Search job titles, companies, or keywords..."
-                className="pl-9"
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-            </div>
-            
-            {(filterOptions.jobType.length > 0 || 
-              filterOptions.experienceLevel.length > 0 || 
-              filterOptions.location.length > 0 || 
-              filterOptions.industry.length > 0 || 
-              filterOptions.isRemote !== null ||
-              filterOptions.showSavedOnly ||
-              !filterOptions.hideAppliedJobs) && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={resetFilters}
-                className="text-xs flex items-center gap-1"
-              >
-                <FilterX className="h-3 w-3" />
-                Reset
-              </Button>
+    <div className="space-y-6">
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "jobs" | "applications")}>
+        <TabsList>
+          <TabsTrigger value="jobs">Available Jobs</TabsTrigger>
+          <TabsTrigger value="applications">
+            My Applications
+            {applications.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {applications.length}
+              </Badge>
             )}
-          </div>
-          
-          {/* Filters */}
-          {showFilters && (
-            <Card className="p-4 mb-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <h3 className="font-medium mb-2">Job Type</h3>
-                  <div className="space-y-2">
-                    {["Full-time", "Part-time", "Contract", "Internship"].map(type => (
-                      <div key={type} className="flex items-center">
-                        <Checkbox 
-                          id={`job-type-${type}`}
-                          checked={filterOptions.jobType.includes(type)}
-                          onCheckedChange={() => handleFilterChange({ type: 'jobType', value: type })}
-                        />
-                        <Label htmlFor={`job-type-${type}`} className="ml-2">{type}</Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+          </TabsTrigger>
+        </TabsList>
 
-                <div>
-                  <h3 className="font-medium mb-2">Experience Level</h3>
-                  <div className="space-y-2">
-                    {["Entry-level", "Mid-level", "Senior", "Executive"].map(level => (
-                      <div key={level} className="flex items-center">
-                        <Checkbox 
-                          id={`exp-level-${level}`}
-                          checked={filterOptions.experienceLevel.includes(level)}
-                          onCheckedChange={() => handleFilterChange({ type: 'experienceLevel', value: level })}
-                        />
-                        <Label htmlFor={`exp-level-${level}`} className="ml-2">{level}</Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-medium mb-2">Remote Work</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <Checkbox 
-                        id="remote-yes"
-                        checked={filterOptions.isRemote === true}
-                        onCheckedChange={() => handleFilterChange({ type: 'isRemote', value: true })}
-                      />
-                      <Label htmlFor="remote-yes" className="ml-2">Remote</Label>
-                    </div>
-                    <div className="flex items-center">
-                      <Checkbox 
-                        id="remote-no"
-                        checked={filterOptions.isRemote === false}
-                        onCheckedChange={() => handleFilterChange({ type: 'isRemote', value: false })}
-                      />
-                      <Label htmlFor="remote-no" className="ml-2">On-site</Label>
-                    </div>
-                  </div>
-                </div>
+        <TabsContent value="jobs">
+          <div className="space-y-4">
+            {/* Search and filters */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search jobs..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  className="pl-10"
+                />
               </div>
-            </Card>
-          )}
-          
-          {/* Jobs Listing and Details */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Job Listings */}
-            <JobsList 
-              jobs={filteredJobs}
-              loading={loading}
-              selectedJobId={selectedJob?.id || null}
-              appliedJobs={appliedJobs}
-              onSelectJob={setSelectedJob}
-            />
-            
-            {/* Job Details */}
-            <div className="lg:col-span-2">
-              <Card className="max-h-[calc(100vh-320px)] overflow-auto">
-                <JobDetails 
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="gap-2"
+                >
+                  <FilterX className="h-4 w-4" />
+                  Filters
+                </Button>
+                <Button
+                  variant={filterOptions.showSavedOnly ? "default" : "outline"}
+                  onClick={toggleSavedJobsFilter}
+                  className="gap-2"
+                >
+                  <Bookmark className="h-4 w-4" />
+                  Saved
+                </Button>
+              </div>
+            </div>
+
+            {/* Filter options */}
+            {showFilters && (
+              <Card className="p-4">
+                <div className="space-y-4">
+                  <div>
+                    <Label>Job Type</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {["Full-time", "Part-time", "Contract", "Internship"].map((type) => (
+                        <Button
+                          key={type}
+                          variant={filterOptions.jobType.includes(type) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleFilterChange({ type: "jobType", value: type })}
+                        >
+                          {type}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="hide-applied"
+                      checked={filterOptions.hideAppliedJobs}
+                      onCheckedChange={toggleHideAppliedJobsFilter}
+                    />
+                    <Label htmlFor="hide-applied">Hide jobs I've already applied to</Label>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Job listings */}
+            <div className="grid lg:grid-cols-3 gap-6">
+              <JobsList
+                jobs={filteredJobs}
+                loading={loading}
+                selectedJobId={selectedJob?.id || null}
+                appliedJobs={applications.map(app => app.jobId)}
+                onSelectJob={setSelectedJob}
+              />
+              
+              <div className="lg:col-span-2">
+                <JobDetails
                   job={selectedJob}
                   isJobSaved={isJobSaved}
-                  hasApplied={hasApplied}
+                  hasApplied={hasAppliedToJob}
                   onToggleSaveJob={toggleSaveJob}
                   onOpenApplyModal={openApplyModal}
                   onViewApplication={handleViewApplication}
                 />
-              </Card>
+              </div>
             </div>
           </div>
         </TabsContent>
-        
-        <TabsContent value="applications" className="mt-6">
-          <ApplicationsTracker 
+
+        <TabsContent value="applications">
+          <ApplicationsTracker
             applications={applications}
             onViewJobDetails={handleViewJobDetails}
-            currentUserId={userId}
           />
         </TabsContent>
       </Tabs>
-      
+
       {/* Apply Modal */}
-      <ApplyModal 
+      <ApplyModal
         open={applyModalOpen}
         onClose={() => setApplyModalOpen(false)}
         job={selectedJob}

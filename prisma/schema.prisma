@@ -27,6 +27,8 @@ model applications {
   position           String?
   sub_stage          String?              @db.VarChar(50)
   notes              String?              @db.Text
+  cover_letter       String?              @db.Text
+  ideal_candidate    String?              @db.Text
   app_status_history app_status_history[]
   jobs               jobs                 @relation(fields: [job_id], references: [job_id], onDelete: Cascade, onUpdate: NoAction)
   resumes            resumes?             @relation(fields: [resume_id], references: [resume_id], onUpdate: NoAction)
