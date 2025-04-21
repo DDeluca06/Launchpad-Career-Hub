@@ -113,7 +113,14 @@ export default function Jobs({
   });
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
-  const [currentUser] = useState<UserProfile | null>(initialUserProfile);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(initialUserProfile);
+
+  // Update current user if it's changed from initialUserProfile
+  useEffect(() => {
+    if (initialUserProfile) {
+      setCurrentUser(initialUserProfile);
+    }
+  }, [initialUserProfile]);
 
   // Check if job has been applied to
   const hasAppliedToJob = useCallback((jobId: string) => {
@@ -122,27 +129,18 @@ export default function Jobs({
 
   // Apply filters
   const applyFilters = useCallback((jobsToFilter: UIJob[], filters: FilterOptions) => {
-    console.log('=== APPLYING FILTERS ===');
-    console.log('Initial Jobs:', jobsToFilter);
-    console.log('Filter Options:', filters);
-    console.log('Applied Jobs:', appliedJobs);
-    
     let results = [...jobsToFilter];
     
     // First apply the hide applied jobs filter
     if (filters.hideAppliedJobs) {
       results = results.filter(job => {
         const shouldShow = !appliedJobs.includes(job.id);
-        console.log(`Job ${job.id} - Show: ${shouldShow} (Applied: ${appliedJobs.includes(job.id)})`);
         return shouldShow;
       });
     }
     
-    console.log('After Applied Filter:', results);
-    
     if (filters.showSavedOnly) {
       results = results.filter(job => savedJobs.includes(job.id));
-      console.log('After Saved Filter:', results);
     }
     
     if (searchTerm) {
@@ -151,25 +149,20 @@ export default function Jobs({
         job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         job.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      console.log('After Search Filter:', results);
     }
     
     if (filters.jobType.length > 0) {
       results = results.filter(job => filters.jobType.includes(job.jobType || ""));
-      console.log('After Job Type Filter:', results);
     }
     
     if (filters.location.length > 0) {
       results = results.filter(job => filters.location.includes(job.location || ""));
-      console.log('After Location Filter:', results);
     }
     
     if (filters.isRemote !== null) {
       results = results.filter(job => job.isRemote === filters.isRemote);
-      console.log('After Remote Filter:', results);
     }
     
-    console.log('Final Filtered Results:', results);
     setFilteredJobs(results);
   }, [savedJobs, appliedJobs, searchTerm]);
 
@@ -181,13 +174,27 @@ export default function Jobs({
     try {
       console.log('=== FETCHING DATA ===');
       // Fetch both jobs and applications in parallel
-      const [jobsResponse, applicationsResponse] = await Promise.all([
+      const [jobsResponse, applicationsResponse, userResponse] = await Promise.all([
         fetchJobs(),
-        fetch(`/api/applications?userId=${userId}`).then(res => res.json())
+        fetch(`/api/applications?userId=${userId}`).then(res => res.json()),
+        fetch(`/api/profile?userId=${userId}`).then(res => res.json()).catch(err => {
+          console.error('Failed to fetch user data:', err);
+          return { success: false };
+        })
       ]);
       
-      console.log('Jobs Response:', jobsResponse);
-      console.log('Applications Response:', applicationsResponse);
+      console.log('User profile data:', userResponse);
+      
+      // Update current user if it was fetched successfully
+      if (userResponse.success && userResponse.profile) {
+        const userData: UserProfile = {
+          user_id: userResponse.profile.user_id,
+          first_name: userResponse.profile.first_name,
+          last_name: userResponse.profile.last_name,
+          email: userResponse.profile.email
+        };
+        setCurrentUser(userData);
+      }
       
       setJobs(jobsResponse);
       
@@ -209,7 +216,6 @@ export default function Jobs({
           interviewDate: app.status_updated || new Date().toISOString()
         }));
         
-        console.log('Transformed Applications:', transformedApplications);
         setApplications(transformedApplications);
         
         // Extract saved and applied job IDs
@@ -230,12 +236,9 @@ export default function Jobs({
         // Filter out jobs that have been applied to by default
         const filteredJobsList = jobsResponse.filter(job => {
           const jobId = job.id.toString();
-          const hasApplied = appliedJobIds.includes(jobId);
-          console.log(`Job ${jobId} - Has Applied: ${hasApplied}`);
-          return !hasApplied;
+          return !appliedJobIds.includes(jobId);
         });
         
-        console.log('Filtered Jobs List:', filteredJobsList);
         setFilteredJobs(filteredJobsList);
       }
     } catch (error) {
@@ -423,9 +426,9 @@ export default function Jobs({
   };
 
   // Submit job application
-  const handleSubmitApplication = async (resumeId: number, coverLetter: string, idealCandidate: string) => {
-    if (!selectedJob || !userId || !currentUser) {
-      console.error("Missing required data:", { selectedJob, userId, currentUser });
+  const handleSubmitApplication = async (resumeId: number, coverLetter: string, idealCandidate: string, userData: UserProfile) => {
+    if (!selectedJob || !userId) {
+      console.error("Missing required data:", { selectedJob, userId });
       toast.error("Please select a job and ensure you're logged in");
       return;
     }
@@ -434,17 +437,22 @@ export default function Jobs({
     console.log('Selected Job:', selectedJob);
     console.log('Resume ID:', resumeId);
     console.log('User ID:', userId);
-
+    console.log('Cover Letter:', coverLetter.substring(0, 50) + '...');
+    console.log('Ideal Candidate:', idealCandidate.substring(0, 50) + '...');
+    console.log('User Data:', userData);
+    
     try {
+      toast.info("Submitting application...");
+      
       const response = await submitApplication(
         Number(userId),
         Number(selectedJob.id),
         resumeId,
         selectedJob.title,
         {
-          firstName: currentUser.first_name,
-          lastName: currentUser.last_name,
-          email: currentUser.email
+          firstName: userData.first_name,
+          lastName: userData.last_name,
+          email: userData.email
         },
         coverLetter,
         idealCandidate
@@ -493,9 +501,22 @@ export default function Jobs({
         // Refresh the applications list and reapply filters
         await fetchAndInitializeData();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting application:", error);
-      toast.error("Failed to submit application. Please try again.");
+      
+      // Handle specific error types
+      if (error.message && error.message.toLowerCase().includes("already applied")) {
+        toast.info("You have already applied for this job", {
+          description: "View your application in the Applications tab."
+        });
+        
+        // Close the modal and switch to applications tab
+        setApplyModalOpen(false);
+        setActiveTab("applications");
+      } else {
+        // Generic error for other problems
+        toast.error("Failed to submit application. Please try again.");
+      }
     }
   };
 

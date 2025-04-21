@@ -14,14 +14,6 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const applicationId = searchParams.get('applicationId');
 
-    console.log('API Request:', {
-      userId,
-      jobId,
-      status,
-      applicationId,
-      url: request.url
-    });
-
     // If applicationId is provided, fetch a single application
     if (applicationId) {
       const appId = parseInt(applicationId);
@@ -100,15 +92,6 @@ export async function GET(request: NextRequest) {
       whereClause.status = status.toUpperCase() as ApplicationStatus;
     }
 
-    console.log('Database query:', {
-      whereClause,
-      include: {
-        users: true,
-        jobs: true,
-        resumes: true
-      }
-    });
-
     const applications = await prisma.applications.findMany({
       where: whereClause,
       include: {
@@ -144,48 +127,16 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    console.log('=== DATABASE QUERY RESULTS ===', {
-      total: applications.length,
-      applications: applications.map(app => ({
-        id: app.application_id,
-        status: app.status,
-        isArchived: app.isArchived,
-        applied_at: app.applied_at
-      }))
-    });
-
     // Transform the response to include isArchived
     const transformedApplications = applications.map(app => {
       // Ensure isArchived is a boolean
       const isArchived = app.isArchived === true;
       
-      const transformed = {
+      return {
         ...app,
         isArchived: isArchived,
         archived: isArchived
       };
-      
-      console.log('=== TRANSFORMED APPLICATION ===', {
-        id: transformed.application_id,
-        status: transformed.status,
-        isArchived: transformed.isArchived,
-        archived: transformed.archived,
-        applied_at: transformed.applied_at
-      });
-      
-      return transformed;
-    });
-
-    console.log('=== API RESPONSE ===', {
-      success: true,
-      applicationCount: transformedApplications.length,
-      applications: transformedApplications.map(app => ({
-        id: app.application_id,
-        status: app.status,
-        isArchived: app.isArchived,
-        archived: app.archived,
-        applied_at: app.applied_at
-      }))
     });
 
     return NextResponse.json({ success: true, applications: transformedApplications });
@@ -206,7 +157,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { user_id, job_id, status, resume_id, position, cover_letter, ideal_candidate } = body;
     
+    console.log('=== APPLICATION API REQUEST ===', {
+      user_id,
+      job_id,
+      status,
+      resume_id,
+      position,
+      cover_letter_length: cover_letter?.length || 0,
+      ideal_candidate_length: ideal_candidate?.length || 0
+    });
+    
     if (!user_id || !job_id || !status) {
+      console.error('Missing required fields:', { user_id, job_id, status });
       return NextResponse.json(
         { success: false, error: 'Missing required fields: user_id, job_id, status' },
         { status: 400 }
@@ -222,6 +184,11 @@ export async function POST(request: NextRequest) {
     });
     
     if (existingApplication) {
+      console.log('User has already applied for this job', { 
+        user_id, 
+        job_id, 
+        existing_app_id: existingApplication.application_id 
+      });
       return NextResponse.json(
         { success: false, error: 'User has already applied for this job' },
         { status: 400 }
@@ -229,27 +196,42 @@ export async function POST(request: NextRequest) {
     }
     
     // Create new application
-    const application = await prisma.applications.create({
-      data: {
-        user_id: user_id,
-        job_id: job_id,
-        status: status as ApplicationStatus,
-        resume_id: resume_id,
-        position: position || undefined,
-        cover_letter: cover_letter || undefined,
-        ideal_candidate: ideal_candidate || undefined,
-        applied_at: new Date()
-      }
-    });
-    
-    return NextResponse.json({
-      success: true,
-      application
-    });
-  } catch (error) {
+    try {
+      const application = await prisma.applications.create({
+        data: {
+          user_id: user_id,
+          job_id: job_id,
+          status: status as ApplicationStatus,
+          resume_id: resume_id,
+          position: position || undefined,
+          cover_letter: cover_letter || undefined,
+          ideal_candidate: ideal_candidate || undefined,
+          applied_at: new Date()
+        }
+      });
+      
+      console.log('Application created successfully:', {
+        application_id: application.application_id,
+        user_id: application.user_id,
+        job_id: application.job_id,
+        status: application.status
+      });
+      
+      return NextResponse.json({
+        success: true,
+        application
+      });
+    } catch (prismaError: any) {
+      console.error('Prisma error creating application:', prismaError);
+      return NextResponse.json(
+        { success: false, error: 'Database error: ' + (prismaError.message || 'Unknown database error') },
+        { status: 500 }
+      );
+    }
+  } catch (error: any) {
     console.error('Error creating application:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create application' },
+      { success: false, error: 'Failed to create application: ' + (error.message || 'Unknown error') },
       { status: 500 }
     );
   }

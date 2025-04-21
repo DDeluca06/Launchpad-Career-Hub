@@ -33,7 +33,7 @@ interface ApplyModalProps {
   onClose: () => void;
   job: UIJob | null;
   currentUser: UserProfile | null;
-  onSubmit: (resumeId: number, coverLetter: string, idealCandidate: string) => void;
+  onSubmit: (resumeId: number, coverLetter: string, idealCandidate: string, userData: UserProfile) => void;
 }
 
 export default function ApplyModal({ 
@@ -60,15 +60,17 @@ export default function ApplyModal({
   // Initialize user data from currentUser
   useEffect(() => {
     if (currentUser) {
-      setApplicationData({
+      setApplicationData(prev => ({
+        ...prev,
         firstName: currentUser.first_name || "",
         lastName: currentUser.last_name || "",
         email: currentUser.email || "",
-        coverLetter: "",
-        idealCandidate: ""
-      });
+      }));
+      console.log('ApplyModal: Setting user data from currentUser:', currentUser);
+    } else {
+      console.log('ApplyModal: No currentUser data available');
     }
-  }, [currentUser]);
+  }, [currentUser, open]);
 
   // Fetch user resumes from the API
   const fetchUserResumes = useCallback(async () => {
@@ -112,32 +114,102 @@ export default function ApplyModal({
   }, [open, session?.user?.id, fetchUserResumes]);
 
   const handleSubmit = async () => {
+    console.log('=== FORM SUBMISSION ATTEMPT ===');
+    console.log('Selected Resume ID:', selectedResumeId);
+    console.log('First Name:', applicationData.firstName);
+    console.log('Last Name:', applicationData.lastName);
+    console.log('Email:', applicationData.email);
+    console.log('Cover Letter:', applicationData.coverLetter ? applicationData.coverLetter.substring(0, 50) + '...' : 'empty');
+    console.log('Ideal Candidate:', applicationData.idealCandidate ? applicationData.idealCandidate.substring(0, 50) + '...' : 'empty');
+    
     if (!selectedResumeId) {
       toast.error("Please select a resume");
+      return;
+    }
+
+    if (!applicationData.firstName.trim()) {
+      toast.error("Please enter your first name");
+      return;
+    }
+
+    if (!applicationData.lastName.trim()) {
+      toast.error("Please enter your last name");
+      return;
+    }
+
+    if (!applicationData.email.trim()) {
+      toast.error("Please enter your email");
+      return;
+    }
+
+    if (!applicationData.coverLetter.trim()) {
+      toast.error("Please provide a cover letter");
+      return;
+    }
+
+    if (!applicationData.idealCandidate.trim()) {
+      toast.error("Please explain why you're an ideal candidate");
       return;
     }
     
     try {
       setIsSubmitting(true);
+      toast.info("Submitting application, please wait...");
       
-      // Call the onSubmit function provided by parent
+      console.log('Submitting application:', {
+        resumeId: selectedResumeId,
+        firstName: applicationData.firstName,
+        lastName: applicationData.lastName,
+        email: applicationData.email,
+        coverLetter: applicationData.coverLetter.substring(0, 50) + '...',
+        idealCandidate: applicationData.idealCandidate.substring(0, 50) + '...'
+      });
+      
+      // Call the onSubmit function provided by parent with user data
       await onSubmit(
         selectedResumeId, 
         applicationData.coverLetter,
-        applicationData.idealCandidate
+        applicationData.idealCandidate,
+        {
+          first_name: applicationData.firstName,
+          last_name: applicationData.lastName,
+          email: applicationData.email,
+          user_id: 0 // This will be overridden by the API
+        }
       );
       
       // Show success state
       setIsSuccess(true);
       
+      // Reset form
+      setApplicationData(prev => ({
+        ...prev,
+        coverLetter: "",
+        idealCandidate: ""
+      }));
+      
       // Close modal after a delay to show success message
       setTimeout(() => {
         onClose();
+        setIsSuccess(false);
       }, 2000);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting application:", error);
-      toast.error("Failed to submit application. Please try again.");
+      
+      // Check if the error is about already applying
+      if (error.message && error.message.toLowerCase().includes("already applied")) {
+        toast.info("You have already applied to this job", {
+          description: "View your application in the Applications tab."
+        });
+        
+        // Wait a moment, then close the modal since they've already applied
+        setTimeout(() => onClose(), 3000);
+      } else {
+        // Generic error message for other errors
+        toast.error("Failed to submit application. Please try again.");
+      }
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -177,33 +249,36 @@ export default function ApplyModal({
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="first-name">First Name</Label>
+              <Label htmlFor="first-name">First Name <span className="text-red-500">*</span></Label>
               <Input 
                 id="first-name" 
                 placeholder="John"
                 value={applicationData.firstName}
                 onChange={(e) => setApplicationData({...applicationData, firstName: e.target.value})}
+                disabled={false}
               />
             </div>
             <div>
-              <Label htmlFor="last-name">Last Name</Label>
+              <Label htmlFor="last-name">Last Name <span className="text-red-500">*</span></Label>
               <Input 
                 id="last-name" 
                 placeholder="Doe"
                 value={applicationData.lastName}
                 onChange={(e) => setApplicationData({...applicationData, lastName: e.target.value})}
+                disabled={false}
               />
             </div>
           </div>
           
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
             <Input 
               id="email" 
               type="email"
               placeholder="you@example.com"
               value={applicationData.email}
               onChange={(e) => setApplicationData({...applicationData, email: e.target.value})}
+              disabled={false}
             />
           </div>
           
@@ -247,7 +322,7 @@ export default function ApplyModal({
           </div>
           
           <div>
-            <Label htmlFor="cover-letter">Cover Letter</Label>
+            <Label htmlFor="cover-letter">Cover Letter <span className="text-red-500">*</span></Label>
             <Textarea 
               id="cover-letter"
               placeholder="Write a brief cover letter explaining why you're a great fit for this role..."
@@ -255,10 +330,11 @@ export default function ApplyModal({
               onChange={(e) => setApplicationData({...applicationData, coverLetter: e.target.value})}
               className="h-32"
             />
+            <p className="text-xs text-gray-500 mt-1">Explain your interest in this position and how your experience makes you a good fit.</p>
           </div>
           
           <div>
-            <Label htmlFor="ideal-candidate">Why are you an ideal candidate?</Label>
+            <Label htmlFor="ideal-candidate">Why are you an ideal candidate? <span className="text-red-500">*</span></Label>
             <Textarea 
               id="ideal-candidate"
               placeholder="Describe how your skills and experience match the job requirements..."
@@ -266,6 +342,7 @@ export default function ApplyModal({
               onChange={(e) => setApplicationData({...applicationData, idealCandidate: e.target.value})}
               className="h-32"
             />
+            <p className="text-xs text-gray-500 mt-1">Highlight specific skills or experiences that match what the employer is looking for.</p>
           </div>
         </div>
         

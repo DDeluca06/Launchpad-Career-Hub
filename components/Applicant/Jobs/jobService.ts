@@ -29,8 +29,6 @@ export async function fetchJobs(filters?: Record<string, string | boolean>): Pro
       });
     }
     
-    console.log('Fetching jobs with query params:', queryParams.toString());
-    
     const response = await fetch(`/api/jobs?${queryParams.toString()}`);
     
     if (!response.ok) {
@@ -42,8 +40,6 @@ export async function fetchJobs(filters?: Record<string, string | boolean>): Pro
     if (!data.success) {
       throw new Error(data.error || 'Failed to fetch jobs');
     }
-    
-    console.log('Jobs API response:', data);
     
     // Transform API response to UIJob format
     const transformedJobs = data.jobs.map((job: JobData) => ({
@@ -67,8 +63,6 @@ export async function fetchJobs(filters?: Record<string, string | boolean>): Pro
       url: job.website || "#",
       qualifications: job.description?.split('\n').filter((line: string) => line.includes('requirement') || line.includes('qualification')) || []
     }));
-    
-    console.log('Transformed jobs:', transformedJobs);
     
     return transformedJobs;
   } catch (error) {
@@ -134,6 +128,16 @@ export async function submitApplication(
   idealCandidate: string
 ): Promise<{ application: { application_id: number, status: ApplicationStatus } }> {
   try {
+    console.log('Submitting application with data:', {
+      userId,
+      jobId,
+      resumeId,
+      position,
+      userData,
+      coverLetter: coverLetter.substring(0, 20) + '...',
+      idealCandidate: idealCandidate.substring(0, 20) + '...'
+    });
+
     // Create application
     const applicationResponse = await fetch("/api/applications", {
       method: "POST",
@@ -153,10 +157,18 @@ export async function submitApplication(
 
     if (!applicationResponse.ok) {
       const errorData = await applicationResponse.json();
+      console.error('Application submission failed:', errorData);
+      
+      // Handle specific error cases
+      if (errorData.error && errorData.error.includes("already applied")) {
+        throw new Error("You have already applied to this job");
+      }
+      
       throw new Error(errorData.error || 'Failed to create application');
     }
     
     const applicationData = await applicationResponse.json();
+    console.log('Application submission response:', applicationData);
     
     if (!applicationData.success) {
       throw new Error(applicationData.error || 'Failed to create application');
