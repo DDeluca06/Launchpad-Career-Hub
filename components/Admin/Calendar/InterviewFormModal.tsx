@@ -36,6 +36,7 @@ interface InterviewFormModalProps {
   selectedDate: Date;
   editInterview?: Interview;
   users: User[];
+  availableJobs: { id: number; title: string }[];
 }
 
 interface NewInterview {
@@ -48,7 +49,7 @@ interface NewInterview {
   position: string;
 }
 
-export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate, editInterview, users }: InterviewFormModalProps) {
+export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate, editInterview, users, availableJobs }: InterviewFormModalProps) {
   const [formData, setFormData] = useState<NewInterview>({
     title: "",
     description: "",
@@ -61,7 +62,26 @@ export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate,
   const [candidateSearch, setCandidateSearch] = useState("");
   const [positionSearch, setPositionSearch] = useState("");
 
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      location: "",
+      start_time: "",
+      end_time: "",
+      candidate_name: "",
+      position: "",
+    });
+    setCandidateSearch("");
+    setPositionSearch("");
+  };
+
   useEffect(() => {
+    if (!open) {
+      resetForm();
+      return;
+    }
+
     if (editInterview) {
       setFormData({
         title: editInterview.title,
@@ -79,7 +99,7 @@ export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate,
         end_time: new Date(selectedDate.getTime() + 60 * 60 * 1000).toISOString().slice(0, 16),
       }));
     }
-  }, [editInterview, selectedDate]);
+  }, [editInterview, selectedDate, open]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -102,20 +122,9 @@ export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate,
     `${user.first_name} ${user.last_name}`.toLowerCase().includes(candidateSearch.toLowerCase())
   );
 
-  const positions = [
-    "Software Engineer",
-    "Product Manager",
-    "Data Scientist",
-    "UX Designer",
-    "DevOps Engineer",
-    "Full Stack Developer",
-    "Frontend Developer",
-    "Backend Developer",
-  ];
-
-  const filteredPositions = positions.filter(position => 
-    position.toLowerCase().includes(positionSearch.toLowerCase())
-  );
+  const filteredPositions = availableJobs?.filter(job => 
+    job.title.toLowerCase().includes(positionSearch.toLowerCase())
+  ) || [];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,14 +252,20 @@ export function InterviewFormModal({ open, onOpenChange, onSubmit, selectedDate,
                       onValueChange={setPositionSearch}
                     />
                     <CommandList>
-                      {filteredPositions.map((position) => (
-                        <CommandItem
-                          key={position}
-                          onSelect={() => handlePositionSelect(position)}
-                        >
-                          {position}
-                        </CommandItem>
-                      ))}
+                      {filteredPositions.length > 0 ? (
+                        filteredPositions.map((job) => (
+                          <CommandItem
+                            key={job.id}
+                            onSelect={() => handlePositionSelect(job.title)}
+                          >
+                            {job.title}
+                          </CommandItem>
+                        ))
+                      ) : (
+                        <div className="p-2 text-sm text-gray-500">
+                          {availableJobs === undefined ? "Loading positions..." : "No positions found"}
+                        </div>
+                      )}
                     </CommandList>
                   </Command>
                 </PopoverContent>
