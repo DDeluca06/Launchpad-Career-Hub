@@ -85,48 +85,66 @@ export function KanbanPage({
   
   // Use provided applications if available, otherwise fetch from API
   useEffect(() => {
-    if (applications && applications.length > 0) {
-      // Transform provided applications to match UI format
-      const transformedApplications: JobApplication[] = applications.map((app) => {
-        return {
-          id: app.id?.toString() || "",
-          title: app.title || "Unknown Position",
-          company: app.company || "Unknown Company",
-          description: app.description || "",
-          status: app.status || "interested",
-          subStage: app.subStage || null,
-          stage: app.stage || "interested",
-          date: app.date || new Date().toISOString(),
-          tags: app.tags || [],
-          archived: app.archived || false,
-          logo: app.logo || "https://placehold.co/150",
-          location: app.location || "",
-          salary: app.salary || "",
-          url: app.url || "",
-          notes: app.notes || "",
-        };
-      });
-      
-      setJobs(transformedApplications);
-      setIsLoading(externalLoading || false);
-      return;
-    }
-    
     const fetchApplications = async () => {
       if (!session?.user?.id) {
+        console.log('No user session, skipping fetch');
         setIsLoading(false);
         return;
       }
       
       try {
+        console.log('=== FETCHING APPLICATIONS ===');
         setIsLoading(true);
-        const response = await fetch(`/api/applications?userId=${session.user.id}`);
+        const userId = session.user.id;
+        const timestamp = new Date().getTime();
+        const url = `/api/applications?userId=${userId}&t=${timestamp}`;
+        
+        console.log('Making fetch request:', { url, userId });
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+
+        console.log('Fetch response:', {
+          status: response.status,
+          ok: response.ok,
+          statusText: response.statusText
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
+        console.log('=== API RESPONSE ===', {
+          success: data.success,
+          applicationCount: data.applications?.length,
+          applications: data.applications?.map((app: any) => ({
+            id: app.application_id,
+            isArchived: app.isArchived,
+            status: app.status,
+            applied_at: app.applied_at
+          }))
+        });
         
         if (data.success) {
           // Transform applications to match UI format
-          const transformedApplications: JobApplication[] = data.applications.map((app: { application_id: string; position: string; jobs: { title: string; company: string; description: string; company_logo_url: string; location: string; salary: string; url: string; }; applied_at: string; status: string; sub_stage: string; tags: string; archived: boolean; notes: string; }) => {
-            return {
+          const transformedApplications: JobApplication[] = data.applications.map((app: { application_id: string; position: string; jobs: { title: string; company: string; description: string; company_logo_url: string; location: string; salary: string; url: string; }; applied_at: string; status: string; sub_stage: string; tags: string; isArchived: boolean; notes: string; }) => {
+            console.log('Processing application:', { 
+              id: app.application_id, 
+              isArchived: app.isArchived,
+              status: app.status,
+              applied_at: app.applied_at
+            });
+            
+            const isArchived = app.isArchived ?? false;
+            const transformed = {
               id: app.application_id.toString(),
               title: app.position || app.jobs?.title || "Unknown Position",
               company: app.jobs?.company || "Unknown Company",
@@ -136,13 +154,32 @@ export function KanbanPage({
               stage: mapStatusFromDB(app.status, app),
               date: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
               tags: app.tags ? JSON.parse(app.tags) : [],
-              archived: app.archived || false,
+              archived: isArchived,
+              isArchived: isArchived,
               logo: app.jobs?.company_logo_url || "https://placehold.co/150",
               location: app.jobs?.location || "",
               salary: app.jobs?.salary || "",
               url: app.jobs?.url || "",
               notes: app.notes || "",
             };
+            console.log('Transformed application:', {
+              id: transformed.id,
+              isArchived: transformed.isArchived,
+              archived: transformed.archived,
+              status: transformed.status
+            });
+            return transformed;
+          });
+          
+          console.log('=== SETTING JOBS STATE ===', {
+            total: transformedApplications.length,
+            applications: transformedApplications.map(app => ({
+              id: app.id,
+              isArchived: app.isArchived,
+              archived: app.archived,
+              status: app.status,
+              date: app.date
+            }))
           });
           
           setJobs(transformedApplications);
@@ -151,15 +188,21 @@ export function KanbanPage({
           toast.error("Failed to load applications");
         }
       } catch (error) {
-        console.error("Error loading applications:", error);
+        console.error("=== ERROR IN FETCH ===", error);
         toast.error("Failed to load applications");
       } finally {
         setIsLoading(false);
       }
     };
     
+    // Always fetch fresh data
+    console.log('=== INITIAL FETCH TRIGGER ===', {
+      userId: session?.user?.id,
+      hasApplications: Boolean(applications?.length),
+      isLoading: externalLoading
+    });
     fetchApplications();
-  }, [session?.user?.id, applications, externalLoading]);
+  }, [session?.user?.id]); // Remove applications and externalLoading from dependencies
 
   // Helper function to map database status to UI status
   const mapStatusFromDB = (dbStatus: string, app: { sub_stage?: string }): 'interested' | 'applied' | 'interview' | 'offer' | 'referrals' => {
@@ -309,9 +352,11 @@ export function KanbanPage({
   // Handle restore job
   const handleRestoreJob = async (jobId: string) => {
     try {
+      console.log('=== RESTORING JOB ===', { jobId });
+      
       // First update in local state for immediate UI feedback
       setJobs(prevJobs => prevJobs.map(job => 
-        job.id === jobId ? { ...job, archived: false } : job
+        job.id === jobId ? { ...job, archived: false, isArchived: false } : job
       ));
       
       // Then update in the database
@@ -335,13 +380,57 @@ export function KanbanPage({
         throw new Error(data.error || 'Failed to restore application');
       }
       
+      console.log('=== JOB RESTORED SUCCESSFULLY ===', { jobId });
       toast.success('Job restored successfully');
+      
+      // Refresh the data to ensure consistency
+      if (session?.user?.id) {
+        const timestamp = new Date().getTime();
+        const url = `/api/applications?userId=${session.user.id}&t=${timestamp}`;
+        const refreshResponse = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+        
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          if (refreshData.success) {
+            const transformedApplications = refreshData.applications.map((app: any) => {
+              const isArchived = app.isArchived ?? false;
+              return {
+                id: app.application_id.toString(),
+                title: app.position || app.jobs?.title || "Unknown Position",
+                company: app.jobs?.company || "Unknown Company",
+                description: app.jobs?.description || "",
+                status: mapStatusFromDB(app.status, app),
+                subStage: app.sub_stage || null,
+                stage: mapStatusFromDB(app.status, app),
+                date: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
+                tags: app.tags ? JSON.parse(app.tags) : [],
+                archived: isArchived,
+                isArchived: isArchived,
+                logo: app.jobs?.company_logo_url || "https://placehold.co/150",
+                location: app.jobs?.location || "",
+                salary: app.jobs?.salary || "",
+                url: app.jobs?.url || "",
+                notes: app.notes || "",
+              };
+            });
+            setJobs(transformedApplications);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error restoring job:', error);
       toast.error('Failed to restore job');
       // Revert the local state change
       setJobs(prevJobs => prevJobs.map(job => 
-        job.id === jobId ? { ...job, archived: true } : job
+        job.id === jobId ? { ...job, archived: true, isArchived: true } : job
       ));
     }
   };
@@ -403,7 +492,15 @@ export function KanbanPage({
   const activeJobs = jobs
     .filter((job: JobApplication) => {
       // Filter out archived jobs
-      if (job.archived) return false;
+      const isArchived = Boolean(job.archived || job.isArchived);
+      console.log('Active filter - Job archive status:', { 
+        id: job.id, 
+        archived: job.archived, 
+        isArchived: job.isArchived, 
+        finalStatus: isArchived,
+        date: job.date
+      });
+      if (isArchived) return false;
       
       // Search filter
       const matchesSearch = 
@@ -420,7 +517,15 @@ export function KanbanPage({
   const archivedJobs = jobs
     .filter((job: JobApplication) => {
       // Only include archived jobs
-      if (!job.archived) return false;
+      const isArchived = Boolean(job.archived || job.isArchived);
+      console.log('Archive filter - Checking for archived job:', { 
+        id: job.id, 
+        archived: job.archived, 
+        isArchived: job.isArchived, 
+        finalStatus: isArchived,
+        date: job.date
+      });
+      if (!isArchived) return false;
       
       // Search filter
       const matchesSearch = 
@@ -433,15 +538,27 @@ export function KanbanPage({
       return matchesSearch && matchesStatus;
     });
 
+  console.log('Filtered jobs:', {
+    total: jobs.length,
+    active: activeJobs.length,
+    archived: archivedJobs.length,
+    allJobs: jobs.map(job => ({
+      id: job.id,
+      archived: job.archived,
+      isArchived: job.isArchived,
+      date: job.date
+    }))
+  });
+
   // Filter specifically for accepted and rejected jobs
-  const acceptedJobs = jobs.filter((job: JobApplication) => 
+  const acceptedJobs = archivedJobs.filter((job: JobApplication) => 
     job.status === 'accepted' && (
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.description.toLowerCase().includes(searchQuery.toLowerCase())
     ) && (statusFilter === 'all' || job.status === statusFilter)
   );
 
-  const rejectedJobs = jobs.filter((job: JobApplication) => 
+  const rejectedJobs = archivedJobs.filter((job: JobApplication) => 
     job.status === 'rejected' && (
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.description.toLowerCase().includes(searchQuery.toLowerCase())

@@ -154,57 +154,41 @@ export default function ApplicationsTracker({ applications, onViewJobDetails, cu
           <div>
             <h2 className="text-2xl font-bold">{application.jobTitle}</h2>
             <p className="text-gray-600">{application.company}</p>
+            <p className="text-sm text-gray-500 mt-2">Applied on {formatDate(application.appliedDate)}</p>
           </div>
           <div>
             {getStatusBadge(application.status)}
           </div>
         </div>
         
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 rounded border flex items-center justify-center overflow-hidden">
-            <Image 
-              src={application.companyLogoUrl} 
-              alt={`${application.company} logo`} 
-              className="w-full h-full object-contain"
-              width={48}
-              height={48}
-            />
+        <div className="bg-gray-50 p-4 rounded">
+          <h3 className="font-medium mb-2">Application Status</h3>
+          <div className="flex items-center gap-2">
+            {getStatusIcon(application.status)}
+            <span className="font-medium">{application.status.charAt(0).toUpperCase() + application.status.slice(1)}</span>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Applied on {formatDate(application.appliedDate)}</p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 gap-4 mb-6">
-          <div className="bg-gray-50 p-4 rounded">
-            <h3 className="font-medium mb-2">Application Status</h3>
-            <div className="flex items-center gap-2">
-              {getStatusIcon(application.status)}
-              <span className="font-medium">{application.status.charAt(0).toUpperCase() + application.status.slice(1)}</span>
-            </div>
-            {application.notes && (
-              <div className="mt-2">
-                <span className="text-sm text-gray-600">{application.notes}</span>
-              </div>
-            )}
-          </div>
-          
-          {application.nextSteps && (
-            <div className="bg-gray-50 p-4 rounded">
-              <h3 className="font-medium mb-2">Next Steps</h3>
-              <span>{application.nextSteps}</span>
-              {application.interviewDate && (
-                <div className="mt-2 flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">
-                    Interview scheduled for {formatDate(application.interviewDate)}
-                  </span>
-                </div>
-              )}
+          {application.notes && (
+            <div className="mt-2">
+              <span className="text-sm text-gray-600">{application.notes}</span>
             </div>
           )}
         </div>
         
+        {application.nextSteps && (
+          <div className="bg-gray-50 p-4 rounded mt-4">
+            <h3 className="font-medium mb-2">Next Steps</h3>
+            <span>{application.nextSteps}</span>
+            {application.interviewDate && (
+              <div className="mt-2 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-600">
+                  Interview scheduled for {formatDate(application.interviewDate)}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="mt-8 flex gap-3">
           <Button 
             variant="outline"
@@ -272,41 +256,26 @@ export default function ApplicationsTracker({ applications, onViewJobDetails, cu
                 onClick={() => setSelectedApplication(application)}
               >
                 <CardContent className="p-3">
-                  <div className="flex gap-3">
-                    <div className="w-12 h-12 rounded border flex items-center justify-center overflow-hidden">
-                      <Image 
-                        src={application.companyLogoUrl} 
-                        alt={`${application.company} logo`} 
-                        className="w-full h-full object-contain"
-                        width={48}
-                        height={48}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 line-clamp-1">{application.jobTitle}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-1">{application.company}</p>
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-xs text-gray-400">{formatDate(application.appliedDate)}</span>
-                        {getStatusBadge(application.status)}
-                      </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900 line-clamp-1">{application.jobTitle}</h3>
+                    <p className="text-sm text-gray-500 line-clamp-1">{application.company}</p>
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-xs text-gray-400">{formatDate(application.appliedDate)}</span>
+                      {getStatusBadge(application.status)}
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
-            
-            {applications.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                You haven&apos;t submitted any applications yet
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Application Details */}
-      <Card className="lg:col-span-2 max-h-[calc(100vh-220px)] overflow-auto">
-        <ApplicationDetail application={selectedApplication} />
+      <Card className="lg:col-span-2">
+        <CardContent>
+          <ApplicationDetail application={selectedApplication} />
+        </CardContent>
       </Card>
     </div>
   );

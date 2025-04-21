@@ -14,6 +14,14 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const applicationId = searchParams.get('applicationId');
 
+    console.log('API Request:', {
+      userId,
+      jobId,
+      status,
+      applicationId,
+      url: request.url
+    });
+
     // If applicationId is provided, fetch a single application
     if (applicationId) {
       const appId = parseInt(applicationId);
@@ -77,6 +85,7 @@ export async function GET(request: NextRequest) {
       user_id?: number;
       job_id?: number;
       status?: ApplicationStatus;
+      isArchived?: boolean;
     } = {};
 
     if (userId) {
@@ -90,6 +99,15 @@ export async function GET(request: NextRequest) {
     if (status) {
       whereClause.status = status.toUpperCase() as ApplicationStatus;
     }
+
+    console.log('Database query:', {
+      whereClause,
+      include: {
+        users: true,
+        jobs: true,
+        resumes: true
+      }
+    });
 
     const applications = await prisma.applications.findMany({
       where: whereClause,
@@ -126,7 +144,51 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ success: true, applications });
+    console.log('=== DATABASE QUERY RESULTS ===', {
+      total: applications.length,
+      applications: applications.map(app => ({
+        id: app.application_id,
+        status: app.status,
+        isArchived: app.isArchived,
+        applied_at: app.applied_at
+      }))
+    });
+
+    // Transform the response to include isArchived
+    const transformedApplications = applications.map(app => {
+      // Ensure isArchived is a boolean
+      const isArchived = app.isArchived === true;
+      
+      const transformed = {
+        ...app,
+        isArchived: isArchived,
+        archived: isArchived
+      };
+      
+      console.log('=== TRANSFORMED APPLICATION ===', {
+        id: transformed.application_id,
+        status: transformed.status,
+        isArchived: transformed.isArchived,
+        archived: transformed.archived,
+        applied_at: transformed.applied_at
+      });
+      
+      return transformed;
+    });
+
+    console.log('=== API RESPONSE ===', {
+      success: true,
+      applicationCount: transformedApplications.length,
+      applications: transformedApplications.map(app => ({
+        id: app.application_id,
+        status: app.status,
+        isArchived: app.isArchived,
+        archived: app.archived,
+        applied_at: app.applied_at
+      }))
+    });
+
+    return NextResponse.json({ success: true, applications: transformedApplications });
   } catch (error) {
     console.error('Error fetching applications:', error);
     return NextResponse.json(
@@ -259,7 +321,7 @@ export async function PUT(request: NextRequest) {
         status_updated: newStatus ? new Date() : undefined,
         resume_id: body.resume_id || undefined,
         position: body.position || undefined,
-        isArchived: body.archived !== undefined ? body.archived : undefined,
+        isArchived: body.archived,
         sub_stage: body.sub_stage || undefined
       }
     });

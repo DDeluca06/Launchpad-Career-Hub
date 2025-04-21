@@ -29,6 +29,7 @@ export interface JobApplication {
   date?: string;
   tags?: string[];
   archived?: boolean;
+  isArchived?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   logo?: string;

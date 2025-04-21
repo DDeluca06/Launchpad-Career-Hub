@@ -29,6 +29,8 @@ export async function fetchJobs(filters?: Record<string, string | boolean>): Pro
       });
     }
     
+    console.log('Fetching jobs with query params:', queryParams.toString());
+    
     const response = await fetch(`/api/jobs?${queryParams.toString()}`);
     
     if (!response.ok) {
@@ -41,8 +43,10 @@ export async function fetchJobs(filters?: Record<string, string | boolean>): Pro
       throw new Error(data.error || 'Failed to fetch jobs');
     }
     
+    console.log('Jobs API response:', data);
+    
     // Transform API response to UIJob format
-    return data.jobs.map((job: JobData) => ({
+    const transformedJobs = data.jobs.map((job: JobData) => ({
       id: job.job_id.toString(),
       title: job.title,
       company: job.company,
@@ -63,6 +67,10 @@ export async function fetchJobs(filters?: Record<string, string | boolean>): Pro
       url: job.website || "#",
       qualifications: job.description?.split('\n').filter((line: string) => line.includes('requirement') || line.includes('qualification')) || []
     }));
+    
+    console.log('Transformed jobs:', transformedJobs);
+    
+    return transformedJobs;
   } catch (error) {
     console.error('Error fetching jobs:', error);
     throw error;

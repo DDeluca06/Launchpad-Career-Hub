@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/basic/badge";
 
 import JobsList, { UIJob } from "./JobsList";
 import JobDetails from "./JobDetails";
-import ApplicationsTracker, { Application } from "./ApplicationsTracker";
+import ApplicationsTracker from "./ApplicationsTracker";
 import ApplyModal, { UserProfile } from "./ApplyModal";
 import { fetchJobs, saveJob, removeJob, submitApplication } from "./jobService";
 
@@ -35,6 +35,59 @@ interface JobsProps {
   initialApplications?: Application[];
   initialUserProfile?: UserProfile | null;
 }
+
+interface DBApplication {
+  application_id: string;
+  job_id: string;
+  jobs: {
+    title: string;
+    company: string;
+    company_logo_url?: string;
+  };
+  applied_at: string;
+  status: string;
+  notes?: string;
+  sub_stage?: string;
+  status_updated: string;
+}
+
+// Add type for valid application statuses
+type ApplicationStatus = "submitted" | "interviewing" | "offered" | "accepted" | "rejected" | "reviewing";
+
+interface Application {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  company: string;
+  companyLogoUrl: string;
+  appliedDate: string;
+  status: ApplicationStatus;
+  notes: string;
+  nextSteps: string;
+  interviewDate: string;
+}
+
+// Helper function to map DB status to UI status
+const mapDBStatusToUIStatus = (status: string): ApplicationStatus => {
+  switch (status) {
+    case 'INTERESTED':
+    case 'APPLIED':
+      return 'submitted';
+    case 'PHONE_SCREENING':
+    case 'INTERVIEW_STAGE':
+    case 'FINAL_INTERVIEW_STAGE':
+      return 'interviewing';
+    case 'OFFER_EXTENDED':
+    case 'NEGOTIATION':
+      return 'offered';
+    case 'OFFER_ACCEPTED':
+      return 'accepted';
+    case 'REJECTED':
+      return 'rejected';
+    default:
+      return 'reviewing';
+  }
+};
 
 export default function Jobs({ 
   userId, 
@@ -62,16 +115,34 @@ export default function Jobs({
   const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
   const [currentUser] = useState<UserProfile | null>(initialUserProfile);
 
+  // Check if job has been applied to
+  const hasAppliedToJob = useCallback((jobId: string) => {
+    return applications.some(app => app.jobId === jobId);
+  }, [applications]);
+
   // Apply filters
   const applyFilters = useCallback((jobsToFilter: UIJob[], filters: FilterOptions) => {
+    console.log('=== APPLYING FILTERS ===');
+    console.log('Initial Jobs:', jobsToFilter);
+    console.log('Filter Options:', filters);
+    console.log('Applied Jobs:', appliedJobs);
+    
     let results = [...jobsToFilter];
+    
+    // First apply the hide applied jobs filter
+    if (filters.hideAppliedJobs) {
+      results = results.filter(job => {
+        const shouldShow = !appliedJobs.includes(job.id);
+        console.log(`Job ${job.id} - Show: ${shouldShow} (Applied: ${appliedJobs.includes(job.id)})`);
+        return shouldShow;
+      });
+    }
+    
+    console.log('After Applied Filter:', results);
     
     if (filters.showSavedOnly) {
       results = results.filter(job => savedJobs.includes(job.id));
-    }
-    
-    if (filters.hideAppliedJobs) {
-      results = results.filter(job => !hasAppliedToJob(job.id));
+      console.log('After Saved Filter:', results);
     }
     
     if (searchTerm) {
@@ -80,67 +151,105 @@ export default function Jobs({
         job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         job.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log('After Search Filter:', results);
     }
     
     if (filters.jobType.length > 0) {
       results = results.filter(job => filters.jobType.includes(job.jobType || ""));
+      console.log('After Job Type Filter:', results);
     }
     
     if (filters.location.length > 0) {
       results = results.filter(job => filters.location.includes(job.location || ""));
+      console.log('After Location Filter:', results);
     }
     
     if (filters.isRemote !== null) {
       results = results.filter(job => job.isRemote === filters.isRemote);
+      console.log('After Remote Filter:', results);
     }
     
+    console.log('Final Filtered Results:', results);
     setFilteredJobs(results);
-  }, [savedJobs, applications, searchTerm]);
+  }, [savedJobs, appliedJobs, searchTerm]);
 
-  // Fetch jobs and other data
-  const fetchAllData = useCallback(async () => {
+  // Fetch and initialize data
+  const fetchAndInitializeData = useCallback(async () => {
     if (!userId) return;
     
     setLoading(true);
     try {
-      // Fetch jobs
-      const jobsData = await fetchJobs();
-      setJobs(jobsData);
-      setFilteredJobs(jobsData);
+      console.log('=== FETCHING DATA ===');
+      // Fetch both jobs and applications in parallel
+      const [jobsResponse, applicationsResponse] = await Promise.all([
+        fetchJobs(),
+        fetch(`/api/applications?userId=${userId}`).then(res => res.json())
+      ]);
       
-      if (jobsData.length > 0) {
-        setSelectedJob(jobsData[0]);
+      console.log('Jobs Response:', jobsResponse);
+      console.log('Applications Response:', applicationsResponse);
+      
+      setJobs(jobsResponse);
+      
+      if (jobsResponse.length > 0) {
+        setSelectedJob(jobsResponse[0]);
       }
       
-      // Extract saved and applied job IDs from applications
-      if (applications.length > 0) {
-        const savedJobIds = applications
-          .filter(app => app.status === 'submitted')
-          .map(app => app.jobId);
+      if (applicationsResponse.applications) {
+        const transformedApplications = applicationsResponse.applications.map((app: DBApplication): Application => ({
+          id: app.application_id,
+          jobId: app.job_id,
+          jobTitle: app.jobs.title,
+          company: app.jobs.company,
+          companyLogoUrl: "", // Remove company logo
+          appliedDate: app.applied_at,
+          status: mapDBStatusToUIStatus(app.status),
+          notes: app.notes || "",
+          nextSteps: app.sub_stage || "",
+          interviewDate: app.status_updated || new Date().toISOString()
+        }));
         
-        const appliedJobIds = applications
-          .filter(app => app.status !== 'submitted')
-          .map(app => app.jobId);
+        console.log('Transformed Applications:', transformedApplications);
+        setApplications(transformedApplications);
+        
+        // Extract saved and applied job IDs
+        const savedJobIds = transformedApplications
+          .filter((app: Application) => app.status === 'submitted')
+          .map((app: Application) => app.jobId.toString());
+        
+        const appliedJobIds = transformedApplications
+          .filter((app: Application) => app.status !== 'submitted')
+          .map((app: Application) => app.jobId.toString());
+        
+        console.log('Applied Job IDs:', appliedJobIds);
+        console.log('Saved Job IDs:', savedJobIds);
         
         setSavedJobs(savedJobIds);
         setAppliedJobs(appliedJobIds);
+        
+        // Filter out jobs that have been applied to by default
+        const filteredJobsList = jobsResponse.filter(job => {
+          const jobId = job.id.toString();
+          const hasApplied = appliedJobIds.includes(jobId);
+          console.log(`Job ${jobId} - Has Applied: ${hasApplied}`);
+          return !hasApplied;
+        });
+        
+        console.log('Filtered Jobs List:', filteredJobsList);
+        setFilteredJobs(filteredJobsList);
       }
-      
-      // Apply initial filters
-      applyFilters(jobsData, filterOptions);
-      
     } catch (error) {
-      console.error("Error loading data:", error);
-      toast.error("Error loading jobs. Please try again.");
+      console.error("Error initializing data:", error);
+      toast.error("Error loading data. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, [userId, applications, filterOptions, applyFilters]);
+  }, [userId]);
 
   // Initialize data
   useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
+    fetchAndInitializeData();
+  }, [fetchAndInitializeData]);
 
   // Handle search
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,7 +258,7 @@ export default function Jobs({
     
     // Always keep the applications data consistent
     if (value.trim() === "") {
-      fetchAllData();
+      fetchAndInitializeData();
     }
     
     // Filter jobs based on search
@@ -239,7 +348,7 @@ export default function Jobs({
         removeJob(currentUser.user_id, numericJobId)
           .then(() => {
             toast.success("Job removed from saved jobs");
-            fetchAllData(); // Refresh data
+            fetchAndInitializeData(); // Replace fetchAllData with fetchAndInitializeData
             
             // If showing saved only, reapply filters to remove this job
             if (filterOptions.showSavedOnly) {
@@ -265,7 +374,7 @@ export default function Jobs({
         saveJob(currentUser.user_id, numericJobId, selectedJob.title)
           .then(() => {
             toast.success("Job saved to your dashboard");
-            fetchAllData(); // Refresh data
+            fetchAndInitializeData(); // Replace fetchAllData with fetchAndInitializeData
           })
           .catch(error => {
             console.error("Error saving job:", error);
@@ -316,9 +425,15 @@ export default function Jobs({
   // Submit job application
   const handleSubmitApplication = async (resumeId: number, coverLetter: string, idealCandidate: string) => {
     if (!selectedJob || !userId || !currentUser) {
+      console.error("Missing required data:", { selectedJob, userId, currentUser });
       toast.error("Please select a job and ensure you're logged in");
       return;
     }
+
+    console.log('=== SUBMITTING APPLICATION ===');
+    console.log('Selected Job:', selectedJob);
+    console.log('Resume ID:', resumeId);
+    console.log('User ID:', userId);
 
     try {
       const response = await submitApplication(
@@ -335,48 +450,38 @@ export default function Jobs({
         idealCandidate
       );
 
-      if (response) {
-        // Map database status to UI status
-        const mapDBStatusToUIStatus = (dbStatus: string) => {
-          switch (dbStatus) {
-            case 'INTERESTED':
-            case 'APPLIED':
-              return 'submitted';
-            case 'PHONE_SCREENING':
-            case 'INTERVIEW_STAGE':
-            case 'FINAL_INTERVIEW_STAGE':
-              return 'interviewing';
-            case 'OFFER_EXTENDED':
-            case 'NEGOTIATION':
-              return 'offered';
-            case 'OFFER_ACCEPTED':
-              return 'accepted';
-            case 'REJECTED':
-              return 'rejected';
-            default:
-              return 'submitted';
-          }
-        };
+      console.log('Application Submission Response:', response);
 
-        // Update local state with new application
+      if (response) {
+        // Create new application with default interview date
         const newApplication: Application = {
           id: response.application.application_id.toString(),
           jobId: selectedJob.id.toString(),
           jobTitle: selectedJob.title,
           company: selectedJob.company,
-          companyLogoUrl: selectedJob.website || "/placeholder-logo.png",
+          companyLogoUrl: "", // Remove company logo
           appliedDate: new Date().toISOString(),
           status: mapDBStatusToUIStatus(response.application.status),
           notes: idealCandidate,
           nextSteps: "",
-          interviewDate: undefined,
+          interviewDate: new Date().toISOString() // Set default date
         };
         
+        console.log('New Application:', newApplication);
+        
         // Update applications state
-        setApplications(prev => [...prev, newApplication]);
+        setApplications(prev => {
+          const updated = [...prev, newApplication];
+          console.log('Updated Applications:', updated);
+          return updated;
+        });
         
         // Update applied jobs state
-        setAppliedJobs(prev => [...prev, selectedJob.id]);
+        setAppliedJobs(prev => {
+          const updated = [...prev, selectedJob.id];
+          console.log('Updated Applied Jobs:', updated);
+          return updated;
+        });
         
         // Show success message
         toast.success("Application submitted successfully!");
@@ -385,38 +490,13 @@ export default function Jobs({
         setApplyModalOpen(false);
         setActiveTab("applications");
         
-        // Refresh the applications list
-        try {
-          const appsResponse = await fetch(`/api/applicants?id=${userId}&applications=true`);
-          const appsData = await appsResponse.json();
-          
-          if (appsData.applications) {
-            setApplications(appsData.applications.map((app: any) => ({
-              id: app.id.toString(),
-              jobId: app.jobId.toString(),
-              jobTitle: app.jobTitle,
-              company: app.company,
-              companyLogoUrl: selectedJob.website || "/placeholder-logo.png",
-              appliedDate: app.appliedDate,
-              status: mapDBStatusToUIStatus(app.status),
-              notes: app.notes || "",
-              nextSteps: app.nextSteps || "",
-              interviewDate: app.interviewDate,
-            })));
-          }
-        } catch (error) {
-          console.error("Error refreshing applications:", error);
-        }
+        // Refresh the applications list and reapply filters
+        await fetchAndInitializeData();
       }
     } catch (error) {
       console.error("Error submitting application:", error);
       toast.error("Failed to submit application. Please try again.");
     }
-  };
-
-  // Add a function to check if a job has been applied to
-  const hasAppliedToJob = (jobId: string) => {
-    return applications.some(app => app.jobId === jobId);
   };
 
   return (
