@@ -2,19 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import KanbanBoard from "@/components/kanban-board";
+import { KanbanPage } from "@/components/kanban/KanbanPage";
 import { Button } from "@/components/ui/basic/button";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/basic/card";
 import { Plus, RefreshCw, Info, Briefcase, Calendar, CheckCircle2 } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/feedback/alert";
 import { toast } from "@/components/ui/feedback/use-toast";
+import { Stage } from "@/types/application-stages";
 
 // Define types for our dashboard data
 interface Application {
   id: string;
   status: string;
-  appliedAt?: string;
+  appliedAt: string;
   updatedAt: string;
   job: {
     id: string;
@@ -22,19 +23,39 @@ interface Application {
     company: string;
     location?: string;
     type?: string;
+    description?: string;
+    tags?: string[];
+    website?: string;
+    companyDetails?: {
+      name: string;
+      isPartner: boolean;
+      location?: string;
+      website?: string;
+    };
+    partnerDetails?: {
+      name: string;
+    };
   };
   subStage?: string | null;
   isRecommendation?: boolean;
 }
 
 interface DashboardData {
+  success: boolean;
+  error?: string;
   applications: Application[];
-  savedJobs: unknown[];
+  stats: {
+    totalApplications: number;
+    activeApplications: number;
+    interviews: number;
+    offers: number;
+  };
   profile: {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
+    program?: string;
   };
 }
 
@@ -100,42 +121,35 @@ export default function ApplicantDashboard() {
         setLoading(true);
         const response = await fetch('/api/applicant/dashboard');
         
-        const responseData = await response.json();
-        
         if (!response.ok) {
-          // Handle specific error types
-          if (response.status === 503) {
-            throw new Error('Database connection failed. Please try again later.');
-          } else if (response.status === 401) {
-            throw new Error('Authentication error. Please sign in again.');
-          } else {
-            throw new Error(responseData.message || responseData.error || 'Failed to load dashboard data');
-          }
+          throw new Error('Failed to fetch dashboard data');
         }
 
-        console.log('Dashboard data:', responseData); // Debug log
-        setData(responseData);
-        setError(null); // Clear any previous errors
+        const responseData: DashboardData = await response.json();
         
-        // Check if there are any recommendations
-        const hasRecs = responseData.applications.some((app: Application) => 
-          app.subStage === 'referrals'
-        );
-        setHasRecommendations(hasRecs);
+        if (responseData.success) {
+          setData(responseData);
+          setError(null);
+          
+          // Check if there are any recommendations
+          const hasRecs = responseData.applications.some(app => app.isRecommendation);
+          setHasRecommendations(hasRecs);
+        } else {
+          throw new Error(responseData.error || 'Failed to load dashboard data');
+        }
       } catch (error) {
         console.error("Error loading dashboard data:", error);
         setError({
           error: 'Data loading error',
-          message: error instanceof Error ? error.message : 'Failed to load dashboard data. Please try again later.'
+          message: error instanceof Error ? error.message : 'Failed to load dashboard data'
         });
       } finally {
-        // Add a slight delay to loading state to prevent UI flashing
         setTimeout(() => setLoading(false), 300);
       }
     };
 
     loadDashboardData();
-  }, [retryCount]); // Re-run the effect when retryCount changes
+  }, [retryCount]);
 
   // Handler for manual retry
   const handleRetry = () => {
@@ -146,22 +160,24 @@ export default function ApplicantDashboard() {
   const transformForKanban = (applications: Application[] = []) => {
     return applications.map(app => {
       // Special handling for referrals/recommendations
-      if (app.subStage === 'referrals') {
+      if (app.isRecommendation) {
         return {
           id: app.id,
-          status: 'referrals', // Use dedicated column for referrals
-          subStage: 'referrals',
-          job: {
-            title: app.job?.title || 'Unknown Position',
-            company: app.job?.company || 'Unknown Company',
-            id: app.job?.id
-          },
-          // Fallbacks in case job is undefined
           title: app.job?.title || 'Unknown Position',
           company: app.job?.company || 'Unknown Company',
-          updatedAt: app.updatedAt,
+          description: app.job?.description || '',
+          status: 'referrals' as const,
+          stage: 'referrals' as Stage,
+          subStage: null,
+          date: app.updatedAt,
+          tags: app.job?.tags || [],
+          archived: false,
+          logo: '',
+          location: app.job?.location || '',
           jobId: app.job?.id,
-          isRecommendation: true
+          isRecommendation: true,
+          companyDetails: app.job?.companyDetails,
+          partnerDetails: app.job?.partnerDetails
         };
       }
       
@@ -173,18 +189,20 @@ export default function ApplicantDashboard() {
       
       return {
         id: app.id,
-        status: status,
-        subStage: subStage,
-        job: {
-          title: app.job?.title || 'Unknown Position',
-          company: app.job?.company || 'Unknown Company',
-          id: app.job?.id
-        },
-        // Fallbacks in case job is undefined
         title: app.job?.title || 'Unknown Position',
         company: app.job?.company || 'Unknown Company',
-        updatedAt: app.updatedAt,
-        jobId: app.job?.id
+        description: app.job?.description || '',
+        status: status as 'interested' | 'applied' | 'interview' | 'offer' | 'referrals',
+        stage: status as Stage,
+        subStage: subStage as null | 'phone_screening' | 'interview_stage' | 'final_interview_stage' | 'negotiation' | 'offer_extended' | 'accepted' | 'rejected',
+        date: app.updatedAt,
+        tags: app.job?.tags || [],
+        archived: false,
+        logo: '',
+        location: app.job?.location || '',
+        jobId: app.job?.id,
+        companyDetails: app.job?.companyDetails,
+        partnerDetails: app.job?.partnerDetails
       };
     });
   };
@@ -204,14 +222,13 @@ export default function ApplicantDashboard() {
       });
       
       // Direct API call with exactly what columns need
-      const response = await fetch(`/api/applicant/update-app-status`, {
-        method: 'POST',
+      const response = await fetch(`/api/applications?applicationId=${applicationId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          applicationId,
-          columnStatus: newStatus,
+          status: newStatus,
           subStage
         })
       });
@@ -259,29 +276,13 @@ export default function ApplicantDashboard() {
     }
   };
 
-  // Calculate statistics for the dashboard
-  const calculateStats = () => {
-    if (!data?.applications) return { total: 0, active: 0, interviews: 0, offers: 0 };
-    
-    const total = data.applications.length;
-    const active = data.applications.filter(app => 
-      app.status !== 'REJECTED' && app.status !== 'OFFER_ACCEPTED'
-    ).length;
-    const interviews = data.applications.filter(app => 
-      app.status === 'PHONE_SCREENING' || 
-      app.status === 'INTERVIEW_STAGE' || 
-      app.status === 'FINAL_INTERVIEW_STAGE'
-    ).length;
-    const offers = data.applications.filter(app => 
-      app.status === 'OFFER_EXTENDED' || 
-      app.status === 'NEGOTIATION'
-    ).length;
-    
-    return { total, active, interviews, offers };
-  };
-
   // Get the stats
-  const stats = calculateStats();
+  const stats = data?.stats || {
+    totalApplications: 0,
+    activeApplications: 0,
+    interviews: 0,
+    offers: 0
+  };
 
   if (loading) {
     return (
@@ -344,7 +345,6 @@ export default function ApplicantDashboard() {
       <DashboardLayout>
         <div className="container py-6 px-4 mx-auto">
           <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded flex flex-col items-center">
-            <h2 className="text-lg font-semibold mb-2">Unable to load dashboard</h2>
             <p className="mb-4">{error.message}</p>
             <Button 
               onClick={handleRetry}
@@ -394,7 +394,7 @@ export default function ApplicantDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Total Applications</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
+                  <p className="text-2xl font-bold">{stats.totalApplications}</p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                   <Briefcase className="h-5 w-5 text-blue-700" />
@@ -405,7 +405,7 @@ export default function ApplicantDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Active Applications</p>
-                  <p className="text-2xl font-bold">{stats.active}</p>
+                  <p className="text-2xl font-bold">{stats.activeApplications}</p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
                   <RefreshCw className="h-5 w-5 text-green-700" />
@@ -480,7 +480,7 @@ export default function ApplicantDashboard() {
           
           {/* Kanban board with loading state */}
           <div className="mt-4">
-            <KanbanBoard 
+            <KanbanPage 
               applications={kanbanApplications}
               isLoading={loading}
               onStatusChange={handleStatusChange}

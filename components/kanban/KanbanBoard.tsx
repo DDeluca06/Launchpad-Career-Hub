@@ -25,6 +25,8 @@ export function ApplicationPipeline({
     interview: jobs.filter(job => job.status === 'interview'),
     offer: jobs.filter(job => job.status === 'offer'),
     referrals: jobs.filter(job => job.status === 'referrals'),
+    accepted: jobs.filter(job => job.status === 'accepted'),
+    rejected: jobs.filter(job => job.status === 'rejected'),
   };
 
   // Handle drag and drop
@@ -44,7 +46,7 @@ export function ApplicationPipeline({
 
     // Extract the target stage and substage from the destination droppableId
     // Format could be either "stage" or "stage:substage"
-    const [targetStage, targetSubStage] = destination.droppableId.split(':') as [Stage, SubStage];
+    const [targetStage, targetSubStage] = destination.droppableId.split(':');
 
     // Update the job status based on the destination column
     const updates: Partial<JobApplication> = {
@@ -54,7 +56,7 @@ export function ApplicationPipeline({
 
     // If there's a substage in the destination, update that too
     if (targetSubStage) {
-      updates.subStage = targetSubStage;
+      updates.subStage = targetSubStage as SubStage;
     } else if (job.subStage && targetStage !== job.stage) {
       // If moving to a different stage, reset the substage
       updates.subStage = null;

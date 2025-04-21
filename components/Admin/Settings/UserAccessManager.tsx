@@ -111,7 +111,7 @@ export function UserAccessManager({
       } else {
         throw new Error(data.error || 'Unknown error occurred');
       }
-    } catch (error) {
+    } catch {
       showToast("Error", "Failed to update admin status. Please try again.", "destructive");
     } finally {
       setIsUpdating(null);
@@ -160,7 +160,7 @@ export function UserAccessManager({
       setCreateUserDialogOpen(false);
       
       showToast("Success", "User created successfully");
-    } catch (error) {
+    } catch {
       showToast("Error", "Failed to create user. Please try again.", "destructive");
     }
   };
@@ -207,7 +207,7 @@ export function UserAccessManager({
       } else {
         throw new Error(data.error || 'Unknown error occurred');
       }
-    } catch (error) {
+    } catch {
       showToast("Error", "Failed to reset password. Please try again.", "destructive");
     }
   };

@@ -4,12 +4,18 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { ApplicationStatus } from '@/lib/prisma-enums';
 
+interface UpdateStatusRequest {
+  applicationId: string;
+  columnStatus: string;
+  subStage?: string;
+}
+
 // Define the status mappings from UI columns to database values
 const COLUMN_TO_DB_STATUS: Record<string, ApplicationStatus> = {
   'interested': ApplicationStatus.INTERESTED,
   'applied': ApplicationStatus.APPLIED,
-  'interview': ApplicationStatus.INTERVIEW_STAGE, // Default if no sub-stage
-  'offer': ApplicationStatus.OFFER_EXTENDED, // Default if no sub-stage
+  'interview': ApplicationStatus.INTERVIEW_STAGE,
+  'offer': ApplicationStatus.OFFER_EXTENDED,
   'accepted': ApplicationStatus.OFFER_ACCEPTED,
   'rejected': ApplicationStatus.REJECTED,
   'referrals': ApplicationStatus.INTERESTED
@@ -30,7 +36,7 @@ const SUB_STAGE_TO_DB_STATUS: Record<string, ApplicationStatus> = {
 export async function POST(request: NextRequest) {
   try {
     // Auth check
-    let email;
+    let email: string | undefined;
     
     // Try NextAuth first
     const session = await getServerSession();
@@ -56,8 +62,8 @@ export async function POST(request: NextRequest) {
       }, { status: 401 });
     }
     
-    // Get the request body
-    const data = await request.json();
+    // Get and validate the request body
+    const data = await request.json() as UpdateStatusRequest;
     const { applicationId, columnStatus, subStage } = data;
     
     if (!applicationId || !columnStatus) {
@@ -68,16 +74,14 @@ export async function POST(request: NextRequest) {
     }
     
     // Determine the database status based on the column and sub-stage
-    let dbStatus: ApplicationStatus;
+    let dbStatus: ApplicationStatus | undefined;
     
     // If we have a sub-stage that can override the column status, use it
     if (subStage && SUB_STAGE_TO_DB_STATUS[subStage]) {
       dbStatus = SUB_STAGE_TO_DB_STATUS[subStage];
-      console.log(`Using sub-stage mapping: ${subStage} -> ${dbStatus}`);
     } else {
       // Otherwise use the column status mapping
       dbStatus = COLUMN_TO_DB_STATUS[columnStatus];
-      console.log(`Using column mapping: ${columnStatus} -> ${dbStatus}`);
     }
     
     if (!dbStatus) {
@@ -122,8 +126,6 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    console.log(`Updating application ${applicationId} to status: ${dbStatus}, subStage: ${subStage || 'none'}`);
-    
     // Update the application status
     const updatedApplication = await prisma.applications.update({
       where: { application_id: parseInt(applicationId) },
@@ -153,8 +155,6 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error updating application status:', error);
-    
     return NextResponse.json({ 
       success: false, 
       error: 'Failed to update application status',
@@ -163,11 +163,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
+type HistoryStatus = 'APPLIED' | 'INTERVIEWING' | 'OFFERED' | 'HIRED' | 'REJECTED';
+
 /**
  * Map application status to history status
  */
-function mapToHistoryStatus(status: ApplicationStatus): 'APPLIED' | 'INTERVIEWING' | 'OFFERED' | 'HIRED' | 'REJECTED' {
-  const historyStatusMap: Record<string, 'APPLIED' | 'INTERVIEWING' | 'OFFERED' | 'HIRED' | 'REJECTED'> = {
+function mapToHistoryStatus(status: ApplicationStatus): HistoryStatus {
+  const historyStatusMap: Record<ApplicationStatus, HistoryStatus> = {
     [ApplicationStatus.INTERESTED]: 'APPLIED',
     [ApplicationStatus.APPLIED]: 'APPLIED',
     [ApplicationStatus.PHONE_SCREENING]: 'INTERVIEWING',

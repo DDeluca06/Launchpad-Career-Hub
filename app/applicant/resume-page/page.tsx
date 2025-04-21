@@ -26,6 +26,7 @@ export default function ResumePage() {
   const [isLoading, setIsLoading] = useState(false)
   const resumeInputRef = useRef<HTMLInputElement>(null)
 
+  // Fetch user data and resumes
   useEffect(() => {
     if (isAuthLoading || !session?.user?.id) return;
 
@@ -294,7 +295,9 @@ export default function ResumePage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Resumes</h1>
-            <p className="text-gray-500 mt-1">Upload and manage your resumes</p>
+            <p className="text-gray-500 mt-1">
+              {session?.user ? `${session.user.firstName} ${session.user.lastName} (${session.user.email})` : 'Loading user profile...'}
+            </p>
           </div>
         </div>
 
@@ -302,7 +305,7 @@ export default function ResumePage() {
           <Card>
             <CardHeader>
               <CardTitle>My Resumes</CardTitle>
-              <CardDescription>Upload and manage your resumes</CardDescription>
+              <CardDescription>Upload and manage your resumes for job applications</CardDescription>
             </CardHeader>
             <div className="p-6 border-t">
               <div className="space-y-4">
