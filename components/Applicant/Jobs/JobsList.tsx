@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/basic/card";
 import { Badge } from "@/components/ui/basic/badge";
 import { CheckCircle2, MapPin, Globe } from "lucide-react";

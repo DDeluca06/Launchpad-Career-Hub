@@ -6,7 +6,7 @@ import { AuthContext } from "@/app/providers";
 import Jobs from "@/components/Applicant/Jobs/Jobs";
 
 export default function JobsPage() {
-  const { session, loading: isAuthLoading } = useContext(AuthContext);
+  const { session } = useContext(AuthContext);
 
   return (
     <DashboardLayout>

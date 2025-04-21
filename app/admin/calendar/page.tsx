@@ -29,6 +29,8 @@ function CalendarContent() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [interviews, setInterviews] = useState<ApiInterview[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [availableJobs, setAvailableJobs] = useState<{ id: number; title: string }[]>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editInterview, setEditInterview] = useState<ApiInterview | undefined>();
@@ -103,6 +105,33 @@ function CalendarContent() {
   useEffect(() => {
     loadInterviews();
   }, [currentDate, loadInterviews]);
+
+  // Load available jobs
+  const loadAvailableJobs = useCallback(async () => {
+    try {
+      setIsLoadingJobs(true);
+      const response = await fetch("/api/jobs");
+      const data = await response.json();
+      if (data.success) {
+        // Transform the jobs data to match the expected format
+        const formattedJobs = data.jobs.map((job: any) => ({
+          id: job.job_id,
+          title: job.title
+        }));
+        setAvailableJobs(formattedJobs);
+      }
+    } catch (error) {
+      console.error("Failed to load available jobs:", error);
+      setAvailableJobs([]);
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  }, []);
+
+  // Load jobs when component mounts
+  useEffect(() => {
+    loadAvailableJobs();
+  }, [loadAvailableJobs]);
 
   // Handle interview creation
   const handleCreateInterview = async (data: ApiNewInterview | Partial<ApiInterview>) => {
@@ -358,6 +387,7 @@ function CalendarContent() {
         selectedDate={selectedDate}
         editInterview={editInterview}
         users={users}
+        availableJobs={availableJobs}
       />
     </div>
   );

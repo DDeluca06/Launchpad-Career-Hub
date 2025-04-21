@@ -32,7 +32,7 @@ export default function SettingsPage() {
   const fetchUsers = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users?includeApplications=true');
       
       if (!response.ok) {
         throw new Error('Failed to fetch users');

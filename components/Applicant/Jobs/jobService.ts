@@ -1,5 +1,19 @@
 import { UIJob } from "./JobsList";
 
+interface JobData {
+  job_id: number;
+  title: string;
+  company: string;
+  description: string;
+  location: string;
+  job_type: string;
+  tags?: string[];
+  website?: string;
+  application_deadline?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export async function fetchJobs(filters?: Record<string, string | boolean>): Promise<UIJob[]> {
   try {
     // Construct query parameters
@@ -27,7 +41,7 @@ export async function fetchJobs(filters?: Record<string, string | boolean>): Pro
     }
     
     // Transform API response to UIJob format
-    return data.jobs.map((job: any) => ({
+    return data.jobs.map((job: JobData) => ({
       id: job.job_id.toString(),
       title: job.title,
       company: job.company,
@@ -106,7 +120,7 @@ export async function submitApplication(
   jobId: number, 
   resumeId: number, 
   position: string,
-  userData: { firstName: string, lastName: string, email: string, phone: string }
+  userData: { firstName: string, lastName: string, email: string }
 ): Promise<boolean> {
   try {
     // Create application
@@ -140,8 +154,7 @@ export async function submitApplication(
         userId: userId,
         firstName: userData.firstName,
         lastName: userData.lastName,
-        email: userData.email,
-        phone: userData.phone
+        email: userData.email
       }),
     });
     
