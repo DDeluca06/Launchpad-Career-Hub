@@ -56,7 +56,7 @@ export default function AdminJobListings() {
   const [editingJob, setEditingJob] = useState<ExtendedJob | null>(null);
   const [newJob, setNewJob] = useState<NewJob>({
     title: "",
-    company_id: 0,
+    company: "",
     location: "",
     job_type: "FULL_TIME",
     description: "",
@@ -158,7 +158,7 @@ export default function AdminJobListings() {
         const keywordsLower = activeFilters.keywords.toLowerCase();
         const matchesKeyword = 
           job.title.toLowerCase().includes(keywordsLower) ||
-          job.companies?.name?.toLowerCase().includes(keywordsLower) ||
+          job.company.toLowerCase().includes(keywordsLower) ||
           job.description?.toLowerCase().includes(keywordsLower) ||
           job.tags?.some(tag => tag.toLowerCase().includes(keywordsLower));
         
@@ -261,32 +261,12 @@ export default function AdminJobListings() {
 
   const handleAddJob = async () => {
     // Validate required fields
-    if (!newJob.title || !newJob.location) {
+    if (!newJob.title || !newJob.location || !newJob.company) {
       alert("Please fill in all required fields");
       return;
     }
     
-    // Check for company ID
-    if (!newJob.company_id) {
-      alert("Please select a company");
-      return;
-    }
-    
     try {
-      // Try to get company name, but don't block job creation if it fails
-      try {
-        const companyResponse = await fetch(`/api/companies?id=${newJob.company_id}`);
-        if (companyResponse.ok) {
-          const companyData = await companyResponse.json();
-          if (companyData.company?.name) {
-            newJob.company = companyData.company.name;
-          }
-        }
-      } catch (companyError) {
-        console.error("Error fetching company name:", companyError);
-        // Continue without company name, the service will handle it
-      }
-      
       // Create job via API
       const result = await createJob(newJob);
       const createdJob = result.job;
@@ -310,7 +290,7 @@ export default function AdminJobListings() {
       // Reset form
       setNewJob({
         title: "",
-        company_id: 0,
+        company: "",
         location: "",
         job_type: "FULL_TIME",
         description: "",
@@ -333,27 +313,6 @@ export default function AdminJobListings() {
     }
     
     try {
-      let companyName = "";
-      
-      // Try to fetch the company details to get the company name
-      try {
-        const companyResponse = await fetch(`/api/companies?id=${editingJob.company_id}`);
-        if (companyResponse.ok) {
-          const companyData = await companyResponse.json();
-          companyName = companyData.company?.name || "";
-        }
-      } catch (companyError) {
-        console.error("Error fetching company details:", companyError);
-        // Continue with fallback
-      }
-      
-      // If company name is empty, use fallback
-      if (!companyName) {
-        console.warn("Company name not found, using fallback");
-        // Try to use existing company name from the job or use a placeholder
-        companyName = editingJob.companies?.name || `Company ID: ${editingJob.company_id}`;
-      }
-      
       // Update job via API
       const result = await updateJob(editingJob.job_id, {
         title: editingJob.title,
@@ -362,8 +321,7 @@ export default function AdminJobListings() {
         description: editingJob.description || undefined,
         website: editingJob.website || undefined,
         tags: editingJob.tags,
-        company: companyName,
-        company_id: editingJob.company_id
+        company: editingJob.company
       });
       
       const updatedJob = result.job;
@@ -566,7 +524,7 @@ export default function AdminJobListings() {
         // Create a demo job from "scraping"
         const jobData = {
           title: "Web Developer (Scraped)",
-          company_id: newJob.company_id,
+          company: newJob.company || "Unknown Company",
           location: "Philadelphia, PA",
           job_type: "FULL_TIME" as JobType,
           description: "This is a simulated job scraped from " + scrapingUrl,
@@ -575,15 +533,7 @@ export default function AdminJobListings() {
         };
         
         // Create the job via API
-        const result = await createJob({
-          title: jobData.title,
-          company_id: jobData.company_id,
-          location: jobData.location,
-          job_type: jobData.job_type,
-          description: jobData.description,
-          website: jobData.website,
-          tags: jobData.tags
-        });
+        const result = await createJob(jobData);
         const createdJob = result.job;
         
         // Update UI

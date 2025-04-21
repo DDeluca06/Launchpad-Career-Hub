@@ -91,8 +91,7 @@ export const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'APPRENTICESHIP'
 // For new job creation
 export interface NewJob {
   title: string;
-  company_id: number;
-  company?: string;
+  company: string;
   location: string;
   job_type: JobType;
   description: string;
