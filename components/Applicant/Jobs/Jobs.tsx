@@ -52,9 +52,9 @@ interface DBApplication {
 }
 
 // Add type for valid application statuses
-type ApplicationStatus = "submitted" | "interviewing" | "offered" | "accepted" | "rejected" | "reviewing";
+export type ApplicationStatus = "submitted" | "interviewing" | "offered" | "accepted" | "rejected" | "reviewing";
 
-interface Application {
+export interface Application {
   id: string;
   jobId: string;
   jobTitle: string;
@@ -121,11 +121,6 @@ export default function Jobs({
       setCurrentUser(initialUserProfile);
     }
   }, [initialUserProfile]);
-
-  // Check if job has been applied to
-  const hasAppliedToJob = useCallback((jobId: string) => {
-    return applications.some(app => app.jobId === jobId);
-  }, [applications]);
 
   // Apply filters
   const applyFilters = useCallback((jobsToFilter: UIJob[], filters: FilterOptions) => {
@@ -320,7 +315,8 @@ export default function Jobs({
     applyFilters(jobs, updatedFilters);
   };
 
-  // Reset filters
+  // Reset filters - keeping this for future feature use
+  /*
   const resetFilters = () => {
     setFilterOptions({
       jobType: [],
@@ -332,6 +328,7 @@ export default function Jobs({
     setSearchTerm("");
     setFilteredJobs(jobs.filter(job => !appliedJobs.includes(job.id)));
   };
+  */
 
   // Toggle save job
   const toggleSaveJob = async (jobId: string) => {
@@ -398,10 +395,11 @@ export default function Jobs({
     return savedJobs.includes(jobId);
   };
 
-  // Check if job has been applied to
-  const hasApplied = useCallback((jobId: string) => {
-    return appliedJobs.includes(jobId);
-  }, [appliedJobs]);
+  // Check if job has been applied to - based on the applications array
+  const hasAppliedToJob = useCallback((jobId: string) => {
+    // This checks if the job is in the applications list (not in saved list)
+    return applications.some(app => app.jobId === jobId && app.status !== 'submitted');
+  }, [applications]);
 
   // Open apply modal
   const openApplyModal = (job: UIJob) => {
@@ -501,11 +499,11 @@ export default function Jobs({
         // Refresh the applications list and reapply filters
         await fetchAndInitializeData();
       }
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error("Error submitting application:", error);
       
       // Handle specific error types
-      if (error.message && error.message.toLowerCase().includes("already applied")) {
+      if (error instanceof Error && error.message.toLowerCase().includes("already applied")) {
         toast.info("You have already applied for this job", {
           description: "View your application in the Applications tab."
         });
@@ -595,7 +593,7 @@ export default function Jobs({
                       checked={filterOptions.hideAppliedJobs}
                       onCheckedChange={toggleHideAppliedJobsFilter}
                     />
-                    <Label htmlFor="hide-applied">Hide jobs I've already applied to</Label>
+                    <Label htmlFor="hide-applied">Hide jobs I&apos;ve already applied to</Label>
                   </div>
                 </div>
               </Card>

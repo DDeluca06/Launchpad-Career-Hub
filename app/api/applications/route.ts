@@ -221,17 +221,17 @@ export async function POST(request: NextRequest) {
         success: true,
         application
       });
-    } catch (prismaError: any) {
+    } catch (prismaError: unknown) {
       console.error('Prisma error creating application:', prismaError);
       return NextResponse.json(
-        { success: false, error: 'Database error: ' + (prismaError.message || 'Unknown database error') },
+        { success: false, error: 'Database error: ' + ((prismaError as Error).message || 'Unknown database error') },
         { status: 500 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating application:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create application: ' + (error.message || 'Unknown error') },
+      { success: false, error: 'Failed to create application: ' + ((error as Error).message || 'Unknown error') },
       { status: 500 }
     );
   }
@@ -478,7 +478,7 @@ export async function PATCH(request: NextRequest) {
       success: true,
       application: updatedApplication
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating application:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update application' },

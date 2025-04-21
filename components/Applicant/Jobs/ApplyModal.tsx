@@ -194,11 +194,11 @@ export default function ApplyModal({
         setIsSuccess(false);
       }, 2000);
       
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error("Error submitting application:", error);
       
       // Check if the error is about already applying
-      if (error.message && error.message.toLowerCase().includes("already applied")) {
+      if (error instanceof Error && error.message.toLowerCase().includes("already applied")) {
         toast.info("You have already applied to this job", {
           description: "View your application in the Applications tab."
         });

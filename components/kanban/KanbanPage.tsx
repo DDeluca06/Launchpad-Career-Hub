@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
-import { JobApplication } from '@/types/application-stages';
+import { JobApplication, SubStage } from '@/types/application-stages';
 import { ApplicationPipeline } from './KanbanBoard';
 import { KanbanColumn } from './KanbanColumn';
 import { Button } from '@/components/ui/basic/button';
@@ -45,7 +45,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { AuthContext } from '@/app/providers';
-import { DragDropContext } from 'react-beautiful-dnd';
+import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 
 // Job form schema
 const jobFormSchema = z.object({
@@ -65,6 +65,28 @@ type KanbanPageProps = {
   onStatusChange?: (applicationId: string, newStatus: string, subStage?: string) => Promise<void>;
   onViewJobDetails?: (applicationId: string, jobId?: string | number) => void;
 };
+
+interface Job {
+  title: string;
+  company: string;
+  description: string;
+  company_logo_url: string;
+  location: string;
+  salary: string;
+  url: string;
+}
+
+interface KanbanApplication {
+  application_id: string;
+  position: string;
+  jobs: Job;
+  applied_at: string;
+  status: string;
+  sub_stage: string;
+  tags: string;
+  isArchived: boolean;
+  notes: string;
+}
 
 export function KanbanPage({ 
   applications, 
@@ -125,7 +147,12 @@ export function KanbanPage({
         console.log('=== API RESPONSE ===', {
           success: data.success,
           applicationCount: data.applications?.length,
-          applications: data.applications?.map((app: any) => ({
+          applications: data.applications?.map((app: {
+            application_id: string | number;
+            isArchived: boolean;
+            status: string;
+            applied_at: string;
+          }) => ({
             id: app.application_id,
             isArchived: app.isArchived,
             status: app.status,
@@ -135,7 +162,7 @@ export function KanbanPage({
         
         if (data.success) {
           // Transform applications to match UI format
-          const transformedApplications: JobApplication[] = data.applications.map((app: { application_id: string; position: string; jobs: { title: string; company: string; description: string; company_logo_url: string; location: string; salary: string; url: string; }; applied_at: string; status: string; sub_stage: string; tags: string; isArchived: boolean; notes: string; }) => {
+          const transformedApplications: JobApplication[] = data.applications.map((app: KanbanApplication) => {
             console.log('Processing application:', { 
               id: app.application_id, 
               isArchived: app.isArchived,
@@ -146,20 +173,20 @@ export function KanbanPage({
             const isArchived = app.isArchived ?? false;
             const transformed = {
               id: app.application_id.toString(),
-              title: app.position || app.jobs?.title || "Unknown Position",
-              company: app.jobs?.company || "Unknown Company",
-              description: app.jobs?.description || "",
-              status: mapStatusFromDB(app.status, app),
-              subStage: app.sub_stage || null,
-              stage: mapStatusFromDB(app.status, app),
+              title: app.jobs.title || "Unknown Position",
+              company: app.jobs.company || "Unknown Company",
+              description: app.jobs.description || "",
+              status: app.status as 'interested' | 'applied' | 'interview' | 'offer' | 'referrals',
+              subStage: app.sub_stage as SubStage,
+              stage: app.status as 'interested' | 'applied' | 'interview' | 'offer' | 'referrals',
               date: app.applied_at ? new Date(app.applied_at).toISOString() : new Date().toISOString(),
               tags: app.tags ? JSON.parse(app.tags) : [],
               archived: isArchived,
               isArchived: isArchived,
-              logo: app.jobs?.company_logo_url || "https://placehold.co/150",
-              location: app.jobs?.location || "",
-              salary: app.jobs?.salary || "",
-              url: app.jobs?.url || "",
+              logo: app.jobs.company_logo_url || "https://placehold.co/150",
+              location: app.jobs.location || "",
+              salary: app.jobs.salary || "",
+              url: app.jobs.url || "",
               notes: app.notes || "",
             };
             console.log('Transformed application:', {
@@ -202,10 +229,30 @@ export function KanbanPage({
       isLoading: externalLoading
     });
     fetchApplications();
-  }, [session?.user?.id]); // Remove applications and externalLoading from dependencies
+  }, [session?.user?.id, applications?.length, externalLoading]); // Added missing dependencies
+
+  type RefreshAppData = {
+    application_id: string | number;
+    position?: string;
+    jobs?: {
+      title?: string;
+      company?: string;
+      description?: string;
+      company_logo_url?: string;
+      location?: string;
+      salary?: string;
+      url?: string;
+    };
+    status: string;
+    sub_stage?: string | null;
+    applied_at?: string;
+    tags?: string;
+    isArchived?: boolean;
+    notes?: string;
+  };
 
   // Helper function to map database status to UI status
-  const mapStatusFromDB = (dbStatus: string, app: { sub_stage?: string }): 'interested' | 'applied' | 'interview' | 'offer' | 'referrals' => {
+  const mapStatusFromDB = (dbStatus: string, app: { sub_stage?: string | null }): 'interested' | 'applied' | 'interview' | 'offer' | 'referrals' => {
     const statusMap: Record<string, 'interested' | 'applied' | 'interview' | 'offer' | 'referrals'> = {
       'INTERESTED': 'interested',
       'APPLIED': 'applied',
@@ -400,7 +447,7 @@ export function KanbanPage({
         if (refreshResponse.ok) {
           const refreshData = await refreshResponse.json();
           if (refreshData.success) {
-            const transformedApplications = refreshData.applications.map((app: any) => {
+            const transformedApplications = refreshData.applications.map((app: RefreshAppData) => {
               const isArchived = app.isArchived ?? false;
               return {
                 id: app.application_id.toString(),
@@ -573,8 +620,8 @@ export function KanbanPage({
     return <div className="p-4">Loading...</div>;
   }
 
-  // Add onDragEnd handler
-  const onDragEnd = (result: any) => {
+  // Add onDragEnd handler with proper type from react-beautiful-dnd
+  const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
@@ -589,7 +636,7 @@ export function KanbanPage({
 
     // Update the job status
     updateJob(draggableId, {
-      status: destination.droppableId,
+      status: destination.droppableId as 'interested' | 'applied' | 'interview' | 'offer' | 'referrals',
       subStage: null // Reset subStage when moving between columns
     });
   };

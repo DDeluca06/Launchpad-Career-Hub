@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/basic/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/overlay/dialog";
 import { Textarea } from "@/components/ui/form/textarea";
 import { FileText, Clock, Briefcase, CheckCircle2, XCircle } from "lucide-react";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 

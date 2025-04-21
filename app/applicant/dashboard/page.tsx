@@ -276,27 +276,6 @@ export default function ApplicantDashboard() {
     }
   };
 
-  // Calculate statistics for the dashboard
-  const calculateStats = () => {
-    if (!data?.applications) return { total: 0, active: 0, interviews: 0, offers: 0 };
-    
-    const total = data.applications.length;
-    const active = data.applications.filter(app => 
-      app.status !== 'REJECTED' && app.status !== 'OFFER_ACCEPTED'
-    ).length;
-    const interviews = data.applications.filter(app => 
-      app.status === 'PHONE_SCREENING' || 
-      app.status === 'INTERVIEW_STAGE' || 
-      app.status === 'FINAL_INTERVIEW_STAGE'
-    ).length;
-    const offers = data.applications.filter(app => 
-      app.status === 'OFFER_EXTENDED' || 
-      app.status === 'NEGOTIATION'
-    ).length;
-    
-    return { total, active, interviews, offers };
-  };
-
   // Get the stats
   const stats = data?.stats || {
     totalApplications: 0,
