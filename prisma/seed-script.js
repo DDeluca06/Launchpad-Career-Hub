@@ -15,6 +15,36 @@ const main = async () => {
     await prisma.resumes.deleteMany();
     await prisma.users.deleteMany();
 
+    // Create companies
+    const companies = [];
+    const companyNames = [
+      'TechCorp Solutions',
+      'Digital Innovations Inc',
+      'WebStack Technologies',
+      'DataFlow Systems',
+      'CloudNine Computing',
+      'CodeCraft Studios',
+      'ByteBridge Solutions',
+      'DevOps Dynamics',
+      'AI Nexus Labs',
+      'CyberSecure Systems'
+    ];
+
+    for (const name of companyNames) {
+      const company = await prisma.companies.create({
+        data: {
+          name: name,
+          description: faker.company.catchPhrase(),
+          website: `https://www.${name.toLowerCase().replace(/\s+/g, '')}.com`,
+          industry: faker.helpers.arrayElement(['Technology', 'Software', 'AI', 'Cybersecurity', 'Cloud Computing']),
+          location: `${faker.location.city()}, ${faker.location.state({ abbreviated: true })}`,
+          logo_url: faker.image.url(),
+          is_partner: faker.datatype.boolean()
+        }
+      });
+      companies.push(company);
+    }
+
     // Create admin user
     const adminUser = await prisma.users.create({
       data: {
@@ -146,7 +176,9 @@ const main = async () => {
           isArchived: false, // Keep most applications active
           position: job.title,
           resume_id: resume?.resume_id,
-          applied_at: faker.date.past({ years: 1 }) // Applications within the last year
+          applied_at: faker.date.past({ years: 1 }), // Applications within the last year
+          cover_letter: faker.lorem.paragraphs(2), // Add sample cover letter
+          ideal_candidate: faker.lorem.paragraphs(1) // Add sample ideal candidate description
         }
       });
       applications.push(application);

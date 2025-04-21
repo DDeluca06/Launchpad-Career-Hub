@@ -5,32 +5,27 @@ import { prisma } from '@/lib/prisma';
  * DELETE request handler to delete applications by job_id
  * This is used to remove saved jobs from the jobs page
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
-    // Get job ID from params
-    const { id } = params;
+    const searchParams = request.nextUrl.searchParams;
+    const jobId = searchParams.get('jobId');
+    const userId = searchParams.get('userId');
     
-    if (!id) {
+    if (!jobId) {
       return NextResponse.json(
         { success: false, error: 'Job ID is required' },
         { status: 400 }
       );
     }
     
-    const jobId = parseInt(id);
+    const numericJobId = parseInt(jobId);
     
-    if (isNaN(jobId)) {
+    if (isNaN(numericJobId)) {
       return NextResponse.json(
         { success: false, error: 'Invalid job ID' },
         { status: 400 }
       );
     }
-
-    // Get the user ID from the query parameters
-    const userId = request.nextUrl.searchParams.get('userId');
     
     if (!userId) {
       return NextResponse.json(
@@ -51,7 +46,7 @@ export async function DELETE(
     // Find applications with the given job_id and user_id
     const applications = await prisma.applications.findMany({
       where: {
-        job_id: jobId,
+        job_id: numericJobId,
         user_id: numericUserId,
         status: 'INTERESTED', // Only delete INTERESTED applications
       }
@@ -67,7 +62,7 @@ export async function DELETE(
     // Delete all matching applications
     await prisma.applications.deleteMany({
       where: {
-        job_id: jobId,
+        job_id: numericJobId,
         user_id: numericUserId,
         status: 'INTERESTED',
       }

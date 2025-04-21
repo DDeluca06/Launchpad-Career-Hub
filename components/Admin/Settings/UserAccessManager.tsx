@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/form/input";
 import { Switch } from "@/components/ui/basic/switch";
 import { Badge } from "@/components/ui/basic/badge";
@@ -62,6 +62,14 @@ export function UserAccessManager({
     return matchesSearch;
   });
 
+  const showToast = useCallback((title: string, description: string, variant: "default" | "destructive" = "default") => {
+    toast({
+      title,
+      description,
+      variant,
+    });
+  }, []);
+
   // Toggle admin status for a user
   const handleToggleAdmin = async (userId: number, currentAdminStatus: boolean) => {
     setIsUpdating(userId);
@@ -99,21 +107,12 @@ export function UserAccessManager({
           onUserUpdate(data.user);
         }
         
-        toast({
-          title: "Success",
-          description: `Admin status updated successfully`,
-          variant: "default",
-        });
+        showToast("Success", `Admin status updated successfully`);
       } else {
         throw new Error(data.error || 'Unknown error occurred');
       }
-    } catch (error) {
-      console.error('Error updating admin status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update admin status. Please try again.",
-        variant: "destructive",
-      });
+    } catch {
+      showToast("Error", "Failed to update admin status. Please try again.", "destructive");
     } finally {
       setIsUpdating(null);
     }
@@ -122,11 +121,7 @@ export function UserAccessManager({
   // Handle creating a new user
   const handleCreateUser = async () => {
     if (!newUser.firstName || !newUser.lastName || !newUser.email || !newUser.password) {
-      toast({
-        title: "Error",
-        description: "Please fill out all required fields.",
-        variant: "destructive",
-      });
+      showToast("Error", "Please fill out all required fields.", "destructive");
       return;
     }
 
@@ -164,18 +159,9 @@ export function UserAccessManager({
       });
       setCreateUserDialogOpen(false);
       
-      toast({
-        title: "Success",
-        description: "User created successfully",
-        variant: "default",
-      });
-    } catch (error) {
-      console.error('Error creating user:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create user. Please try again.",
-        variant: "destructive",
-      });
+      showToast("Success", "User created successfully");
+    } catch {
+      showToast("Error", "Failed to create user. Please try again.", "destructive");
     }
   };
 
@@ -189,11 +175,7 @@ export function UserAccessManager({
   // Handle password reset
   const handleResetPassword = async () => {
     if (!selectedUserId || !newPassword) {
-      toast({
-        title: "Error",
-        description: "Please provide a new password.",
-        variant: "destructive",
-      });
+      showToast("Error", "Please provide a new password.", "destructive");
       return;
     }
 
@@ -221,21 +203,12 @@ export function UserAccessManager({
         setSelectedUserId(null);
         setNewPassword("");
         
-        toast({
-          title: "Success",
-          description: "Password reset successfully",
-          variant: "default",
-        });
+        showToast("Success", "Password reset successfully");
       } else {
         throw new Error(data.error || 'Unknown error occurred');
       }
-    } catch (error) {
-      console.error('Error resetting password:', error);
-      toast({
-        title: "Error",
-        description: "Failed to reset password. Please try again.",
-        variant: "destructive",
-      });
+    } catch {
+      showToast("Error", "Failed to reset password. Please try again.", "destructive");
     }
   };
 

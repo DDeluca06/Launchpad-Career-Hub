@@ -1,4 +1,19 @@
 import { UIJob } from "./JobsList";
+import { ApplicationStatus } from "@/lib/prisma-enums";
+
+interface JobData {
+  job_id: number;
+  title: string;
+  company: string;
+  description: string;
+  location: string;
+  job_type: string;
+  tags?: string[];
+  website?: string;
+  application_deadline?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export async function fetchJobs(filters?: Record<string, string | boolean>): Promise<UIJob[]> {
   try {
@@ -27,7 +42,7 @@ export async function fetchJobs(filters?: Record<string, string | boolean>): Pro
     }
     
     // Transform API response to UIJob format
-    return data.jobs.map((job: any) => ({
+    const transformedJobs = data.jobs.map((job: JobData) => ({
       id: job.job_id.toString(),
       title: job.title,
       company: job.company,
@@ -48,6 +63,8 @@ export async function fetchJobs(filters?: Record<string, string | boolean>): Pro
       url: job.website || "#",
       qualifications: job.description?.split('\n').filter((line: string) => line.includes('requirement') || line.includes('qualification')) || []
     }));
+    
+    return transformedJobs;
   } catch (error) {
     console.error('Error fetching jobs:', error);
     throw error;
@@ -84,7 +101,7 @@ export async function saveJob(userId: number, jobId: number, title: string): Pro
 
 export async function removeJob(userId: number, jobId: number): Promise<boolean> {
   try {
-    const response = await fetch(`/api/applications/job/${jobId}?userId=${userId}`, {
+    const response = await fetch(`/api/applications/job?jobId=${jobId}&userId=${userId}`, {
       method: "DELETE",
     });
     
@@ -106,9 +123,21 @@ export async function submitApplication(
   jobId: number, 
   resumeId: number, 
   position: string,
-  userData: { firstName: string, lastName: string, email: string, phone: string }
-): Promise<boolean> {
+  userData: { firstName: string, lastName: string, email: string },
+  coverLetter: string,
+  idealCandidate: string
+): Promise<{ application: { application_id: number, status: ApplicationStatus } }> {
   try {
+    console.log('Submitting application with data:', {
+      userId,
+      jobId,
+      resumeId,
+      position,
+      userData,
+      coverLetter: coverLetter.substring(0, 20) + '...',
+      idealCandidate: idealCandidate.substring(0, 20) + '...'
+    });
+
     // Create application
     const applicationResponse = await fetch("/api/applications", {
       method: "POST",
@@ -118,40 +147,54 @@ export async function submitApplication(
       body: JSON.stringify({
         user_id: userId,
         job_id: jobId,
-        status: "APPLIED",
+        status: ApplicationStatus.APPLIED,
         resume_id: resumeId,
         position: position,
+        cover_letter: coverLetter,
+        ideal_candidate: idealCandidate
       }),
     });
+
+    if (!applicationResponse.ok) {
+      const errorData = await applicationResponse.json();
+      console.error('Application submission failed:', errorData);
+      
+      // Handle specific error cases
+      if (errorData.error && errorData.error.includes("already applied")) {
+        throw new Error("You have already applied to this job");
+      }
+      
+      throw new Error(errorData.error || 'Failed to create application');
+    }
     
     const applicationData = await applicationResponse.json();
+    console.log('Application submission response:', applicationData);
     
     if (!applicationData.success) {
       throw new Error(applicationData.error || 'Failed to create application');
     }
     
-    // Update user profile
-    const profileResponse = await fetch("/api/profile", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId: userId,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        email: userData.email,
-        phone: userData.phone
-      }),
-    });
-    
-    const profileData = await profileResponse.json();
-    
-    if (!profileData.success) {
-      console.warn('User profile update failed, but application was created');
+    // Update user profile if needed
+    if (userData.firstName || userData.lastName || userData.email) {
+      const profileResponse = await fetch("/api/profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: userId,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email
+        }),
+      });
+      
+      if (!profileResponse.ok) {
+        console.warn('User profile update failed, but application was created');
+      }
     }
     
-    return true;
+    return { application: applicationData.application };
   } catch (error) {
     console.error('Error submitting application:', error);
     throw error;

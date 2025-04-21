@@ -1,65 +1,39 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth';
+import { ApplicationStatus } from '@/lib/prisma-enums';
 
-// Get applicant dashboard data
 export async function GET(request: Request) {
   try {
-    // Verify database connection
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      console.log('Database connection successful');
-    } catch (dbError) {
-      console.error('Database connection failed:', dbError);
-      return NextResponse.json({ 
-        error: 'Database connection failed', 
-        details: process.env.NODE_ENV === 'development' ? (dbError instanceof Error ? dbError.message : 'Unknown error') : undefined 
-      }, { status: 503 });
+    // Get the current user's session
+    const session = await auth.getSession(request);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // First try using NextAuth
-    const session = await getServerSession();
-    let email = session?.user?.email;
-    
-    // If NextAuth fails, try the custom auth implementation
-    if (!email) {
-      const customSession = await auth.getSession(request);
-      if (customSession?.user?.id) {
-        // Get user email from the user ID
-        const user = await prisma.users.findUnique({
-          where: { user_id: parseInt(customSession.user.id) }
-        });
-        if (user) {
-          email = user.email;
-          console.warn('Using custom auth with email:', email);
-        }
-      }
-    }
+    const userId = parseInt(session.user.id);
 
-    console.warn('Session data:', session); // Debug log
-    
-    if (!email) {
-      console.warn('No user email in session'); // Debug log
-      return NextResponse.json({ error: 'Unauthorized', message: 'No user email found in session' }, { status: 401 });
-    }
-
-    console.warn('Fetching data for email:', email); // Debug log
-
-    const applicant = await prisma.users.findFirst({
+    // Get user with their applications and related job details
+    const user = await prisma.users.findUnique({
       where: {
-        AND: [
-          { email: { equals: email } },
-          { is_admin: false },
-          { is_active: true },
-          { is_archived: false }
-        ]
+        user_id: userId,
+        is_archived: false
       },
       include: {
         applications: {
+          where: {
+            isArchived: false
+          },
           include: {
-            jobs: true
+            jobs: {
+              include: {
+                partners: {
+                  select: {
+                    name: true
+                  }
+                }
+              }
+            }
           },
           orderBy: {
             status_updated: 'desc'
@@ -68,55 +42,65 @@ export async function GET(request: Request) {
       }
     });
 
-    if (!applicant) {
-      console.warn('No applicant found for email:', email); // Debug log
-      return NextResponse.json({ error: 'Applicant not found', message: 'User exists but no applicant record found' }, { status: 404 });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Verify that we have applications data
-    console.warn(`Found ${applicant.applications.length} applications for user ID: ${applicant.user_id}`);
-
-    type ApplicationWithJob = Prisma.applicationsGetPayload<{
-      include: { jobs: true }
-    }>;
-
-    const response = {
-      applications: applicant.applications.map((app: ApplicationWithJob) => ({
-        id: app.application_id,
-        status: app.status,
-        appliedAt: app.applied_at,
-        updatedAt: app.status_updated,
-        subStage: app.sub_stage,
-        job: app.jobs ? {
-          id: app.jobs.job_id,
-          title: app.jobs.title,
-          company: app.jobs.company,
-          location: app.jobs.location,
-          type: app.jobs.job_type
+    // Transform the data for the frontend
+    const formattedApplications = user.applications.map(app => ({
+      id: app.application_id.toString(),
+      status: app.status,
+      appliedAt: app.applied_at?.toISOString() ?? new Date().toISOString(),
+      updatedAt: app.status_updated?.toISOString() ?? new Date().toISOString(),
+      subStage: app.sub_stage,
+      isRecommended: false,
+      job: app.jobs ? {
+        id: app.jobs.job_id.toString(),
+        title: app.jobs.title,
+        company: app.jobs.company,
+        location: app.jobs.location || 'Remote',
+        type: app.jobs.job_type,
+        description: app.jobs.description,
+        tags: app.jobs.tags,
+        website: app.jobs.website,
+        partnerDetails: app.jobs.partners ? {
+          name: app.jobs.partners.name
         } : null
-      })),
-      // Adding empty savedJobs array as this feature is not implemented in the schema yet
-      savedJobs: [],
-      profile: {
-        id: applicant.user_id,
-        email: applicant.email,
-        firstName: applicant.first_name,
-        lastName: applicant.last_name
-      }
+      } : null
+    }));
+
+    // Calculate some basic stats
+    const stats = {
+      totalApplications: formattedApplications.length,
+      activeApplications: formattedApplications.filter(app => 
+        app.status !== ApplicationStatus.REJECTED && app.status !== ApplicationStatus.OFFER_ACCEPTED
+      ).length,
+      interviews: formattedApplications.filter(app => 
+        [ApplicationStatus.PHONE_SCREENING, ApplicationStatus.INTERVIEW_STAGE, ApplicationStatus.FINAL_INTERVIEW_STAGE].includes(app.status as ApplicationStatus)
+      ).length,
+      offers: formattedApplications.filter(app => 
+        [ApplicationStatus.OFFER_EXTENDED, ApplicationStatus.NEGOTIATION].includes(app.status as ApplicationStatus)
+      ).length
     };
 
-    console.warn('Successfully retrieved dashboard data for user ID:', applicant.user_id);
-    return NextResponse.json(response);
+    return NextResponse.json({
+      success: true,
+      applications: formattedApplications,
+      stats,
+      profile: {
+        id: user.user_id.toString(),
+        firstName: user.first_name,
+        lastName: user.last_name,
+        email: user.email,
+        program: user.program
+      }
+    });
+
   } catch (error) {
     console.error('Dashboard API Error:', error);
-    // Return more detailed error information in development
-    const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    
     return NextResponse.json({ 
-      error: 'Internal Server Error',
-      message: 'Failed to retrieve dashboard data',
-      details: process.env.NODE_ENV === 'development' ? { message: errorMessage, stack: errorStack } : undefined 
+      success: false,
+      error: 'Failed to fetch dashboard data'
     }, { status: 500 });
   }
 } 

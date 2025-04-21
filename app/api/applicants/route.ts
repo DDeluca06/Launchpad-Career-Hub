@@ -10,8 +10,12 @@ interface Application {
   jobs?: {
     title: string;
     company: string;
+    website?: string;
+    description?: string;
   };
   applied_at?: Date | null;
+  notes?: string;
+  sub_stage?: string;
 }
 
 interface User {
@@ -33,6 +37,8 @@ interface User {
     status_updated: Date | null;
     resume_id: number | null;
     position: string | null;
+    notes?: string;
+    sub_stage?: string;
   }[];
 }
 
@@ -60,20 +66,31 @@ export async function GET(request: NextRequest) {
             user_id: userId 
           },
           include: {
-            jobs: true
+            jobs: {
+              select: {
+                title: true,
+                company: true,
+                website: true,
+                description: true
+              }
+            }
           },
           orderBy: {
             applied_at: 'desc'
           }
         });
         
-        const formattedApplications = applications.map((app: Application) => ({
+        const formattedApplications = applications.map((app) => ({
           id: app.application_id,
           jobId: app.job_id,
           jobTitle: app.jobs?.title || '',
           company: app.jobs?.company || '',
+          companyLogoUrl: app.jobs?.website || 'https://placehold.co/150',
           status: app.status.toLowerCase(),
-          appliedDate: app.applied_at?.toISOString() || new Date().toISOString()
+          appliedDate: app.applied_at?.toISOString() || new Date().toISOString(),
+          notes: app.notes || '',
+          nextSteps: app.sub_stage || '',
+          interviewDate: undefined
         }));
         
         return NextResponse.json({ applications: formattedApplications });
@@ -117,8 +134,10 @@ export async function GET(request: NextRequest) {
       // Create the response object
       const applicant = {
         id: user.user_id,
+        userId: user.user_id.toString(),
         firstName: user.first_name,
         lastName: user.last_name,
+        email: user.email,
         role: user.is_admin ? 'admin' : 'applicant',
         applications: user.applications.length,
         program: displayProgram,
@@ -318,8 +337,10 @@ export async function GET(request: NextRequest) {
         
         return {
           id: user.user_id,
+          userId: user.user_id.toString(),
           firstName: user.first_name,
           lastName: user.last_name,
+          email: user.email,
           role: user.is_admin ? 'admin' : 'applicant',
           applications: user.applications.length,
           program: displayProgram,

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import KanbanBoard from '../kanban-board';
+import { KanbanPage } from '../kanban/KanbanPage';
+import { JobApplication, Stage, SubStage } from '@/types/application-stages';
 
 // Example application data
 const MOCK_APPLICATIONS = [
@@ -30,120 +31,82 @@ const MOCK_APPLICATIONS = [
       company: 'ProductLabs'
     },
     status: 'interview',
-    subStage: 'phone_screening',
     updatedAt: new Date().toISOString()
   },
   {
     id: '4',
     job: {
-      title: 'Backend Engineer',
-      company: 'ServerTech'
-    },
-    status: 'interview',
-    subStage: 'interview_stage',
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '5',
-    job: {
-      title: 'DevOps Engineer',
-      company: 'CloudOps'
-    },
-    status: 'interview',
-    subStage: 'final_interview_stage',
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '6',
-    job: {
-      title: 'Full Stack Developer',
-      company: 'WebStack'
+      title: 'Backend Developer',
+      company: 'ServerStack'
     },
     status: 'offer',
-    subStage: 'negotiation',
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '7',
-    job: {
-      title: 'Data Scientist',
-      company: 'DataInsights'
-    },
-    status: 'offer',
-    subStage: 'offer_extended',
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '8',
-    job: {
-      title: 'Software Engineer',
-      company: 'CodeWorks'
-    },
-    status: 'offer',
-    subStage: 'accepted',
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '9',
-    job: {
-      title: 'Project Manager',
-      company: 'Projectify'
-    },
-    status: 'offer',
-    subStage: 'rejected',
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '10',
-    job: {
-      title: 'QA Engineer',
-      company: 'QualityTech'
-    },
-    status: 'referrals',
     updatedAt: new Date().toISOString()
   }
 ];
 
-// Define correct types for our applications
-interface Application {
-  id: string;
-  job: {
-    title: string;
-    company: string;
-  };
-  status: string;
-  subStage?: string | null;
-  updatedAt: string;
-}
+// Transform the mock applications to match JobApplication interface
+const transformApplications = (apps: typeof MOCK_APPLICATIONS): JobApplication[] => {
+  return apps.map(app => ({
+    id: app.id,
+    title: app.job.title,
+    company: app.job.company,
+    description: 'Mock job description',
+    stage: app.status as Stage,
+    status: app.status as Stage,
+    subStage: null as SubStage,
+    date: app.updatedAt,
+    tags: [],
+    archived: false,
+    logo: 'https://placehold.co/150',
+    location: 'Remote',
+    salary: 'Competitive',
+    url: '',
+    notes: ''
+  }));
+};
 
 export default function KanbanDemo() {
-  const [applications, setApplications] = useState<Application[]>(MOCK_APPLICATIONS);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate loading state
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Simulate loading data from an API
+    const loadData = async () => {
+      setIsLoading(true);
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Transform mock data to match JobApplication interface
+      const transformedApps = transformApplications(MOCK_APPLICATIONS);
+      setApplications(transformedApps);
+      
       setIsLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
+    };
+    
+    loadData();
   }, []);
 
-  // Handle status changes from drag and drop
-  const handleStatusChange = (applicationId: string, newStatus: string, subStage?: string) => {
-    setApplications(prev => 
-      prev.map(app => 
+  // Handle status change
+  const handleStatusChange = async (applicationId: string, newStatus: string, subStage?: string) => {
+    console.log(`Updating application ${applicationId} to status ${newStatus} ${subStage ? `with substage ${subStage}` : ''}`);
+    
+    // Update local state
+    setApplications(prevApps => 
+      prevApps.map(app => 
         app.id === applicationId 
-          ? { ...app, status: newStatus, subStage: subStage || null } 
+          ? { 
+              ...app, 
+              status: newStatus as Stage, 
+              stage: newStatus as Stage,
+              subStage: (subStage || null) as SubStage 
+            } 
           : app
       )
     );
-
-    console.log(`Application ${applicationId} moved to ${newStatus}${subStage ? ` (${subStage})` : ''}`);
     
-    // Here you would typically call your API to update the status
-    // Example:
-    // fetch(`/api/applications/${applicationId}/status`, {
+    // In a real app, you would call your API here
+    // await fetch(`/api/applications/${applicationId}`, {
     //   method: 'PATCH',
     //   headers: { 'Content-Type': 'application/json' },
     //   body: JSON.stringify({ status: newStatus, subStage })
@@ -154,11 +117,11 @@ export default function KanbanDemo() {
     <div className="container mx-auto py-8">
       <h1 className="text-2xl font-bold mb-6">Application Pipeline</h1>
       
-      <KanbanBoard 
+      <KanbanPage 
         applications={applications}
         isLoading={isLoading}
         onStatusChange={handleStatusChange}
       />
     </div>
   );
-} 
+}

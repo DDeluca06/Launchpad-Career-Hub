@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -12,15 +11,13 @@ import { Edit, Archive } from 'lucide-react';
 interface KanbanCardProps {
   job: JobApplication;
   index: number;
-  onUpdateJob: (jobId: string, updates: Partial<JobApplication>) => void;
-  onArchiveJob: (jobId: string) => void;
-  onEditJob: (job: JobApplication) => void;
+  onArchiveJob?: (jobId: string) => void;
+  onEditJob?: (job: JobApplication) => void;
 }
 
 export function KanbanCard({
   job,
   index,
-  onUpdateJob,
   onArchiveJob,
   onEditJob,
 }: KanbanCardProps) {
@@ -82,7 +79,7 @@ export function KanbanCard({
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
-                      onClick={() => onEditJob(job)}
+                      onClick={() => onEditJob?.(job)}
                     >
                       <Edit className="h-3.5 w-3.5" />
                     </Button>
@@ -90,7 +87,7 @@ export function KanbanCard({
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
-                      onClick={() => onArchiveJob(job.id)}
+                      onClick={() => onArchiveJob?.(job.id)}
                     >
                       <Archive className="h-3.5 w-3.5" />
                     </Button>
