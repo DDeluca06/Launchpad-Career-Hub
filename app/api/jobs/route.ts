@@ -14,6 +14,14 @@ export interface JobImportData {
   partner_id?: number | null;
 }
 
+// Helper function to format tags
+function formatTag(tag: string): string {
+  return tag
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
 /**
  * GET request handler to fetch jobs
  * Can get a single job by id or list all jobs with filters
@@ -80,7 +88,7 @@ export async function GET(request: NextRequest) {
         location: job.location,
         partner_id: job.partner_id,
         created_at: job.created_at?.toISOString(),
-        tags: job.tags,
+        tags: job.tags.map(formatTag),
         applications: job.applications,
         applicationCount: job._count.applications,
         partner: job.partners ? {
@@ -222,12 +230,12 @@ export async function GET(request: NextRequest) {
         job_type: job.job_type,
         title: job.title,
         description: job.description,
-        company: job.company, // Use the direct company string field
+        company: job.company,
         website: job.website,
         location: job.location,
         partner_id: job.partner_id,
         created_at: job.created_at?.toISOString(),
-        tags: job.tags,
+        tags: job.tags.map(formatTag),
         applications: job.applications || [],
         applicationCount: job._count.applications,
         partners: job.partners,
@@ -270,7 +278,7 @@ export async function POST(request: NextRequest) {
         location: data.location || null,
         website: data.website || null,
         partner_id: data.partner_id || null,
-        tags: data.tags || [],
+        tags: data.tags?.map((tag: string) => tag.toUpperCase().replace(/ /g, '_')) || [],
       },
       include: {
         partners: {
@@ -280,8 +288,14 @@ export async function POST(request: NextRequest) {
         }
       }
     });
+
+    // Format the response
+    const formattedJob = {
+      ...job,
+      tags: job.tags.map(formatTag)
+    };
     
-    return NextResponse.json({ success: true, job });
+    return NextResponse.json({ success: true, job: formattedJob });
   } catch (error) {
     console.error('Error creating job:', error);
     return NextResponse.json(
@@ -341,7 +355,7 @@ export async function PUT(request: NextRequest) {
         location: data.location,
         website: data.website,
         partner_id: data.partner_id,
-        tags: data.tags,
+        tags: data.tags?.map((tag: string) => tag.toUpperCase().replace(/ /g, '_')) || existingJob.tags,
         archived: data.archived !== undefined ? data.archived : existingJob.archived,
       },
       include: {
@@ -352,8 +366,14 @@ export async function PUT(request: NextRequest) {
         }
       }
     });
+
+    // Format the response
+    const formattedJob = {
+      ...updatedJob,
+      tags: updatedJob.tags.map(formatTag)
+    };
     
-    return NextResponse.json({ success: true, job: updatedJob });
+    return NextResponse.json({ success: true, job: formattedJob });
   } catch (error) {
     console.error('Error updating job:', error);
     return NextResponse.json(
