@@ -114,7 +114,7 @@ export function JobDetailsAdmin({
           <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
           <div className="flex items-center gap-2 mt-1 text-gray-600">
             <Building2 className="h-4 w-4" />
-            <span>{job.companies?.name || "Unknown Company"}</span>
+            <span>{job.company || "Unknown Company"}</span>
             {job.location && (
               <>
                 <span className="mx-1">•</span>

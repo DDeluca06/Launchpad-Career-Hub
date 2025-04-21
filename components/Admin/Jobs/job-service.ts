@@ -50,7 +50,7 @@ export async function fetchJobsByArchiveStatus(archived: boolean = false) {
       return [];
     }
     
-    console.error(`Successfully fetched ${data.jobs.length} jobs`);
+    console.log(`Successfully fetched ${data.jobs.length} jobs`);
     return data.jobs;
   } catch (error: Error | unknown) {
     // Handle timeout error specifically
