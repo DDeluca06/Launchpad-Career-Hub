@@ -276,31 +276,6 @@ export function JobModals({
                 </div>
               )}
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-partner">Partner Organization</Label>
-                  <Select 
-                    value={editingJob.partner_id?.toString() || "null"}
-                    onValueChange={(value) => setEditingJob({
-                      ...editingJob, 
-                      partner_id: value === "null" ? null : parseInt(value)
-                    })}
-                  >
-                    <SelectTrigger id="edit-partner">
-                      <SelectValue placeholder="Select partner (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="null">None</SelectItem>
-                      {partners.map((partner) => (
-                        <SelectItem key={partner.partner_id} value={partner.partner_id.toString()}>
-                          {partner.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="edit-description">Description</Label>
                 <Textarea
@@ -433,26 +408,6 @@ export function JobModals({
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="partner">Partner Organization</Label>
-                <Select 
-                  value={newJob.partner_id?.toString() || "null"}
-                  onValueChange={(value) => setNewJob({
-                    ...newJob, 
-                    partner_id: value === "null" ? null : parseInt(value)
-                  })}
-                >
-                  <SelectTrigger id="partner">
-                    <SelectValue placeholder="Select partner (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="null">None</SelectItem>
-                    {partners.map((partner) => (
-                      <SelectItem key={partner.partner_id} value={partner.partner_id.toString()}>
-                        {partner.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
             
