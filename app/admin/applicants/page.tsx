@@ -22,7 +22,7 @@ import {
   NewUserData
 } from "@/components/Admin/Applicants/types";
 
-const PROGRAM_TABS = ["ALL", "FOUNDATION", "101", "LIFTOFF", "ALUMNI"] as const;
+const PROGRAM_TABS = ["ALL", "FOUNDATIONS", "101", "LIFTOFF", "ALUMNI"] as const;
 
 /**
  * Renders the applicant management dashboard.
@@ -408,7 +408,7 @@ export default function ApplicantsPage() {
                   value={program}
                   className="flex-1 data-[state=active]:bg-[#0faec9] data-[state=active]:text-white"
                 >
-                  {program === "FOUNDATION" ? "Foundations" : program}
+                  {program === "FOUNDATIONS" ? "FOUNDATIONS" : program}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -443,7 +443,7 @@ export default function ApplicantsPage() {
                     ? "Try adjusting your search query"
                     : activeProgram === "ALL"
                     ? "No applicants in the system yet"
-                    : `No applicants in the ${activeProgram === "FOUNDATION" ? "Foundations" : activeProgram} program yet`}
+                    : `No applicants in the ${activeProgram === "FOUNDATIONS" ? "FOUNDATIONS" : activeProgram} program yet`}
                 </p>
               </CardContent>
             </Card>

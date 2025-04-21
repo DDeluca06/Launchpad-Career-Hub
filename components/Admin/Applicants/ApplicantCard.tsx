@@ -53,19 +53,19 @@ export function ApplicantCard({ applicant, onViewProfile }: ApplicantCardProps) 
       case "LIFTOFF":
         return (
           <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">
-            Liftoff
+            LIFTOFF
           </Badge>
         );
-      case "FOUNDATION":
+      case "FOUNDATIONS":
         return (
           <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-            Foundation
+            FOUNDATIONS
           </Badge>
         );
       case "ALUMNI":
         return (
           <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-            Alumni
+            ALUMNI
           </Badge>
         );
       default:
