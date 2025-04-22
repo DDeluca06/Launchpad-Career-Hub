@@ -10,12 +10,14 @@ import { Shield, Search, UserPlus, KeyRound, Tag, FileText, Briefcase } from "lu
 import { extendedPalette } from "@/lib/colors";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { User, UserAccessSettingsProps } from "./types";
+import { ApplicantWithDetails, JobApplication } from "../Applicants/types";
 import { Button } from "@/components/ui/basic/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/overlay/dialog";
 import { Label } from "@/components/ui/basic/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/form/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
 import { JobRecommendationModal } from "./JobRecommendationModal";
+import { ApplicantProfileModal } from "@/components/Admin/Applicants/ApplicantProfileModal";
 
 export function UserAccessManager({ 
   users, 
@@ -43,6 +45,10 @@ export function UserAccessManager({
   // New states for job recommendation
   const [recommendJobModalOpen, setRecommendJobModalOpen] = useState(false);
   const [selectedUserForRecommendation, setSelectedUserForRecommendation] = useState<User | null>(null);
+  const [viewProfileModalOpen, setViewProfileModalOpen] = useState(false);
+  const [selectedUserForProfile, setSelectedUserForProfile] = useState<ApplicantWithDetails | null>(null);
+  const [applicantJobs, setApplicantJobs] = useState<JobApplication[]>([]);
+  const [loadingApplicantJobs, setLoadingApplicantJobs] = useState(false);
 
   // Update local users when props change
   useEffect(() => {
@@ -234,6 +240,66 @@ export function UserAccessManager({
       .join(" ");
   };
 
+  const convertToApplicantWithDetails = (user: User): ApplicantWithDetails => {
+    // Calculate application status counts from user's applications
+    const applicationStatusCount = {
+      interested: user.applications?.filter(app => app.status === 'INTERESTED').length || 0,
+      applied: user.applications?.filter(app => app.status === 'APPLIED').length || 0,
+      phoneScreening: user.applications?.filter(app => app.status === 'PHONE_SCREENING').length || 0,
+      interviewStage: user.applications?.filter(app => app.status === 'INTERVIEW_STAGE').length || 0,
+      finalInterview: user.applications?.filter(app => app.status === 'FINAL_INTERVIEW_STAGE').length || 0,
+      offerExtended: user.applications?.filter(app => app.status === 'OFFER_EXTENDED').length || 0,
+      negotiation: user.applications?.filter(app => app.status === 'NEGOTIATION').length || 0,
+      offerAccepted: user.applications?.filter(app => app.status === 'OFFER_ACCEPTED').length || 0,
+      rejected: user.applications?.filter(app => app.status === 'REJECTED').length || 0
+    };
+
+    return {
+      id: user.id,
+      userId: user.id.toString(),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.isAdmin ? 'admin' : 'applicant',
+      applications: user.applications?.length || 0,
+      program: user.program || 'ONE_ZERO_ONE',
+      isArchived: false,
+      applicationStatusCount
+    };
+  };
+
+  const openProfileModal = async (user: User) => {
+    const applicantDetails = convertToApplicantWithDetails(user);
+    setSelectedUserForProfile(applicantDetails);
+    setViewProfileModalOpen(true);
+    await loadApplicantJobs(user.id);
+  };
+
+  const loadApplicantJobs = async (applicantId: number) => {
+    try {
+      setLoadingApplicantJobs(true);
+      const response = await fetch(`/api/applicants?id=${applicantId}&applications=true`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch applicant jobs');
+      }
+      
+      const data = await response.json();
+      setApplicantJobs(data.applications || []);
+    } catch (error) {
+      console.error("Error loading applicant jobs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load applicant's job applications. Please try again.",
+        variant: "destructive",
+      });
+      setApplicantJobs([]);
+    } finally {
+      setLoadingApplicantJobs(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -388,46 +454,27 @@ export function UserAccessManager({
                           </td>
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openResetPasswordDialog(user.id)}
-                                className="p-2"
-                                title="Reset Password"
-                              >
-                                <KeyRound className="h-4 w-4" />
-                              </Button>
-
-                              {!user.isAdmin && (
+                              {user.isAdmin && (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => openApplicationsDialog(user)}
-                                  className={`p-2 ${hasApplicationNotes ? 'border-blue-500' : ''}`}
-                                  title="View Applications and Notes"
+                                  onClick={() => openResetPasswordDialog(user.id)}
+                                  className="p-2"
+                                  title="Reset Password"
                                 >
-                                  <FileText className={`h-4 w-4 ${hasApplicationNotes ? 'text-blue-500' : ''}`} />
-                                  {hasApplicationNotes && (
-                                    <span className="absolute -top-1 -right-1 h-2 w-2 bg-blue-500 rounded-full"></span>
-                                  )}
+                                  <KeyRound className="h-4 w-4" />
                                 </Button>
                               )}
-
-                              {/* New button for recommending jobs */}
-                              {!user.isAdmin && (
+                              { !user.isAdmin && (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => openRecommendJobModal(user)}
-                                  className="p-2"
-                                  title="Recommend Jobs"
-                                  style={{ 
-                                    borderColor: extendedPalette.primaryGreen,
-                                    color: extendedPalette.primaryGreen
-                                  }}
-                                >
-                                  <Briefcase className="h-4 w-4" />
-                                </Button>
+                                  onClick={() => openProfileModal(user)}
+                                  className="shrink-0 border-[#0faec9] text-[#0faec9] hover:bg-[#c3ebf1]"
+                                  title="View Profile"
+                              >
+                                View Profile
+                              </Button>
                               )}
                             </div>
                           </td>
@@ -627,6 +674,21 @@ export function UserAccessManager({
           onClose={() => setRecommendJobModalOpen(false)}
           user={selectedUserForRecommendation}
           adminId={currentUserId}
+        />
+      )}
+
+      {selectedUserForProfile && (
+        <ApplicantProfileModal
+          open={viewProfileModalOpen}
+          onOpenChange={setViewProfileModalOpen}
+          applicant={selectedUserForProfile}
+          jobApplications={applicantJobs}
+          loadingApplications={loadingApplicantJobs}
+          onRefresh={() => {
+            if (selectedUserForProfile) {
+              loadApplicantJobs(selectedUserForProfile.id);
+            }
+          }}
         />
       )}
     </div>
