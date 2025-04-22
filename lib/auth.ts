@@ -12,10 +12,14 @@ export const auth = {
             return null;
           }
           
-          // Parse cookies
+          // Parse cookies with more resilient handling
           const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
-            const [key, value] = cookie.trim().split('=');
-            acc[key] = value;
+            const parts = cookie.trim().split('=');
+            if (parts.length >= 2) {
+              const key = parts[0];
+              const value = parts.slice(1).join('='); // Handle values containing '='
+              acc[key] = value;
+            }
             return acc;
           }, {} as Record<string, string>);
           
@@ -25,7 +29,7 @@ export const auth = {
             return null;
           }
           
-          console.error("Found session-id cookie");
+          console.error("Found session-id cookie:", sessionId.substring(0, 10) + '...');
           
           // Try to parse as JSON
           try {
@@ -56,7 +60,6 @@ export const auth = {
           }
         } catch (sessionError) {
           console.error('Error retrieving session:', sessionError);
-
           return null;
         }
       }
@@ -67,4 +70,4 @@ export const auth = {
   async getSession(request: Request) {
     return this.api.session.get({ request });
   }
-}; 
+};

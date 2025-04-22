@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
     // Create response
     const response = NextResponse.json({
@@ -8,24 +8,19 @@ export async function POST(request: Request) {
       message: 'Logged out successfully'
     });
     
-    // Get the domain from the request URL for production environments
-    const requestUrl = new URL(request.url);
-    const domain = process.env.NODE_ENV === 'production' 
-      ? requestUrl.hostname 
-      : undefined;
-    
-    console.log('Clearing cookie with domain:', domain);
-    
-    // Clear session cookie using more effective techniques
-    response.cookies.set('session-id', '', {
+    // Simple cookie options that work on both localhost and IP addresses
+    const cookieOptions = {
       httpOnly: true,
       expires: new Date(0),
       path: '/',
-      sameSite: 'lax',
+      sameSite: 'lax' as const,
       maxAge: 0,
-      domain: domain,
-      secure: process.env.NODE_ENV === 'production',
-    });
+    };
+    
+    console.log('Clearing cookie with simple options:', JSON.stringify(cookieOptions));
+    
+    // Clear session cookie with simplified settings
+    response.cookies.set('session-id', '', cookieOptions);
     
     // Add cache-busting headers
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
