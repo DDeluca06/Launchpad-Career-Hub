@@ -160,3 +160,4 @@ Icon?
 .deploy
 .pre-commit-config.yaml
 deploy
+.vercel

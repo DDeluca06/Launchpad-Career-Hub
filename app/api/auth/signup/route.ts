@@ -52,6 +52,14 @@ export async function POST(request: Request) {
     const sessionJson = JSON.stringify(sessionData);
     const sessionId = Buffer.from(sessionJson).toString('base64');
 
+    // Get the domain from request URL for production environments
+    const requestUrl = new URL(request.url);
+    const domain = process.env.NODE_ENV === 'production' 
+      ? requestUrl.hostname 
+      : undefined;
+    
+    console.log('Setting cookie with domain:', domain);
+
     // Create response with session cookie
     const response = NextResponse.json({
       success: true,
@@ -63,12 +71,14 @@ export async function POST(request: Request) {
       }
     }, { status: 201 });
     
-    // Set cookie directly on the response
+    // Set cookie directly on the response with improved settings for production
     response.cookies.set('session-id', sessionId, {
       httpOnly: true, 
       maxAge: 7 * 24 * 60 * 60,
       path: '/',
       sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      domain: domain,
     });
     
     return response;
@@ -76,4 +86,4 @@ export async function POST(request: Request) {
     console.error('Error during user registration:', error);
     return NextResponse.json({ error: 'Registration failed' }, { status: 500 });
   }
-} 
+}

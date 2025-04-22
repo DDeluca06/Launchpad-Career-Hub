@@ -87,13 +87,22 @@ export async function POST(request: Request) {
       }
     });
     
-    // Set cookie with secure settings
+    // Get the domain from the request URL
+    const requestUrl = new URL(request.url);
+    const domain = process.env.NODE_ENV === 'production' 
+      ? requestUrl.hostname 
+      : undefined;
+    
+    console.log('Setting cookie with domain:', domain);
+    
+    // Set cookie with improved settings for production
     response.cookies.set('session-id', sessionId, {
       httpOnly: true, 
       maxAge: 7 * 24 * 60 * 60, // 7 days
       path: '/',
       sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production', // Only use HTTPS in production
+      secure: process.env.NODE_ENV === 'production',
+      domain: domain, // Add domain parameter for production
     });
     
     return response;
@@ -104,4 +113,4 @@ export async function POST(request: Request) {
       error: 'Login failed. Please try again.' 
     }, { status: 500 });
   }
-} 
+}
