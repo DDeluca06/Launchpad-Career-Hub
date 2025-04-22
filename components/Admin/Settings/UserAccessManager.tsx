@@ -6,16 +6,17 @@ import { Switch } from "@/components/ui/basic/switch";
 import { Badge } from "@/components/ui/basic/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/basic/avatar";
 import { Card, CardContent } from "@/components/ui/basic/card";
-import { Shield, Search, UserPlus, KeyRound, Tag, FileText, Briefcase } from "lucide-react";
+import { Shield, Search, UserPlus, KeyRound, Tag } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { User, UserAccessSettingsProps } from "./types";
+import { ApplicantWithDetails, JobApplication } from "../Applicants/types";
 import { Button } from "@/components/ui/basic/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/overlay/dialog";
 import { Label } from "@/components/ui/basic/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/form/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
-import { JobRecommendationModal } from "./JobRecommendationModal";
+import { ApplicantProfileModal } from "@/components/Admin/Applicants/ApplicantProfileModal";
 
 export function UserAccessManager({ 
   users, 
@@ -38,11 +39,10 @@ export function UserAccessManager({
     password: "Changeme",
     program: "ONE_ZERO_ONE"
   });
-  const [viewApplicationsDialogOpen, setViewApplicationsDialogOpen] = useState(false);
-  const [selectedUserForApplications, setSelectedUserForApplications] = useState<User | null>(null);
-  // New states for job recommendation
-  const [recommendJobModalOpen, setRecommendJobModalOpen] = useState(false);
-  const [selectedUserForRecommendation, setSelectedUserForRecommendation] = useState<User | null>(null);
+  const [viewProfileModalOpen, setViewProfileModalOpen] = useState(false);
+  const [selectedUserForProfile, setSelectedUserForProfile] = useState<ApplicantWithDetails | null>(null);
+  const [applicantJobs, setApplicantJobs] = useState<JobApplication[]>([]);
+  const [loadingApplicantJobs, setLoadingApplicantJobs] = useState(false);
 
   // Update local users when props change
   useEffect(() => {
@@ -212,26 +212,66 @@ export function UserAccessManager({
     }
   };
 
-  // Function to open the applications dialog
-  const openApplicationsDialog = (user: User) => {
-    setSelectedUserForApplications(user);
-    setViewApplicationsDialogOpen(true);
+
+
+  const convertToApplicantWithDetails = (user: User): ApplicantWithDetails => {
+    // Calculate application status counts from user's applications
+    const applicationStatusCount = {
+      interested: user.applications?.filter(app => app.status === 'INTERESTED').length || 0,
+      applied: user.applications?.filter(app => app.status === 'APPLIED').length || 0,
+      phoneScreening: user.applications?.filter(app => app.status === 'PHONE_SCREENING').length || 0,
+      interviewStage: user.applications?.filter(app => app.status === 'INTERVIEW_STAGE').length || 0,
+      finalInterview: user.applications?.filter(app => app.status === 'FINAL_INTERVIEW_STAGE').length || 0,
+      offerExtended: user.applications?.filter(app => app.status === 'OFFER_EXTENDED').length || 0,
+      negotiation: user.applications?.filter(app => app.status === 'NEGOTIATION').length || 0,
+      offerAccepted: user.applications?.filter(app => app.status === 'OFFER_ACCEPTED').length || 0,
+      rejected: user.applications?.filter(app => app.status === 'REJECTED').length || 0
+    };
+
+    return {
+      id: user.id,
+      userId: user.id.toString(),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.isAdmin ? 'admin' : 'applicant',
+      applications: user.applications?.length || 0,
+      program: user.program || 'ONE_ZERO_ONE',
+      isArchived: false,
+      applicationStatusCount
+    };
   };
 
-  // Function to open the job recommendation modal
-  const openRecommendJobModal = (user: User) => {
-    setSelectedUserForRecommendation(user);
-    setRecommendJobModalOpen(true);
+  const openProfileModal = async (user: User) => {
+    const applicantDetails = convertToApplicantWithDetails(user);
+    setSelectedUserForProfile(applicantDetails);
+    setViewProfileModalOpen(true);
+    await loadApplicantJobs(user.id);
   };
 
-  // Format application status for display
-  const formatApplicationStatus = (status: string) => {
-    return status
-      .replace(/_/g, " ")
-      .toLowerCase()
-      .split(" ")
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+  const loadApplicantJobs = async (applicantId: number) => {
+    try {
+      setLoadingApplicantJobs(true);
+      const response = await fetch(`/api/applicants?id=${applicantId}&applications=true`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch applicant jobs');
+      }
+      
+      const data = await response.json();
+      setApplicantJobs(data.applications || []);
+    } catch (error) {
+      console.error("Error loading applicant jobs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load applicant's job applications. Please try again.",
+        variant: "destructive",
+      });
+      setApplicantJobs([]);
+    } finally {
+      setLoadingApplicantJobs(false);
+    }
   };
 
   return (
@@ -332,7 +372,6 @@ export function UserAccessManager({
                       // Generate initials for avatar
                       const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
                       const isCurrentUser = user.id === currentUserId;
-                      const hasApplicationNotes = user.applications?.some(app => app.notes?.trim().length > 0);
 
                       return (
                         <tr
@@ -388,44 +427,27 @@ export function UserAccessManager({
                           </td>
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openResetPasswordDialog(user.id)}
-                                className="p-2"
-                                title="Reset Password"
-                              >
-                                <KeyRound className="h-4 w-4" />
-                              </Button>
-
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openApplicationsDialog(user)}
-                                className={`p-2 ${hasApplicationNotes ? 'border-blue-500' : ''}`}
-                                title="View Applications and Notes"
-                              >
-                                <FileText className={`h-4 w-4 ${hasApplicationNotes ? 'text-blue-500' : ''}`} />
-                                {hasApplicationNotes && (
-                                  <span className="absolute -top-1 -right-1 h-2 w-2 bg-blue-500 rounded-full"></span>
-                                )}
-                              </Button>
-
-                              {/* New button for recommending jobs */}
-                              {!user.isAdmin && (
+                              {user.isAdmin && (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => openRecommendJobModal(user)}
+                                  onClick={() => openResetPasswordDialog(user.id)}
                                   className="p-2"
-                                  title="Recommend Jobs"
-                                  style={{ 
-                                    borderColor: extendedPalette.primaryGreen,
-                                    color: extendedPalette.primaryGreen
-                                  }}
+                                  title="Reset Password"
                                 >
-                                  <Briefcase className="h-4 w-4" />
+                                  <KeyRound className="h-4 w-4" />
                                 </Button>
+                              )}
+                              { !user.isAdmin && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openProfileModal(user)}
+                                  className="shrink-0 border-[#0faec9] text-[#0faec9] hover:bg-[#c3ebf1]"
+                                  title="View Profile"
+                              >
+                                View Profile
+                              </Button>
                               )}
                             </div>
                           </td>
@@ -557,74 +579,19 @@ export function UserAccessManager({
         </DialogContent>
       </Dialog>
 
-      {/* Applications Dialog */}
-      {selectedUserForApplications && (
-        <Dialog open={viewApplicationsDialogOpen} onOpenChange={setViewApplicationsDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Applications for {selectedUserForApplications.firstName} {selectedUserForApplications.lastName}</DialogTitle>
-              <DialogDescription>
-                View all applications and notes for this user.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="max-h-[400px] overflow-y-auto py-4">
-              {selectedUserForApplications.applications && selectedUserForApplications.applications.length > 0 ? (
-                <div className="space-y-4">
-                  {(selectedUserForApplications.applications || []).map((app) => {
-                    // Ensure we have default values for required properties
-                    const safeApp = {
-                      id: app?.id || 0,
-                      jobId: app?.jobId || 0,
-                      position: app?.position || app?.jobTitle || 'Unknown Position',
-                      jobTitle: app?.jobTitle || 'Unknown Job',
-                      company: app?.company || 'Unknown Company',
-                      status: app?.status || 'UNKNOWN',
-                      notes: app?.notes || ''
-                    };
-                    
-                    return (
-                      <div key={safeApp.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-medium">{safeApp.position}</h4>
-                            <p className="text-sm text-gray-500">{safeApp.company}</p>
-                          </div>
-                          <Badge variant="outline" className="ml-2">
-                            {formatApplicationStatus(safeApp.status)}
-                          </Badge>
-                        </div>
-                        {safeApp.notes && (
-                          <div className="mt-2">
-                            <p className="text-sm font-medium text-gray-700">Notes:</p>
-                            <p className="text-sm bg-gray-50 p-2 rounded mt-1">{safeApp.notes}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-4 text-gray-500">
-                  No applications found for this user.
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button onClick={() => setViewApplicationsDialogOpen(false)}>
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Job Recommendation Modal */}
-      {selectedUserForRecommendation && (
-        <JobRecommendationModal
-          open={recommendJobModalOpen}
-          onClose={() => setRecommendJobModalOpen(false)}
-          user={selectedUserForRecommendation}
-          adminId={currentUserId}
+      {selectedUserForProfile && (
+        <ApplicantProfileModal
+          open={viewProfileModalOpen}
+          onOpenChange={setViewProfileModalOpen}
+          applicant={selectedUserForProfile}
+          jobApplications={applicantJobs}
+          loadingApplications={loadingApplicantJobs}
+          onRefresh={() => {
+            if (selectedUserForProfile) {
+              loadApplicantJobs(selectedUserForProfile.id);
+            }
+          }}
+          currentUserId={currentUserId}
         />
       )}
     </div>

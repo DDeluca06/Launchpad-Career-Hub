@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Search, Users, FileText } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
 import { toast } from "@/components/ui/feedback/use-toast";
+import { useSession } from "next-auth/react";
 
 // Import our components
 import { ApplicantCard } from "@/components/Admin/Applicants/ApplicantCard";
@@ -22,7 +23,7 @@ import {
   NewUserData
 } from "@/components/Admin/Applicants/types";
 
-const PROGRAM_TABS = ["ALL", "FOUNDATION", "101", "LIFTOFF", "ALUMNI"] as const;
+const PROGRAM_TABS = ["ALL", "FOUNDATIONS", "101", "LIFTOFF", "ALUMNI"] as const;
 
 /**
  * Renders the applicant management dashboard.
@@ -35,6 +36,7 @@ const PROGRAM_TABS = ["ALL", "FOUNDATION", "101", "LIFTOFF", "ALUMNI"] as const;
  * @returns The applicant management page rendered as JSX.
  */
 export default function ApplicantsPage() {
+  const { data: session } = useSession();
   // State for applicants data
   const [filteredApplicants, setFilteredApplicants] = useState<ApplicantWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -408,7 +410,7 @@ export default function ApplicantsPage() {
                   value={program}
                   className="flex-1 data-[state=active]:bg-[#0faec9] data-[state=active]:text-white"
                 >
-                  {program === "FOUNDATION" ? "Foundations" : program}
+                  {program === "FOUNDATIONS" ? "FOUNDATIONS" : program}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -443,7 +445,7 @@ export default function ApplicantsPage() {
                     ? "Try adjusting your search query"
                     : activeProgram === "ALL"
                     ? "No applicants in the system yet"
-                    : `No applicants in the ${activeProgram === "FOUNDATION" ? "Foundations" : activeProgram} program yet`}
+                    : `No applicants in the ${activeProgram === "FOUNDATIONS" ? "FOUNDATIONS" : activeProgram} program yet`}
                 </p>
               </CardContent>
             </Card>
@@ -490,6 +492,7 @@ export default function ApplicantsPage() {
         loadingApplications={loadingApplicantJobs}
         onRefresh={loadApplicants}
         onEdit={handleEditApplicant}
+        currentUserId={session?.user?.id ? parseInt(session.user.id) : undefined}
       />
     </DashboardLayout>
   );

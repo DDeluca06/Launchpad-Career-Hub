@@ -16,8 +16,8 @@ import { INDUSTRIES } from '../Partners/types';
 import { toast } from 'sonner';
 
 interface CompanySelectProps {
-  value?: number;
-  onChange: (value: number | undefined) => void;
+  value?: string;
+  onChange: (value: string | undefined) => void;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -42,8 +42,8 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
     is_partner: false
   });
   
-  // Get the selected company name
-  const selectedCompany = companies.find(company => company.company_id === value);
+  // Get the selected company
+  const selectedCompany = companies.find(company => company.name === value);
   
   // Fetch companies
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
         };
         
         setCompanies([...companies, createdCompany]);
-        onChange(createdCompany.company_id);
+        onChange(createdCompany.name);
         setNewCompanyOpen(false);
         resetNewCompanyForm();
         toast.success('Company created (locally)');
@@ -136,14 +136,14 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
       if (response.ok) {
         toast.success('Company created successfully');
         await loadCompanies();
-        onChange(result.company.company_id);
+        onChange(result.company.name);
         setNewCompanyOpen(false);
         resetNewCompanyForm();
       } else {
         toast.error(result.error || 'Failed to create company');
         // If company already exists, select it
         if (response.status === 409 && result.company) {
-          onChange(result.company.company_id);
+          onChange(result.company.name);
           setNewCompanyOpen(false);
         }
       }
@@ -164,13 +164,13 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <Select value={value?.toString()} onValueChange={(val) => onChange(val ? parseInt(val) : undefined)}>
+          <Select value={value} onValueChange={(val) => onChange(val)}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder={placeholder} />
             </SelectTrigger>
             <SelectContent>
               {companies.map((company) => (
-                <SelectItem key={company.company_id} value={company.company_id.toString()}>
+                <SelectItem key={company.company_id} value={company.name}>
                   {company.name} {company.is_partner && "(Partner)"}
                 </SelectItem>
               ))}
@@ -260,7 +260,7 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[95vw] sm:w-[400px] p-0">
-          <div className="p-2">
+          <div className="flex flex-col">
             <div className="flex items-center border-b px-3 mb-2">
               <Input 
                 className="h-9 border-none shadow-none focus-visible:ring-0 flex-1 px-0 py-2"
@@ -301,10 +301,10 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
                         "active:bg-accent/90 active:text-accent-foreground",
                         "touch-manipulation",
                         "transition-colors duration-200",
-                        value === company.company_id ? "bg-accent/50" : ""
+                        value === company.name ? "bg-accent/50" : ""
                       )}
                       onClick={() => {
-                        onChange(company.company_id);
+                        onChange(company.name);
                         setOpen(false);
                       }}
                     >
@@ -312,7 +312,7 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4 flex-shrink-0",
-                            value === company.company_id ? "opacity-100" : "opacity-0"
+                            value === company.name ? "opacity-100" : "opacity-0"
                           )}
                         />
                         <span>{company.name}</span>
@@ -328,7 +328,7 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
               )}
             </div>
             
-            <div className="border-t mt-2 pt-2">
+            <div className="border-t">
               <button
                 className="w-full text-left flex items-center gap-2 px-3 py-3 rounded-md text-sm
                            hover:bg-accent hover:text-accent-foreground 
@@ -369,7 +369,7 @@ export default function CompanySelect({ value, onChange, placeholder = "Select c
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4">
               <div className="space-y-2">
                 <Label htmlFor="company-industry">Industry</Label>
                 <Select

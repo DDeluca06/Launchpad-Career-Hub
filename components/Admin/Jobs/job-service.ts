@@ -50,7 +50,7 @@ export async function fetchJobsByArchiveStatus(archived: boolean = false) {
       return [];
     }
     
-    console.error(`Successfully fetched ${data.jobs.length} jobs`);
+    console.log(`Successfully fetched ${data.jobs.length} jobs`);
     return data.jobs;
   } catch (error: Error | unknown) {
     // Handle timeout error specifically
@@ -70,7 +70,7 @@ export async function createJob(jobData: NewJob) {
     // If we have a company name, use it, otherwise use a fallback based on company_id
     const transformedData = {
       title: jobData.title,
-      company: jobData.company || `Company ID: ${jobData.company_id}`, // Fallback if company name not provided
+      company: jobData.company,
       job_type: jobData.job_type,
       description: jobData.description,
       location: jobData.location,

@@ -16,7 +16,7 @@ export interface ExtendedJob {
   job_type: JobType;
   title: string;
   description: string | null;
-  company_id: number;
+  company: string;
   website: string | null;
   location: string | null;
   partner_id: number | null;
@@ -24,14 +24,11 @@ export interface ExtendedJob {
   tags: JobTag[];
   application_type: 'INTERNAL' | 'EXTERNAL';
   application_url: string | null;
-  companies?: {
-    name: string;
-    is_partner: boolean;
-    location?: string | null;
-    website?: string | null;
-  } | null;
   partners?: {
     name: string;
+    industry?: string;
+    location?: string;
+    website_url?: string;
   } | null;
   archived: boolean;
   // Add this for application count
@@ -94,8 +91,7 @@ export const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'APPRENTICESHIP'
 // For new job creation
 export interface NewJob {
   title: string;
-  company_id: number;
-  company?: string;
+  company: string;
   location: string;
   job_type: JobType;
   description: string;

@@ -185,8 +185,8 @@ export function JobModals({
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <CompanySelect 
-                        value={editingJob.company_id}
-                        onChange={(value) => setEditingJob({...editingJob, company_id: value as number})}
+                        value={editingJob.company}
+                        onChange={(value) => setEditingJob({...editingJob, company: value as string})}
                       />
                     </div>
                     <Button 
@@ -226,11 +226,11 @@ export function JobModals({
                       <SelectValue placeholder="Select job type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Full Time">Full Time</SelectItem>
-                      <SelectItem value="Part Time">Part Time</SelectItem>
-                      <SelectItem value="Contract">Contract</SelectItem>
-                      <SelectItem value="Internship">Internship</SelectItem>
-                      <SelectItem value="Apprenticeship">Apprenticeship</SelectItem>
+                      <SelectItem value="FULL_TIME">Full Time</SelectItem>
+                      <SelectItem value="PART_TIME">Part Time</SelectItem>
+                      <SelectItem value="CONTRACT">Contract</SelectItem>
+                      <SelectItem value="INTERNSHIP">Internship</SelectItem>
+                      <SelectItem value="APPRENTICESHIP">Apprenticeship</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -275,31 +275,6 @@ export function JobModals({
                   />
                 </div>
               )}
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-partner">Partner Organization</Label>
-                  <Select 
-                    value={editingJob.partner_id?.toString() || "null"}
-                    onValueChange={(value) => setEditingJob({
-                      ...editingJob, 
-                      partner_id: value === "null" ? null : parseInt(value)
-                    })}
-                  >
-                    <SelectTrigger id="edit-partner">
-                      <SelectValue placeholder="Select partner (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="null">None</SelectItem>
-                      {partners.map((partner) => (
-                        <SelectItem key={partner.partner_id} value={partner.partner_id.toString()}>
-                          {partner.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
               
               <div className="space-y-2">
                 <Label htmlFor="edit-description">Description</Label>
@@ -369,8 +344,8 @@ export function JobModals({
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <CompanySelect 
-                      value={newJob.company_id}
-                      onChange={(value) => setNewJob({...newJob, company_id: value as number})}
+                      value={newJob.company}
+                      onChange={(value) => setNewJob({...newJob, company: value as string})}
                     />
                   </div>
                   <Button 
@@ -411,11 +386,11 @@ export function JobModals({
                     <SelectValue placeholder="Select job type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Full Time">Full Time</SelectItem>
-                    <SelectItem value="Part Time">Part Time</SelectItem>
-                    <SelectItem value="Contract">Contract</SelectItem>
-                    <SelectItem value="Internship">Internship</SelectItem>
-                    <SelectItem value="Apprenticeship">Apprenticeship</SelectItem>
+                    <SelectItem value="FULL_TIME">Full Time</SelectItem>
+                    <SelectItem value="PART_TIME">Part Time</SelectItem>
+                    <SelectItem value="CONTRACT">Contract</SelectItem>
+                    <SelectItem value="INTERNSHIP">Internship</SelectItem>
+                    <SelectItem value="APPRENTICESHIP">Apprenticeship</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -433,26 +408,6 @@ export function JobModals({
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="partner">Partner Organization</Label>
-                <Select 
-                  value={newJob.partner_id?.toString() || "null"}
-                  onValueChange={(value) => setNewJob({
-                    ...newJob, 
-                    partner_id: value === "null" ? null : parseInt(value)
-                  })}
-                >
-                  <SelectTrigger id="partner">
-                    <SelectValue placeholder="Select partner (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="null">None</SelectItem>
-                    {partners.map((partner) => (
-                      <SelectItem key={partner.partner_id} value={partner.partner_id.toString()}>
-                        {partner.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
             
@@ -757,9 +712,9 @@ export function JobModals({
                     toast.success("Company created successfully");
                     // Update the job form with the new company
                     if (isAddJobModalOpen) {
-                      setNewJob({...newJob, company_id: result.company.company_id});
+                      setNewJob({...newJob, company: result.company.name});
                     } else if (isEditModalOpen && editingJob) {
-                      setEditingJob({...editingJob, company_id: result.company.company_id});
+                      setEditingJob({...editingJob, company: result.company.name});
                     }
                     
                     // Refresh companies list
@@ -775,9 +730,9 @@ export function JobModals({
                     // If company already exists, use it (specific error case)
                     if (response.status === 409 && result.company) {
                       if (isAddJobModalOpen) {
-                        setNewJob({...newJob, company_id: result.company.company_id});
+                        setNewJob({...newJob, company: result.company.name});
                       } else if (isEditModalOpen && editingJob) {
-                        setEditingJob({...editingJob, company_id: result.company.company_id});
+                        setEditingJob({...editingJob, company: result.company.name});
                       }
                       setIsCompanyDialogOpen(false);
                     }

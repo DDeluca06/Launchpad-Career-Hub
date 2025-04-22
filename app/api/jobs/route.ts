@@ -196,7 +196,10 @@ export async function GET(request: NextRequest) {
         },
         partners: {
           select: {
-            name: true
+            name: true,
+            industry: true,
+            location: true,
+            website_url: true
           }
         },
         ...(includeApplications ? {
