@@ -52,13 +52,15 @@ export async function POST(request: Request) {
     const sessionJson = JSON.stringify(sessionData);
     const sessionId = Buffer.from(sessionJson).toString('base64');
 
-    // Get the domain from request URL for production environments
-    const requestUrl = new URL(request.url);
-    const domain = process.env.NODE_ENV === 'production' 
-      ? requestUrl.hostname 
-      : undefined;
+    // Simple cookie options that work on both localhost and IP addresses
+    const cookieOptions = {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/',
+      sameSite: 'lax' as const,
+    };
     
-    console.log('Setting cookie with domain:', domain);
+    console.log('Setting cookie with simple options:', JSON.stringify(cookieOptions));
 
     // Create response with session cookie
     const response = NextResponse.json({
@@ -71,15 +73,8 @@ export async function POST(request: Request) {
       }
     }, { status: 201 });
     
-    // Set cookie directly on the response with improved settings for production
-    response.cookies.set('session-id', sessionId, {
-      httpOnly: true, 
-      maxAge: 7 * 24 * 60 * 60,
-      path: '/',
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      domain: domain,
-    });
+    // Set cookie with simplified settings that work in all environments
+    response.cookies.set('session-id', sessionId, cookieOptions);
     
     return response;
   } catch (error: unknown) {

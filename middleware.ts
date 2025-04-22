@@ -22,10 +22,13 @@ const studentPaths = ["/applicant"];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  console.log("Middleware processing path:", pathname);
+
   // Check if the path is public - allow access without session
   if (
     publicPaths.some((path) => pathname === path || pathname.startsWith(path + "/"))
   ) {
+    console.log("Public path access granted:", pathname);
     return NextResponse.next();
   }
 
@@ -33,20 +36,26 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get("session-id")?.value;
 
   if (!sessionCookie) {
-    // No session cookie, redirect to root
-    const rootUrl = new URL("/", request.url);
-    return NextResponse.redirect(rootUrl);
+    console.log("No session cookie found, redirecting to login");
+    // No session cookie, redirect to login page directly
+    const loginUrl = new URL("/login", request.url);
+    return NextResponse.redirect(loginUrl);
   }
+
+  console.log("Session cookie found, length:", sessionCookie.length);
 
   try {
     // Decode session
     const decodedString = Buffer.from(sessionCookie, "base64").toString();
     const sessionData = JSON.parse(decodedString);
 
+    console.log("Session data parsed successfully, user role:", sessionData.isAdmin ? "admin" : "student");
+
     // Admins can only access admin routes
     if (sessionData.isAdmin) {
       // Admin trying to access student routes, redirect to admin dashboard
       if (studentPaths.some((path: string) => pathname === path || pathname.startsWith(path + "/"))) {
+        console.log("Admin trying to access student route, redirecting to admin dashboard");
         const adminDashboard = new URL("/admin/dashboard", request.url);
         return NextResponse.redirect(adminDashboard);
       }
@@ -55,15 +64,17 @@ export async function middleware(request: NextRequest) {
     else {
       // Student trying to access admin routes, redirect to student dashboard
       if (adminPaths.some((path: string) => pathname === path || pathname.startsWith(path + "/"))) {
+        console.log("Student trying to access admin route, redirecting to student dashboard");
         const studentDashboard = new URL("/applicant/dashboard", request.url);
         return NextResponse.redirect(studentDashboard);
       }
     }
 
     // Continue with valid session
+    console.log("Access granted to protected route:", pathname);
     return NextResponse.next();
   } catch (error) {
-    console.error("Middleware error:", error);
+    console.error("Middleware error parsing session:", error);
     // Invalid session format, redirect to login
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
@@ -83,4 +94,4 @@ export const config = {
      */
     "/((?!_next/static|_next/image|favicon.ico|images|public).*)",
   ],
-}; 
+};

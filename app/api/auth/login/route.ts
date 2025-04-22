@@ -87,23 +87,18 @@ export async function POST(request: Request) {
       }
     });
     
-    // Get the domain from the request URL
-    const requestUrl = new URL(request.url);
-    const domain = process.env.NODE_ENV === 'production' 
-      ? requestUrl.hostname 
-      : undefined;
-    
-    console.log('Setting cookie with domain:', domain);
-    
-    // Set cookie with improved settings for production
-    response.cookies.set('session-id', sessionId, {
+    // Basic cookie options that work everywhere
+    const cookieOptions = {
       httpOnly: true, 
       maxAge: 7 * 24 * 60 * 60, // 7 days
       path: '/',
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      domain: domain, // Add domain parameter for production
-    });
+      sameSite: 'lax' as const,
+    };
+    
+    console.log('Setting cookie with simple options:', JSON.stringify(cookieOptions));
+    
+    // Set cookie with simplified settings that work in all environments
+    response.cookies.set('session-id', sessionId, cookieOptions);
     
     return response;
     
