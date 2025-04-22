@@ -28,5 +28,5 @@ const prismaClientSingleton = () => {
 }
 
 export const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
-
+console.log('Prisma client initialized:', prisma)
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma 
