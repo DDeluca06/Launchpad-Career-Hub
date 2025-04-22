@@ -290,16 +290,6 @@ export function ApplicantProfileModal({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-1 border-[#8eb651] text-[#8eb651] hover:bg-[#e3edd3]"
-                  onClick={() => setRecommendJobModalOpen(true)}
-                >
-                  <BriefcaseIcon className="h-4 w-4" />
-                  Recommend Job
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
                   className={`gap-1 ${
                     applicant.isArchived
                       ? "bg-green-50 text-green-600 border-green-200 hover:bg-green-100 hover:text-green-700"
@@ -344,6 +334,16 @@ export function ApplicantProfileModal({
                     <KeyRound className="h-4 w-4" />
                   )}
                   Reset Password
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 border-[#8eb651] text-[#8eb651] hover:bg-[#e3edd3]"
+                  onClick={() => setRecommendJobModalOpen(true)}
+                >
+                  <BriefcaseIcon className="h-4 w-4" />
+                  Recommend Job
                 </Button>
               </div>
             </div>

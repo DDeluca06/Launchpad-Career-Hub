@@ -433,7 +433,6 @@ export default function ApplicantsPage() {
                 key={applicant.id}
                 applicant={applicant}
                 onViewProfile={handleViewProfile}
-                currentUserId={session?.user?.id ? parseInt(session.user.id) : undefined}
               />
             ))
           ) : (
