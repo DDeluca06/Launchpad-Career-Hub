@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Search, Users, FileText } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/navigation/tabs";
 import { toast } from "@/components/ui/feedback/use-toast";
+import { useSession } from "next-auth/react";
 
 // Import our components
 import { ApplicantCard } from "@/components/Admin/Applicants/ApplicantCard";
@@ -35,6 +36,7 @@ const PROGRAM_TABS = ["ALL", "FOUNDATIONS", "101", "LIFTOFF", "ALUMNI"] as const
  * @returns The applicant management page rendered as JSX.
  */
 export default function ApplicantsPage() {
+  const { data: session } = useSession();
   // State for applicants data
   const [filteredApplicants, setFilteredApplicants] = useState<ApplicantWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -431,6 +433,7 @@ export default function ApplicantsPage() {
                 key={applicant.id}
                 applicant={applicant}
                 onViewProfile={handleViewProfile}
+                currentUserId={session?.user?.id ? parseInt(session.user.id) : undefined}
               />
             ))
           ) : (
@@ -490,6 +493,7 @@ export default function ApplicantsPage() {
         loadingApplications={loadingApplicantJobs}
         onRefresh={loadApplicants}
         onEdit={handleEditApplicant}
+        currentUserId={session?.user?.id ? parseInt(session.user.id) : undefined}
       />
     </DashboardLayout>
   );

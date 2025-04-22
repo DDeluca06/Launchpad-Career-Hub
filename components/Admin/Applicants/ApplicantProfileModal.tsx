@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/basic/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic/card";
 import { MultiPurposeModal } from "@/components/ui/overlay/multi-purpose-modal";
 import { Skeleton } from "@/components/ui/feedback/skeleton";
-import { Mail, FileText, Archive, RefreshCw, Download, KeyRound } from "lucide-react";
+import { Mail, FileText, Archive, RefreshCw, Download, KeyRound, BriefcaseIcon } from "lucide-react";
 import { Button } from "@/components/ui/basic/button";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { ApplicantWithDetails, JobApplication } from "./types";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/overlay/dialog";
 import { Input } from "@/components/ui/form/input";
 import { Label } from "@/components/ui/basic/label";
+import { JobRecommendationModal } from "@/components/Admin/Settings/JobRecommendationModal";
 
 interface ApplicantProfileModalProps {
   open: boolean;
@@ -31,6 +32,7 @@ interface ApplicantProfileModalProps {
   loadingApplications: boolean;
   onRefresh?: () => void;
   onEdit?: (applicant: ApplicantWithDetails) => void;
+  currentUserId?: number;
 }
 
 /**
@@ -44,12 +46,14 @@ export function ApplicantProfileModal({
   loadingApplications,
   onRefresh,
   onEdit,
+  currentUserId,
 }: ApplicantProfileModalProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isRetrievingResume, setIsRetrievingResume] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [recommendJobModalOpen, setRecommendJobModalOpen] = useState(false);
   
   if (!applicant) return null;
   
@@ -272,7 +276,7 @@ export function ApplicantProfileModal({
               </div>
               
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 mt-3">
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
@@ -282,6 +286,17 @@ export function ApplicantProfileModal({
                   <FileText className="h-4 w-4" />
                   Edit
                 </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 border-[#8eb651] text-[#8eb651] hover:bg-[#e3edd3]"
+                  onClick={() => setRecommendJobModalOpen(true)}
+                >
+                  <BriefcaseIcon className="h-4 w-4" />
+                  Recommend Job
+                </Button>
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -295,8 +310,6 @@ export function ApplicantProfileModal({
                 >
                   {isUpdating ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : applicant.isArchived ? (
-                    <Archive className="h-4 w-4" />
                   ) : (
                     <Archive className="h-4 w-4" />
                   )}
@@ -511,6 +524,19 @@ export function ApplicantProfileModal({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Job Recommendation Modal */}
+      <JobRecommendationModal
+        open={recommendJobModalOpen}
+        onClose={() => setRecommendJobModalOpen(false)}
+        user={{
+          id: applicant.id,
+          firstName: applicant.firstName,
+          lastName: applicant.lastName,
+          email: applicant.email
+        }}
+        adminId={currentUserId}
+      />
     </>
   );
 } 
