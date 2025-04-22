@@ -398,18 +398,20 @@ export function UserAccessManager({
                                 <KeyRound className="h-4 w-4" />
                               </Button>
 
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openApplicationsDialog(user)}
-                                className={`p-2 ${hasApplicationNotes ? 'border-blue-500' : ''}`}
-                                title="View Applications and Notes"
-                              >
-                                <FileText className={`h-4 w-4 ${hasApplicationNotes ? 'text-blue-500' : ''}`} />
-                                {hasApplicationNotes && (
-                                  <span className="absolute -top-1 -right-1 h-2 w-2 bg-blue-500 rounded-full"></span>
-                                )}
-                              </Button>
+                              {!user.isAdmin && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openApplicationsDialog(user)}
+                                  className={`p-2 ${hasApplicationNotes ? 'border-blue-500' : ''}`}
+                                  title="View Applications and Notes"
+                                >
+                                  <FileText className={`h-4 w-4 ${hasApplicationNotes ? 'text-blue-500' : ''}`} />
+                                  {hasApplicationNotes && (
+                                    <span className="absolute -top-1 -right-1 h-2 w-2 bg-blue-500 rounded-full"></span>
+                                  )}
+                                </Button>
+                              )}
 
                               {/* New button for recommending jobs */}
                               {!user.isAdmin && (
