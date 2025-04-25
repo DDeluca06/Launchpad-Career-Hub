@@ -53,7 +53,7 @@ export function DashboardLayout({
   const [scrolled, setScrolled] = useState(false);
   const [userName, setUserName] = useState("User");
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications] = useState<Notification[]>([]);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const router = useRouter();
   
