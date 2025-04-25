@@ -79,7 +79,7 @@ export function ApplicantProfileModal({
     
     try {
       setIsUpdating(true);
-      const response = await fetch(`/api/applicants?id=${applicant.id}&archive=true`, {
+      const response = await fetch(`/api/users?id=${applicant.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -94,6 +94,12 @@ export function ApplicantProfileModal({
         throw new Error(errorData.message || 'Failed to update archive status');
       }
       
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update archive status');
+      }
+      
       // Show success message
       toast({
         title: "Success",
@@ -101,6 +107,11 @@ export function ApplicantProfileModal({
           ? `${applicant.firstName} ${applicant.lastName} has been unarchived` 
           : `${applicant.firstName} ${applicant.lastName} has been archived`,
       });
+      
+      // Update the applicant's archive status in the modal
+      if (applicant) {
+        applicant.isArchived = !applicant.isArchived;
+      }
       
       // Refresh the data
       if (onRefresh) {

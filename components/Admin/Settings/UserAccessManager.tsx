@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/basic/switch";
 import { Badge } from "@/components/ui/basic/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/basic/avatar";
 import { Card, CardContent } from "@/components/ui/basic/card";
-import { Shield, Search, UserPlus, KeyRound, Tag } from "lucide-react";
+import { Shield, Search, UserPlus, KeyRound, Tag, Archive, RefreshCw } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { User, UserAccessSettingsProps } from "./types";
@@ -49,12 +49,49 @@ export function UserAccessManager({
     setLocalUsers(users);
   }, [users]);
 
+  // Function to refresh the user list
+  const refreshUserList = useCallback(async () => {
+    try {
+      const response = await fetch('/api/users?includeApplications=true');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setLocalUsers(data.users);
+      } else {
+        throw new Error(data.error || 'Unknown error occurred');
+      }
+    } catch (error) {
+      console.error('Error refreshing users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh user list. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
   // Filter users by search query and tab
   const filteredUsers = localUsers.filter((user) => {
     const matchesSearch = `${user.firstName} ${user.lastName} ${user.email}`
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     
+    // Always exclude archived users unless we're in the archived tab
+    if (activeTab === "archived") {
+      return matchesSearch && user.isArchived;
+    }
+    
+    // For all other tabs, exclude archived users
+    if (user.isArchived) {
+      return false;
+    }
+    
+    // Then apply the specific tab filter
     if (activeTab === "all") return matchesSearch;
     if (activeTab === "admins") return matchesSearch && user.isAdmin;
     if (activeTab === "applicants") return matchesSearch && !user.isAdmin;
@@ -113,6 +150,53 @@ export function UserAccessManager({
       }
     } catch {
       showToast("Error", "Failed to update admin status. Please try again.", "destructive");
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  // Toggle archive status for a user
+  const handleToggleArchive = async (userId: number, currentArchiveStatus: boolean) => {
+    setIsUpdating(userId);
+    
+    try {
+      const response = await fetch('/api/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isArchived: !currentArchiveStatus
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update archive status');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update local state
+        const updatedUsers = localUsers.map(user => 
+          user.id === userId 
+            ? {...user, isArchived: !currentArchiveStatus} 
+            : user
+        );
+        
+        setLocalUsers(updatedUsers);
+        
+        // Notify parent component if callback exists
+        if (onUserUpdate && data.user) {
+          onUserUpdate(data.user);
+        }
+        
+        showToast("Success", `User ${!currentArchiveStatus ? 'archived' : 'unarchived'} successfully`);
+      } else {
+        throw new Error(data.error || 'Unknown error occurred');
+      }
+    } catch {
+      showToast("Error", "Failed to update archive status. Please try again.", "destructive");
     } finally {
       setIsUpdating(null);
     }
@@ -212,8 +296,6 @@ export function UserAccessManager({
     }
   };
 
-
-
   const convertToApplicantWithDetails = (user: User): ApplicantWithDetails => {
     // Calculate application status counts from user's applications
     const applicationStatusCount = {
@@ -237,7 +319,7 @@ export function UserAccessManager({
       role: user.isAdmin ? 'admin' : 'applicant',
       applications: user.applications?.length || 0,
       program: user.program || 'ONE_ZERO_ONE',
-      isArchived: false,
+      isArchived: user.isArchived,
       applicationStatusCount
     };
   };
@@ -315,10 +397,11 @@ export function UserAccessManager({
               </div>
               
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
-                <TabsList className="grid grid-cols-3 w-full sm:w-auto">
+                <TabsList className="grid grid-cols-4 w-full sm:w-auto">
                   <TabsTrigger value="all">All Users</TabsTrigger>
                   <TabsTrigger value="admins">Admins</TabsTrigger>
                   <TabsTrigger value="applicants">Applicants</TabsTrigger>
+                  <TabsTrigger value="archived">Archived</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
@@ -376,7 +459,9 @@ export function UserAccessManager({
                       return (
                         <tr
                           key={user.id}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                            user.isArchived ? 'bg-gray-50 dark:bg-gray-800/50' : ''
+                          }`}
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center">
@@ -395,27 +480,38 @@ export function UserAccessManager({
                             {user.email}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <Badge
-                              variant={user.isAdmin ? "default" : "outline"}
-                              className="text-xs shadow-sm"
-                              style={{
-                                backgroundColor: user.isAdmin ? extendedPalette.primaryBlue : 'transparent',
-                                borderColor: user.isAdmin ? extendedPalette.primaryBlue : extendedPalette.darkGray,
-                                color: user.isAdmin ? 'white' : extendedPalette.darkGray
-                              }}
-                            >
-                              {user.isAdmin ? (
-                                <>
-                                  <Shield className="h-3 w-3 mr-1" />
-                                  Admin
-                                </>
-                              ) : (
-                                <>
-                                  <Tag className="h-3 w-3 mr-1" />
-                                  Applicant
-                                </>
+                            <div className="flex flex-col items-center gap-1">
+                              <Badge
+                                variant={user.isAdmin ? "default" : "outline"}
+                                className="text-xs shadow-sm"
+                                style={{
+                                  backgroundColor: user.isAdmin ? extendedPalette.primaryBlue : 'transparent',
+                                  borderColor: user.isAdmin ? extendedPalette.primaryBlue : extendedPalette.darkGray,
+                                  color: user.isAdmin ? 'white' : extendedPalette.darkGray
+                                }}
+                              >
+                                {user.isAdmin ? (
+                                  <>
+                                    <Shield className="h-3 w-3 mr-1" />
+                                    Admin
+                                  </>
+                                ) : (
+                                  <>
+                                    <Tag className="h-3 w-3 mr-1" />
+                                    Applicant
+                                  </>
+                                )}
+                              </Badge>
+                              {user.isArchived && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs shadow-sm bg-red-50 text-red-600 border-red-200"
+                                >
+                                  <Archive className="h-3 w-3 mr-1" />
+                                  Archived
+                                </Badge>
                               )}
-                            </Badge>
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-center">
                             <Switch
@@ -445,9 +541,9 @@ export function UserAccessManager({
                                   onClick={() => openProfileModal(user)}
                                   className="shrink-0 border-[#0faec9] text-[#0faec9] hover:bg-[#c3ebf1]"
                                   title="View Profile"
-                              >
-                                View Profile
-                              </Button>
+                                >
+                                  View Profile
+                                </Button>
                               )}
                             </div>
                           </td>
@@ -586,11 +682,7 @@ export function UserAccessManager({
           applicant={selectedUserForProfile}
           jobApplications={applicantJobs}
           loadingApplications={loadingApplicantJobs}
-          onRefresh={() => {
-            if (selectedUserForProfile) {
-              loadApplicantJobs(selectedUserForProfile.id);
-            }
-          }}
+          onRefresh={refreshUserList}
           currentUserId={currentUserId}
         />
       )}

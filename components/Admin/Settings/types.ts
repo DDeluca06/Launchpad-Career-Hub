@@ -8,6 +8,7 @@ export interface User {
   lastName: string;
   isAdmin: boolean;
   program: string;
+  isArchived: boolean;
   applications?: Application[];
 }
 
