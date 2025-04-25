@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
         last_name: true,
         is_admin: true,
         program: true,
+        is_archived: true,
         applications: {
           select: {
             application_id: true,
@@ -65,6 +66,7 @@ export async function GET(req: NextRequest) {
       lastName: user.last_name || "",
       isAdmin: user.is_admin ?? false,
       program: user.program || "",
+      isArchived: user.is_archived,
       applications: user.applications.map(app => ({
         id: app.application_id,
         jobId: app.job_id,
@@ -98,8 +100,45 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const userId = parseInt(session.user.id);
+    const searchParams = new URL(request.url).searchParams;
+    const userId = searchParams.get('id') ? parseInt(searchParams.get('id')!) : parseInt(session.user.id);
+    const isArchiveOperation = body.isArchived !== undefined;
 
+    // If this is an archive operation, update the archive status
+    if (isArchiveOperation) {
+      const updatedUser = await prisma.users.update({
+        where: { user_id: userId },
+        data: {
+          is_archived: body.isArchived
+        },
+        select: {
+          user_id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+          is_admin: true,
+          program: true,
+          created_at: true,
+          is_archived: true
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: updatedUser.user_id,
+          email: updatedUser.email,
+          firstName: updatedUser.first_name,
+          lastName: updatedUser.last_name,
+          isAdmin: updatedUser.is_admin ?? false,
+          program: updatedUser.program ?? '',
+          createdAt: updatedUser.created_at,
+          isArchived: updatedUser.is_archived
+        }
+      });
+    }
+
+    // For regular profile updates
     // Validate required fields
     if (!body.email) {
       return NextResponse.json(
