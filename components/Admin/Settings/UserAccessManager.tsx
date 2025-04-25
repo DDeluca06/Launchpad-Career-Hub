@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/basic/switch";
 import { Badge } from "@/components/ui/basic/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/basic/avatar";
 import { Card, CardContent } from "@/components/ui/basic/card";
-import { Shield, Search, UserPlus, KeyRound, Tag, Archive, RefreshCw } from "lucide-react";
+import { Shield, Search, UserPlus, KeyRound, Tag, Archive } from "lucide-react";
 import { extendedPalette } from "@/lib/colors";
 import { toast } from "@/components/ui/feedback/use-toast";
 import { User, UserAccessSettingsProps } from "./types";
@@ -150,53 +150,6 @@ export function UserAccessManager({
       }
     } catch {
       showToast("Error", "Failed to update admin status. Please try again.", "destructive");
-    } finally {
-      setIsUpdating(null);
-    }
-  };
-
-  // Toggle archive status for a user
-  const handleToggleArchive = async (userId: number, currentArchiveStatus: boolean) => {
-    setIsUpdating(userId);
-    
-    try {
-      const response = await fetch('/api/users', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          isArchived: !currentArchiveStatus
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update archive status');
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        // Update local state
-        const updatedUsers = localUsers.map(user => 
-          user.id === userId 
-            ? {...user, isArchived: !currentArchiveStatus} 
-            : user
-        );
-        
-        setLocalUsers(updatedUsers);
-        
-        // Notify parent component if callback exists
-        if (onUserUpdate && data.user) {
-          onUserUpdate(data.user);
-        }
-        
-        showToast("Success", `User ${!currentArchiveStatus ? 'archived' : 'unarchived'} successfully`);
-      } else {
-        throw new Error(data.error || 'Unknown error occurred');
-      }
-    } catch {
-      showToast("Error", "Failed to update archive status. Please try again.", "destructive");
     } finally {
       setIsUpdating(null);
     }

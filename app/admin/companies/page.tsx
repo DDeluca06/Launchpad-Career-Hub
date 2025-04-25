@@ -64,7 +64,7 @@ export default function CompaniesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedCompany]);
   
   // Fetch companies on load
   useEffect(() => {
