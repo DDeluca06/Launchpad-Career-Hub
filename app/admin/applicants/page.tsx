@@ -217,29 +217,47 @@ export default function ApplicantsPage() {
       const formData = new FormData();
       formData.append('file', csvFile);
       
-      const response = await fetch('/api/applicants/bulk', {
+      const response = await fetch('/api/applicants', {
         method: 'POST',
         body: formData,
       });
       
       if (!response.ok) {
-        throw new Error('Failed to upload users');
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to upload users');
       }
+      
+      const data = await response.json();
       
       setBulkUploadModalOpen(false);
       setCsvFile(null);
       
       await loadApplicants();
       
-      toast({
-        title: "Success",
-        description: "Users were uploaded successfully.",
-      });
+      // Show detailed results
+      if (data.results) {
+        const { success, failed, errors } = data.results;
+        toast({
+          title: "Upload Complete",
+          description: `Successfully created ${success} users. ${failed} failed.`,
+          variant: failed > 0 ? "destructive" : "default",
+        });
+        
+        // Show detailed errors if any
+        if (errors.length > 0) {
+          console.error('Upload errors:', errors);
+        }
+      } else {
+        toast({
+          title: "Success",
+          description: "Users were uploaded successfully.",
+        });
+      }
     } catch (error) {
       console.error("Error uploading users:", error);
       toast({
         title: "Error",
-        description: "Failed to upload users. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to upload users. Please try again.",
         variant: "destructive",
       });
     } finally {

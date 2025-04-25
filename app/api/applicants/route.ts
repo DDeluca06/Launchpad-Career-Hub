@@ -417,25 +417,110 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Log the incoming request
-    console.log('Received applicant creation request');
-    
-    // Safely parse the request body
-    let body;
-    try {
-      body = await request.json();
-      console.log('Request body parsed successfully:', body);
-    } catch (parseError) {
-      console.error('Error parsing request body:', parseError);
-      return NextResponse.json(
-        { error: 'Invalid request body', details: 'Could not parse JSON data' },
-        { status: 400 }
-      );
+    // Check if this is a bulk upload request
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      // Handle bulk upload
+      const formData = await request.formData();
+      const file = formData.get('file') as File;
+      
+      if (!file) {
+        return NextResponse.json(
+          { error: 'No file provided' },
+          { status: 400 }
+        );
+      }
+
+      // Read and parse the CSV file
+      const text = await file.text();
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+      
+      // Get headers and validate
+      const headers = lines[0].split(',').map(h => h.trim());
+      const requiredHeaders = ['firstName', 'lastName', 'email', 'program'];
+      const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+      
+      if (missingHeaders.length > 0) {
+        return NextResponse.json(
+          { error: `Missing required headers: ${missingHeaders.join(', ')}` },
+          { status: 400 }
+        );
+      }
+
+      // Process records
+      const results = {
+        success: 0,
+        failed: 0,
+        errors: [] as string[]
+      };
+
+      // Process each line after headers
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+
+        const values = line.split(',').map(v => v.trim());
+        const record = {
+          firstName: values[0],
+          lastName: values[1],
+          email: values[2],
+          program: values[3]
+        };
+
+        try {
+          // Check if email already exists
+          const existingUser = await prisma.users.findFirst({
+            where: { email: record.email }
+          });
+
+          if (existingUser) {
+            results.failed++;
+            results.errors.push(`Email ${record.email} already exists`);
+            continue;
+          }
+
+          // Format program
+          let program = record.program.toUpperCase();
+          if (program === '101') {
+            program = 'ONE_ZERO_ONE';
+          }
+
+          // Hash password
+          const saltRounds = 10;
+          const passwordHash = await bcrypt.hash('Changeme', saltRounds);
+
+          // Create user
+          await prisma.users.create({
+            data: {
+              email: record.email,
+              first_name: record.firstName,
+              last_name: record.lastName,
+              password_hash: passwordHash,
+              is_admin: false,
+              program: program as ProgramType,
+              is_active: true,
+              is_archived: false
+            }
+          });
+
+          results.success++;
+        } catch (error) {
+          results.failed++;
+          results.errors.push(`Failed to create user ${record.email}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        results
+      });
     }
+
+    // Handle single user creation
+    const body = await request.json();
     
     // Validate required fields
     if (!body.email || !body.firstName || !body.lastName) {
-      console.error('Missing required fields in request:', body);
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
