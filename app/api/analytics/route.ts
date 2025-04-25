@@ -96,6 +96,9 @@ export async function GET(request: Request) {
               where: {
                 applied_at: {
                   gte: startDate
+                },
+                users: {
+                  is_archived: false
                 }
               },
               select: {
@@ -164,7 +167,9 @@ export async function GET(request: Request) {
           applied_at: {
             gte: startDate
           },
-          isArchived: false
+          users: {
+            is_archived: false
+          }
         },
         select: {
           status: true,

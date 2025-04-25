@@ -22,19 +22,24 @@ export async function GET() {
       activeInterviews,
       partnerCompanies
     ] = await Promise.all([
-      // Count total jobs
-      prisma.jobs.count(),
+      // Count total active jobs (non-archived)
+      prisma.jobs.count({
+        where: {
+          archived: false
+        }
+      }),
       
-      // Count total applications from non-admin users
+      // Count total applications from non-admin, non-archived users
       prisma.applications.count({
         where: {
           users: {
-            is_admin: false
+            is_admin: false,
+            is_archived: false
           }
         }
       }),
       
-      // Count applications with interview-related statuses from non-admin users
+      // Count applications with interview-related statuses from non-admin, non-archived users
       prisma.applications.count({
         where: {
           OR: [
@@ -43,7 +48,8 @@ export async function GET() {
             { status: ApplicationStatus.FINAL_INTERVIEW_STAGE }
           ],
           users: {
-            is_admin: false
+            is_admin: false,
+            is_archived: false
           }
         }
       }),
