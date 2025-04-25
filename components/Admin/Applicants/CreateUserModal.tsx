@@ -79,7 +79,6 @@ export function CreateUserModal({
               setNewUser((prev) => ({ ...prev, email: e.target.value }))
             }
             placeholder="john.doe@example.com"
-            disabled={isEditMode}
           />
         </div>
 
